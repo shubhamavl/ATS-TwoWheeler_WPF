@@ -61,7 +61,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore SuspensionPCB_CAN_WPF.sln
+        run: dotnet restore ATS_TwoWheeler_WPF.sln
 
       - name: Derive version from tag
         id: version
@@ -73,7 +73,7 @@ jobs:
 
       - name: Publish main WPF application (portable, win-x64)
         run: >
-          dotnet publish SuspensionPCB_CAN_WPF.csproj
+          dotnet publish ATS_TwoWheeler_WPF.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
@@ -85,7 +85,7 @@ jobs:
 
       - name: Publish updater helper (portable, win-x64)
         run: >
-          dotnet publish SuspensionPCB_Updater/SuspensionPCB_Updater.csproj
+          dotnet publish ATS_TwoWheeler_Updater/ATS_TwoWheeler_Updater.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
@@ -99,21 +99,21 @@ jobs:
         shell: pwsh
         run: |
           $APP_PUBLISH = "bin/Release/net8.0-windows/win-x64/publish"
-          $UPDATER_PUBLISH = "SuspensionPCB_Updater/bin/Release/net8.0-windows/win-x64/publish"
-          Copy-Item "$UPDATER_PUBLISH/SuspensionPCB_Updater.exe" "$APP_PUBLISH/SuspensionPCB_Updater.exe"
+          $UPDATER_PUBLISH = "ATS_TwoWheeler_Updater/bin/Release/net8.0-windows/win-x64/publish"
+          Copy-Item "$UPDATER_PUBLISH/ATS_TwoWheeler_Updater.exe" "$APP_PUBLISH/ATS_TwoWheeler_Updater.exe"
 
       - name: Create portable ZIP package
         shell: pwsh
         run: |
           $APP_PUBLISH = "bin/Release/net8.0-windows/win-x64/publish"
-          $ZIP_NAME = "SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip"
+          $ZIP_NAME = "ATS_TwoWheeler_WPF_Portable_${{ github.ref_name }}.zip"
           Compress-Archive -Path "$APP_PUBLISH/*" -DestinationPath $ZIP_NAME -Force
 
       - name: Generate SHA-256 hash for security verification
         id: hash
         shell: pwsh
         run: |
-          $ZIP_NAME = "SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip"
+          $ZIP_NAME = "ATS_TwoWheeler_WPF_Portable_${{ github.ref_name }}.zip"
           $SHA256 = (Get-FileHash -Path $ZIP_NAME -Algorithm SHA256).Hash.ToLower()
           echo "hash=$SHA256" >> $env:GITHUB_OUTPUT
           Write-Host "SHA-256: $SHA256"
@@ -194,11 +194,11 @@ jobs:
             "To verify the download integrity, compare the SHA-256 hash of your downloaded file with the hash above.`n`n" +
             "**Verification command (Windows PowerShell):**`n" +
             "``````powershell`n" +
-            "Get-FileHash -Path `"SuspensionPCB_CAN_WPF_Portable_$TAG_NAME.zip`" -Algorithm SHA256`n" +
+            "Get-FileHash -Path `"ATS_TwoWheeler_WPF_Portable_$TAG_NAME.zip`" -Algorithm SHA256`n" +
             "```````n`n" +
             "**Verification command (Linux/Mac):**`n" +
             "``````bash`n" +
-            "sha256sum SuspensionPCB_CAN_WPF_Portable_$TAG_NAME.zip`n" +
+            "sha256sum ATS_TwoWheeler_WPF_Portable_$TAG_NAME.zip`n" +
             "```````n"
           
           $body += $securitySection
@@ -215,8 +215,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           body_path: release_body.txt
           files: |
-            SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip
-            SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip.sha256
+            ATS_TwoWheeler_WPF_Portable_${{ github.ref_name }}.zip
+            ATS_TwoWheeler_WPF_Portable_${{ github.ref_name }}.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
