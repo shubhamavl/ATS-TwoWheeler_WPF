@@ -1,0 +1,135 @@
+## .NET / Visual Studio / WPF
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build outputs
+publish/
+**/PublishProfiles/
+*.cache
+*.pidb
+
+# Generated files (WPF/XAML)
+*.baml
+*.g.cs
+*.g.i.cs
+*.AssemblyInfo.cs
+*.AssemblyAttributes.cs
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nuget.props
+*.nuget.targets
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Build logs
+*.log
+*.tlog
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+*.swp
+*.swo
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+$RECYCLE.BIN/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+# Database files
+*.db
+*.sqlite
+*.mdf
+*.ldf
+
+# Mono auto generated files
+mono_crash.*
+
+## Project-specific
+
+# Generated data outputs
+*.csv
+*.txt
+
+# Application configuration files (user-specific, can be regenerated)
+*.json
+config.json
+settings.json
+app_settings.json
+tare_config.json
+TwoWheeler_Config.json
+
+# Log files
+logs/
+Logs/
+
+# Portable build output
+ATS_TwoWheeler_Portable/

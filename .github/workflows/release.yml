@@ -1,0 +1,222 @@
+name: Build and Release Portable App
+
+on:
+  push:
+    tags:
+      - 'v*'   # e.g. v1.0.0, v1.1.3
+
+permissions:
+  contents: write   # needed to create releases and upload assets
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    env:
+      DOTNET_VERSION: '8.0.x'
+      # VERSION will be derived from the Git tag name (e.g. v1.2.3 -> 1.2.3)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # fetch full history to check branch
+
+      - name: Verify tag is on master branch
+        shell: pwsh
+        run: |
+          $TAG_NAME = "${{ github.ref_name }}"
+          Write-Host "Checking if tag $TAG_NAME is on master branch..."
+          
+          # Get the commit SHA that the tag points to
+          $TAG_COMMIT = git rev-parse "$TAG_NAME`^{commit}"
+          
+          # Check if this commit is on the master branch
+          $branches = git branch -r --contains $TAG_COMMIT
+          if ($branches -match "origin/master") {
+            Write-Host "✓ Tag $TAG_NAME is on master branch. Proceeding with release."
+          } elseif ($branches -match "origin/main") {
+            Write-Host "✓ Tag $TAG_NAME is on main branch. Proceeding with release."
+          } else {
+            Write-Host "❌ ERROR: Tag $TAG_NAME is NOT on master/main branch!"
+            Write-Host ""
+            Write-Host "Release tags can only be created on the master/main branch."
+            Write-Host "This prevents accidental releases from feature branches."
+            Write-Host ""
+            Write-Host "To fix this:"
+            Write-Host "  1. Make sure your changes are merged to master/main"
+            Write-Host "  2. Checkout master/main: git checkout master"
+            Write-Host "  3. Pull latest: git pull origin master"
+            Write-Host "  4. Create tag on master: git tag $TAG_NAME"
+            Write-Host "  5. Push tag: git push origin $TAG_NAME"
+            Write-Host ""
+            Write-Host "Branches containing this tag:"
+            git branch -r --contains $TAG_COMMIT
+            exit 1
+          }
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore SuspensionPCB_CAN_WPF.sln
+
+      - name: Derive version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $RAW_TAG = "${{ github.ref_name }}"          # e.g. v1.2.3
+          $VERSION = $RAW_TAG -replace '^v', ''        # strip leading 'v' -> 1.2.3
+          echo "version=$VERSION" >> $env:GITHUB_OUTPUT
+
+      - name: Publish main WPF application (portable, win-x64)
+        run: >
+          dotnet publish SuspensionPCB_CAN_WPF.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.version }}.0
+          -p:FileVersion=${{ steps.version.outputs.version }}.0
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+
+      - name: Publish updater helper (portable, win-x64)
+        run: >
+          dotnet publish SuspensionPCB_Updater/SuspensionPCB_Updater.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.version }}.0
+          -p:FileVersion=${{ steps.version.outputs.version }}.0
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+
+      - name: Copy updater into app publish folder
+        shell: pwsh
+        run: |
+          $APP_PUBLISH = "bin/Release/net8.0-windows/win-x64/publish"
+          $UPDATER_PUBLISH = "SuspensionPCB_Updater/bin/Release/net8.0-windows/win-x64/publish"
+          Copy-Item "$UPDATER_PUBLISH/SuspensionPCB_Updater.exe" "$APP_PUBLISH/SuspensionPCB_Updater.exe"
+
+      - name: Create portable ZIP package
+        shell: pwsh
+        run: |
+          $APP_PUBLISH = "bin/Release/net8.0-windows/win-x64/publish"
+          $ZIP_NAME = "SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip"
+          Compress-Archive -Path "$APP_PUBLISH/*" -DestinationPath $ZIP_NAME -Force
+
+      - name: Generate SHA-256 hash for security verification
+        id: hash
+        shell: pwsh
+        run: |
+          $ZIP_NAME = "SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip"
+          $SHA256 = (Get-FileHash -Path $ZIP_NAME -Algorithm SHA256).Hash.ToLower()
+          echo "hash=$SHA256" >> $env:GITHUB_OUTPUT
+          Write-Host "SHA-256: $SHA256"
+          # Also save to file for release notes
+          $SHA256 | Out-File -FilePath "${ZIP_NAME}.sha256" -NoNewline -Encoding utf8
+          Write-Host "Hash saved to ${ZIP_NAME}.sha256"
+
+      - name: Extract release notes from CHANGELOG.md
+        id: changelog
+        shell: pwsh
+        run: |
+          $TAG_NAME = "${{ github.ref_name }}"  # e.g. v1.2.3
+          $VERSION = $TAG_NAME -replace '^v', ''  # e.g. 1.2.3
+          $CHANGELOG_PATH = "CHANGELOG.md"
+          
+          if (-not (Test-Path $CHANGELOG_PATH)) {
+            Write-Host "CHANGELOG.md not found, using default release notes"
+            "" | Out-File -FilePath "release_notes.txt" -Encoding utf8 -NoNewline
+            exit 0
+          }
+          
+          $content = Get-Content $CHANGELOG_PATH -Raw
+          
+          # Pattern to match version section: ## [1.2.3] or ## [1.2.3] - 2025-01-XX
+          # Match everything from ## [version] until the next ## [version] or end of file
+          # Use positive lookahead to stop at next ## [ or end of string
+          $escapedVersion = [regex]::Escape($VERSION)
+          $pattern = "(?s)##\s*\[$escapedVersion\](?:\s*-\s*\d{4}-\d{2}-\d{2})?\s*\n(.*?)(?=\n##\s*\[|$)"
+          $match = [regex]::Match($content, $pattern)
+          
+          if ($match.Success -and $match.Groups.Count -gt 1) {
+            $notes = $match.Groups[1].Value.Trim()
+            Write-Host "Found release notes for version $VERSION"
+            $previewLength = [Math]::Min(200, $notes.Length)
+            if ($previewLength -gt 0) {
+              Write-Host "Notes preview: $($notes.Substring(0, $previewLength))..."
+            }
+          } else {
+            Write-Host "No release notes found for version $VERSION in CHANGELOG.md"
+            Write-Host "Using default release notes"
+            $notes = ""
+          }
+          
+          # Save to file for next step (multiline strings are tricky in GitHub Actions)
+          $RELEASE_NOTES_FILE = "release_notes.txt"
+          if ($notes) {
+            # Preserve newlines by using UTF8 encoding without BOM
+            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+            $fullPath = Join-Path $PWD $RELEASE_NOTES_FILE
+            [System.IO.File]::WriteAllText($fullPath, $notes, $utf8NoBom)
+            Write-Host "Release notes saved to $RELEASE_NOTES_FILE (length: $($notes.Length) characters)"
+          } else {
+            "" | Out-File -FilePath $RELEASE_NOTES_FILE -Encoding utf8 -NoNewline
+            Write-Host "Empty release notes file created"
+          }
+
+      - name: Generate release body with notes and security info
+        id: release_body
+        shell: pwsh
+        run: |
+          $RELEASE_NOTES_FILE = "release_notes.txt"
+          $SHA256 = "${{ steps.hash.outputs.hash }}"
+          $TAG_NAME = "${{ github.ref_name }}"
+          
+          $body = ""
+          
+          # Add release notes if available
+          if (Test-Path $RELEASE_NOTES_FILE) {
+            $notes = Get-Content $RELEASE_NOTES_FILE -Raw
+            if ($notes -and $notes.Trim()) {
+              $body = $notes.Trim() + "`n`n---`n`n"
+            }
+          }
+          
+          # Add security verification section
+          $securitySection = "## Security Verification`n`n" +
+            "**SHA-256 Hash:** ``$SHA256```n`n" +
+            "To verify the download integrity, compare the SHA-256 hash of your downloaded file with the hash above.`n`n" +
+            "**Verification command (Windows PowerShell):**`n" +
+            "``````powershell`n" +
+            "Get-FileHash -Path `"SuspensionPCB_CAN_WPF_Portable_$TAG_NAME.zip`" -Algorithm SHA256`n" +
+            "```````n`n" +
+            "**Verification command (Linux/Mac):**`n" +
+            "``````bash`n" +
+            "sha256sum SuspensionPCB_CAN_WPF_Portable_$TAG_NAME.zip`n" +
+            "```````n"
+          
+          $body += $securitySection
+          
+          # Save to file for GitHub Actions using UTF8 without BOM
+          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+          $fullPath = Join-Path $PWD "release_body.txt"
+          [System.IO.File]::WriteAllText($fullPath, $body, $utf8NoBom)
+          Write-Host "Release body generated (length: $($body.Length) characters)"
+
+      - name: Create GitHub Release and upload assets (ZIP + SHA-256)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body_path: release_body.txt
+          files: |
+            SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip
+            SuspensionPCB_CAN_WPF_Portable_${{ github.ref_name }}.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
