@@ -336,7 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 26-11-2025
 
 ### Added
-- Initial release of SuspensionPCB_CAN_WPF
+- Initial release of ATS_TwoWheeler_WPF
 - Real-time weight monitoring for left and right sides
 - CAN bus communication support (USB-CAN-A Serial and PCAN adapters)
 - Two-point linear calibration system

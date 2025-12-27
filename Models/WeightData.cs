@@ -8,7 +8,7 @@ namespace ATS_TwoWheeler_WPF.Models
     /// </summary>
     public class RawWeightData
     {
-        public byte Side { get; set; } // Always 0 for total (kept for compatibility)
+        // Side property removed as part of Total Weight refactoring
         public int RawADC { get; set; }  // Combined Ch0+Ch1+Ch2+Ch3 (signed for ADS1115, unsigned for Internal)
         public DateTime Timestamp { get; set; }
     }

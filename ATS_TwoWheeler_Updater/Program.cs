@@ -154,8 +154,7 @@ namespace ATS_TwoWheeler_Updater
                 var fileName = Path.GetFileName(file);
 
                 // Avoid copying the updater onto itself if we are backing up
-                if (excludeUpdater && (fileName.Equals("SuspensionPCB_Updater.exe", StringComparison.OrdinalIgnoreCase) || 
-                    fileName.Equals("ATS_TwoWheeler_Updater.exe", StringComparison.OrdinalIgnoreCase)))
+                if (excludeUpdater && fileName.Equals("ATS_TwoWheeler_Updater.exe", StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 string destFile = Path.Combine(targetDir, fileName);

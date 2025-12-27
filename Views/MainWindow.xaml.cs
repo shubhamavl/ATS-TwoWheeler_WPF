@@ -38,7 +38,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private BootloaderDiagnosticsService? _bootloaderDiagnosticsService;
         private readonly object _statisticsLock = new object();
 
-        // v0.9 Calibration and Tare functionality - Mode-specific calibrations (ATS Two-Wheeler)
+        // v0.1 Calibration and Tare functionality - Mode-specific calibrations (ATS Two-Wheeler)
         private LinearCalibration? _totalCalibrationInternal;
         private LinearCalibration? _totalCalibrationADS1115;
         private TareManager _tareManager = new TareManager();
@@ -71,7 +71,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private SettingsManager _settingsManager = SettingsManager.Instance;
         private WeightProcessor _weightProcessor = new WeightProcessor();
 
-        // v0.9 Protocol - Only semantic IDs (ATS Two-Wheeler)
+        // v0.1 Protocol - Only semantic IDs (ATS Two-Wheeler)
         private readonly HashSet<uint> _rxMessageIds = new HashSet<uint> {
             0x200,  // Total raw ADC data (all 4 channels summed)
             0x300   // System status (on-demand)
@@ -371,7 +371,7 @@ namespace ATS_TwoWheeler_WPF.Views
                     timer.Interval = TimeSpan.FromSeconds(3);
                     timer.Tick += (s, e) =>
                     {
-                        StatusBarText.Text = "Ready | CAN v0.9 @ 250 kbps";
+                        StatusBarText.Text = "Ready | CAN v0.1 @ 250 kbps";
                         StatusBarText.Foreground = System.Windows.Media.Brushes.White;
                         timer.Stop();
                     };
@@ -760,7 +760,7 @@ namespace ATS_TwoWheeler_WPF.Views
                     ResetStatistics();
                     string adapterName = GetSelectedAdapterType();
                     ShowStatusBanner("? Connected Successfully", true);
-                    ShowInlineStatus($"{adapterName} Connected Successfully. Protocol: CAN v0.9", false);
+                    ShowInlineStatus($"{adapterName} Connected Successfully. Protocol: CAN v0.1", false);
                     if (ConnectionToggle != null) ConnectionToggle.IsChecked = true;
                     SaveConfiguration(); // Save adapter settings
                     

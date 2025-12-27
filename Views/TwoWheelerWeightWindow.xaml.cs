@@ -258,8 +258,8 @@ namespace ATS_TwoWheeler_WPF.Views
                 // Update weight displays (total weight only)
                 if (TotalWeightText != null)
                     TotalWeightText.Text = $"{totalWeight:F1} kg";
-                if (LeftWeightText != null)
-                    LeftWeightText.Text = $"{totalWeight:F1} kg";
+                if (MainWeightText != null)
+                    MainWeightText.Text = $"{totalWeight:F1} kg";
 
                 // Update sample count (use test sample count if test is active)
                 if (SampleCountText != null)
@@ -298,8 +298,8 @@ namespace ATS_TwoWheeler_WPF.Views
                 ? new SolidColorBrush(Color.FromRgb(39, 174, 96))  // Green
                 : new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
 
-            if (LeftValidationRect != null)
-                LeftValidationRect.Background = brush;
+            if (ValidationIndicatorRect != null)
+                ValidationIndicatorRect.Background = brush;
         }
 
         private void UpdateConnectionStatus()
@@ -583,12 +583,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 if (SampleCountText != null) SampleCountText.Text = "0";
                 if (MinWeightText != null) MinWeightText.Text = "-- kg";
                 if (MaxWeightText != null) MaxWeightText.Text = "-- kg";
-                if (LeftWeightText != null) LeftWeightText.Text = "-- kg";
+                if (MainWeightText != null) MainWeightText.Text = "-- kg";
                 if (TotalWeightText != null) TotalWeightText.Text = "-- kg";
 
                 // Reset validation indicators
-                if (LeftValidationRect != null)
-                    LeftValidationRect.Background = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
+                if (ValidationIndicatorRect != null)
+                    ValidationIndicatorRect.Background = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
 
                 UpdateTestState(TestState.Idle);
                 ProductionLogger.Instance.LogInfo("Two Wheeler graph cleared", "TwoWheeler");

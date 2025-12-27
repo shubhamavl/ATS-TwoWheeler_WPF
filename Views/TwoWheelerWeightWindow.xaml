@@ -66,7 +66,7 @@
                                HorizontalAlignment="Center" Margin="0,10"/>
                     
                     <!-- Validation Indicator Rectangle -->
-                    <Border Grid.Row="1" x:Name="LeftValidationRect" 
+                    <Border Grid.Row="1" x:Name="ValidationIndicatorRect" 
                             Width="60" Height="300" 
                             HorizontalAlignment="Center" 
                             VerticalAlignment="Center"
@@ -76,14 +76,14 @@
                             Margin="0,10"/>
                     
                     <!-- Weight Display Box -->
-                    <Border Grid.Row="2" x:Name="LeftWeightBox" 
+                    <Border Grid.Row="2" x:Name="MainWeightBox" 
                             Background="#FFFF9800" 
                             BorderBrush="#FFE65100" 
                             BorderThickness="2" 
                             CornerRadius="3" 
                             Margin="20,10" 
                             Padding="10,15">
-                        <TextBlock x:Name="LeftWeightText" 
+                        <TextBlock x:Name="MainWeightText" 
                                    Text="-- kg" 
                                    FontSize="48" 
                                    FontWeight="Bold" 

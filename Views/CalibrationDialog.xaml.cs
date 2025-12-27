@@ -32,7 +32,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private int _calibrationDelayMs = 500; // Configurable delay before capturing calibration point
         
         // Properties for data binding
-        public string Side => "Total";
+        // Side property removed as part of Total Weight refactoring
         
         // Observable collection for dynamic calibration points
         public ObservableCollection<CalibrationPointViewModel> Points { get; set; } = new ObservableCollection<CalibrationPointViewModel>();
@@ -93,54 +93,55 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             try
             {
-                // Update ADC value based on side
-                if ((Side == "Left" && e.Side == 0) || (Side == "Right" && e.Side == 1))
+                // Update ADC value (Total Weight Stream is always Side 0)
+                // Fix: Previous logic checked for explicit "Left" or "Right" side strings, blocking "Total".
+                // Now we accept Side 0 (Total) regardless of the View's "Side" property name, 
+                // as long as it's the main raw data stream.
+                // Update ADC value (Total Weight Stream is implied)
+                _currentRawADC = e.RawADCSum;
+                _rawSamplesSinceLog++;
+
+                // Update live ADC for all non-captured points based on current ADC mode
+                foreach (var point in Points.Where(p => !p.BothModesCaptured))
                 {
-                    _currentRawADC = e.RawADCSum;
-                    _rawSamplesSinceLog++;
-
-                    // Update live ADC for all non-captured points based on current ADC mode
-                    foreach (var point in Points.Where(p => !p.BothModesCaptured))
+                    point.RawADC = _currentRawADC; // For backward compatibility
+                    
+                    // Update the appropriate ADC value based on current mode
+                    if (_adcMode == 0)
                     {
-                        point.RawADC = _currentRawADC; // For backward compatibility
-                        
-                        // Update the appropriate ADC value based on current mode
-                        if (_adcMode == 0)
+                        // Internal ADC: must be in range 0-4095 (unsigned)
+                        // Only update if value is in valid range to avoid errors
+                        if (_currentRawADC >= 0 && _currentRawADC <= 4095)
                         {
-                            // Internal ADC: must be in range 0-4095 (unsigned)
-                            // Only update if value is in valid range to avoid errors
-                            if (_currentRawADC >= 0 && _currentRawADC <= 4095)
-                            {
-                                point.InternalADC = (ushort)_currentRawADC;
-                            }
-                            // If out of range, don't update (might be from wrong mode)
+                            point.InternalADC = (ushort)_currentRawADC;
                         }
-                        else
-                        {
-                            // ADS1115: Store as signed int (can be negative, -65536 to +65534)
-                            // Value should already be correctly signed from CAN parsing (BitConverter.ToInt32)
-                            // However, if value appears as unsigned (32768-65535), convert to signed
-                            // This handles cases where unsigned values slip through the pipeline
-                            int signedValue = _currentRawADC;
-                            // Convert if value is in unsigned 16-bit range (> 32767)
-                            // This covers cases like 65523 (unsigned) -> -13 (signed)
-                            // Note: Legitimate positive values up to 32767 are preserved
-                            if (signedValue > 32767 && signedValue <= 65535)
-                            {
-                                // Convert unsigned 16-bit to signed: values > 32767 are negative in two's complement
-                                signedValue = (short)(ushort)signedValue;
-                            }
-                            point.ADS1115ADC = signedValue;
-                        }
+                        // If out of range, don't update (might be from wrong mode)
                     }
-
-                    var now = DateTime.Now;
-                    if (_lastRawLogTime == DateTime.MinValue || (now - _lastRawLogTime).TotalSeconds >= 1)
+                    else
                     {
-                        _logger.LogInfo($"Raw ADC update ({Side}, mode={_adcMode}): {_currentRawADC} (samples since last log: {_rawSamplesSinceLog})", "CalibrationDialog");
-                        _rawSamplesSinceLog = 0;
-                        _lastRawLogTime = now;
+                        // ADS1115: Store as signed int (can be negative, -65536 to +65534)
+                        // Value should already be correctly signed from CAN parsing (BitConverter.ToInt32)
+                        // However, if value appears as unsigned (32768-65535), convert to signed
+                        // This handles cases where unsigned values slip through the pipeline
+                        int signedValue = _currentRawADC;
+                        // Convert if value is in unsigned 16-bit range (> 32767)
+                        // This covers cases like 65523 (unsigned) -> -13 (signed)
+                        // Note: Legitimate positive values up to 32767 are preserved
+                        if (signedValue > 32767 && signedValue <= 65535)
+                        {
+                            // Convert unsigned 16-bit to signed: values > 32767 are negative in two's complement
+                            signedValue = (short)(ushort)signedValue;
+                        }
+                        point.ADS1115ADC = signedValue;
                     }
+                }
+
+                var now = DateTime.Now;
+                if (_lastRawLogTime == DateTime.MinValue || (now - _lastRawLogTime).TotalSeconds >= 1)
+                {
+                    _logger.LogInfo($"Raw ADC update (Total, mode={_adcMode}): {_currentRawADC} (samples since last log: {_rawSamplesSinceLog})", "CalibrationDialog");
+                    _rawSamplesSinceLog = 0;
+                    _lastRawLogTime = now;
                 }
             }
             catch (Exception ex)

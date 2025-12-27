@@ -6,7 +6,7 @@ A professional Windows WPF application for real-time weight monitoring and calib
 
 ### Core Functionality
 - **Real-time Weight Display**: Live monitoring of left and right side weights with configurable filtering
-- **CAN Bus Communication**: Protocol v0.9 compliant communication at 250 kbps
+- **CAN Bus Communication**: Protocol v0.1 compliant communication at 250 kbps
 - **High-Performance Processing**: Optimized for 1kHz data rates with multi-threaded architecture
 - **Multi-Point Calibration**: Advanced calibration system with unlimited points and least-squares regression
 - **Dual ADC Mode Support**: Independent calibration for Internal (12-bit) and ADS1115 (16-bit) modes
@@ -27,9 +27,7 @@ A professional Windows WPF application for real-time weight monitoring and calib
 ### Advanced Features
 - **Multi-threaded Architecture**: Dedicated WeightProcessor for 1kHz calibration
 - **Performance Optimization**: Lock-free reads, batched UI updates
-- **Protocol Compliance**: Full CAN v0.9 semantic ID implementation
 - **Bootloader Protocol**: Complete firmware update support (0x510-0x513)
-- **Simulator Adapter**: Software-based CAN adapter for testing without hardware
 - **CAN Monitor Export**: Export captured CAN messages to CSV/text files
 - **Log Files Manager**: View, filter, and delete log files with file management
 - **Data Timeout Detection**: Automatic stream stopping when data stops
@@ -245,7 +243,7 @@ The application supports **unlimited calibration points** using least-squares li
 #### Connection Problems
 - **Check COM Port**: Ensure correct port selection
 - **Driver Issues**: Install USB-CAN adapter drivers (CH341 driver for USB-CAN-A)
-- **Baud Rate**: Fixed at 250 kbps (v0.7 protocol)
+- **Baud Rate**: Fixed at 250 kbps (v0.1 protocol)
 - **Cable**: Verify USB cable connection
 - **Protocol**: USB-CAN-A uses variable-length protocol (5-13 bytes per frame)
   - Frame format: `[0xAA] [Type] [ID_LOW] [ID_HIGH] [DATA...] [0x55]`
@@ -291,7 +289,7 @@ ATS_TwoWheeler_WPF/
 └── README.md                    # This file
 ```
 
-## 🔄 Protocol v0.9 Compliance
+## 🔄 Protocol v0.1 Compliance
 
 ### CAN Message IDs
 - **0x200**: Left side raw ADC data
@@ -317,7 +315,7 @@ ATS_TwoWheeler_WPF/
 ## 🚀 Getting Started
 
 1. **Launch** the application
-2. **Select** your CAN adapter (USB-CAN-A, PCAN, or Simulator)
+2. **Select** your CAN adapter (USB-CAN-A or PCAN)
 3. **Connect** to CAN bus
 4. **Calibrate** both sides using multi-point calibration
 5. **Configure** weight filtering (EMA/SMA) if needed

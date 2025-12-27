@@ -165,7 +165,7 @@ namespace ATS_TwoWheeler_WPF.Services
             
             _rawDataQueue.Enqueue(new RawWeightData 
             { 
-                Side = 0,  // Always 0 for total (kept for compatibility)
+                // Side removed from model
                 RawADC = rawADC,  // Can be signed (ADS1115) or unsigned (Internal)
                 Timestamp = DateTime.Now 
             });

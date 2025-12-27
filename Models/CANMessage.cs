@@ -58,10 +58,8 @@ namespace ATS_TwoWheeler_WPF.Models
         {
             return ID switch
             {
-                0x200 => "LEFT_RAW_DATA",
-                0x201 => "RIGHT_RAW_DATA",
-                0x040 => "START_LEFT_STREAM",
-                0x041 => "START_RIGHT_STREAM",
+                0x200 => "TOTAL_RAW_DATA",
+                0x040 => "START_STREAM",
                 0x044 => "STOP_ALL_STREAMS",
                 0x300 => "SYSTEM_STATUS",
                 0x301 => "VERSION_RESPONSE",
@@ -125,8 +123,8 @@ namespace ATS_TwoWheeler_WPF.Models
             {
                 return _message.ID switch
                 {
-                    0x200 or 0x201 => "Raw Data",
-                    0x040 or 0x041 or 0x044 => "Stream Control",
+                    0x200 => "Raw Data",
+                    0x040 or 0x044 => "Stream Control",
                     0x300 or 0x301 or 0x032 or 0x033 or 0x030 or 0x031 => "System",
                     _ => "Unknown"
                 };
@@ -148,13 +146,12 @@ namespace ATS_TwoWheeler_WPF.Models
             }
         }
 
-        // Decode message based on CAN Protocol Specification v0.9
+        // Decode message based on CAN Protocol Specification v0.1
         private string DecodeMessage()
         {
-            // Handle empty messages properly (v0.9 protocol has empty messages)
+            // Handle empty messages
             if (_message.Data == null || _message.Data.Length == 0)
             {
-                // For commands that expect empty data, show decoded name
                 switch (_message.ID)
                 {
                     case 0x044: return "Stop All Streams (empty)";
@@ -167,16 +164,10 @@ namespace ATS_TwoWheeler_WPF.Models
             switch (_message.ID)
             {
                 case 0x200:
-                    return DecodeRawADCData("Left Side", _message.Data);
-
-                case 0x201:
-                    return DecodeRawADCData("Right Side", _message.Data);
+                    return DecodeRawADCData("Total", _message.Data);
 
                 case 0x040:
-                    return DecodeStreamControl("Start Left Stream", _message.Data);
-
-                case 0x041:
-                    return DecodeStreamControl("Start Right Stream", _message.Data);
+                    return DecodeStreamControl("Start Stream", _message.Data);
 
                 case 0x044:
                     return "Stop All Streams";
@@ -200,10 +191,18 @@ namespace ATS_TwoWheeler_WPF.Models
 
         private string DecodeRawADCData(string side, byte[] data)
         {
-            if (data.Length < 2) return $"{side} Raw ADC Data (Invalid)";
-
-            ushort rawADC = (ushort)(data[0] | (data[1] << 8));
-            return $"{side} Raw ADC: {rawADC}";
+            // Support both 2-byte (Internal) and 4-byte (ADS1115) formats
+            if (data.Length == 2)
+            {
+                ushort rawADC = (ushort)(data[0] | (data[1] << 8));
+                return $"{side} Raw ADC (Int): {rawADC}";
+            }
+            else if (data.Length >= 4)
+            {
+                int rawADC = BitConverter.ToInt32(data, 0);
+                return $"{side} Raw ADC (Ext): {rawADC}";
+            }
+            return $"{side} Raw ADC Data (Invalid Length: {data.Length})";
         }
 
         private string DecodeStreamControl(string action, byte[] data)

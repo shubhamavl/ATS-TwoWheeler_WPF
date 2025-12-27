@@ -27,7 +27,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private bool _timeoutNotified = false;
         private byte _currentADCMode = 0; // Track current ADC mode (0=Internal, 1=ADS1115)
 
-        // v0.9 Ultra-Minimal CAN Protocol - Semantic IDs & Maximum Efficiency
+        // v0.1 Ultra-Minimal CAN Protocol - Semantic IDs & Maximum Efficiency
         // Raw Data: 2 bytes only (75% reduction from 8 bytes)
         // Stream Control: 1 byte only (87.5% reduction from 8 bytes)
         // System Status: 3 bytes only (62.5% reduction from 8 bytes)
@@ -67,7 +67,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public event Action<CANMessage>? MessageReceived;
         public event EventHandler<string>? DataTimeout;
         
-        // v0.9 Events
+        // v0.1 Events
         public event EventHandler<RawDataEventArgs>? RawDataReceived;
         public event EventHandler<SystemStatusEventArgs>? SystemStatusReceived;
         public event EventHandler<FirmwareVersionEventArgs>? FirmwareVersionReceived;
@@ -325,7 +325,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             switch (canId)
             {
-                // v0.9 Ultra-Minimal Protocol - Semantic IDs
+                // v0.1 Ultra-Minimal Protocol - Semantic IDs
                 case CAN_MSG_ID_TOTAL_RAW_DATA:      // 0x200 - Total raw ADC data (all 4 channels)
                 case CAN_MSG_ID_START_STREAM:        // 0x040 - Start streaming
                 case CAN_MSG_ID_STOP_ALL_STREAMS:   // 0x044 - Stop all streaming
@@ -419,7 +419,7 @@ namespace ATS_TwoWheeler_WPF.Services
             return frame.ToArray();
         }
 
-        // v0.9 Stream Control Methods - Semantic IDs
+        // v0.1 Stream Control Methods - Semantic IDs
         public bool StartStream(byte rate)
         {
             byte[] data = new byte[1];
@@ -515,7 +515,7 @@ namespace ATS_TwoWheeler_WPF.Services
             return SendMessage(CAN_MSG_ID_BOOT_RESET, Array.Empty<byte>());
         }
 
-        #region Event Firing Logic for v0.9 Protocol - Semantic IDs
+        #region Event Firing Logic for v0.1 Protocol - Semantic IDs
         private void FireSpecificEvents(uint canId, byte[] canData)
         {
             switch (canId)
@@ -531,7 +531,6 @@ namespace ATS_TwoWheeler_WPF.Services
                             // Store as int (0-16380 fits in int, treated as unsigned)
                             RawDataReceived?.Invoke(this, new RawDataEventArgs
                             {
-                                Side = 0,  // Always 0 for total (kept for compatibility)
                                 RawADCSum = rawADC,  // Unsigned value 0-16380 stored in int
                                 TimestampFull = DateTime.Now
                             });
@@ -545,7 +544,6 @@ namespace ATS_TwoWheeler_WPF.Services
                             int rawADC = BitConverter.ToInt32(canData, 0);
                             RawDataReceived?.Invoke(this, new RawDataEventArgs
                             {
-                                Side = 0,  // Always 0 for total (kept for compatibility)
                                 RawADCSum = rawADC,  // Signed value -131072 to +131068
                                 TimestampFull = DateTime.Now
                             });
@@ -690,10 +688,10 @@ namespace ATS_TwoWheeler_WPF.Services
 
     }  // Class closing brace
 
-    // v0.9 Event Args Classes - Ultra-Minimal
+    // v0.1 Event Args Classes - Ultra-Minimal
     public class RawDataEventArgs : EventArgs
     {
-        public byte Side { get; set; }              // Always 0 for total (kept for compatibility)
+        // Side property removed as part of Total Weight refactoring
         // Raw ADC sum: int to support both modes
         // - Internal ADC: unsigned 0-16380 (stored as int, treated as unsigned, 4�4095)
         // - ADS1115: signed -131072 to +131068 (4 channels)
