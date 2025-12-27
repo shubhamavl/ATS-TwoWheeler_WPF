@@ -105,12 +105,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 if (SettingsPanel.Visibility == Visibility.Visible)
                 {
                     SettingsPanel.Visibility = Visibility.Collapsed;
-                    SettingsToggleBtn.Content = "? Settings";
+                    SettingsToggleBtn.Content = "⚙ Settings";
                 }
                 else
                 {
                     SettingsPanel.Visibility = Visibility.Visible;
-                    SettingsToggleBtn.Content = "? Hide";
+                    SettingsToggleBtn.Content = "⚙ Hide";
                     
                     // Always reload settings when panel opens so UI reflects saved values
                     LoadSaveDirectorySettings();
@@ -136,13 +136,13 @@ namespace ATS_TwoWheeler_WPF.Views
                 ApplyUIVisibilitySettings();
                 ApplyAdvancedSettings();
                 _settingsManager.SaveSettings();
-                ShowInlineStatus("? Settings saved");
+                ShowInlineStatus("⚙ Settings saved");
                 _logger.LogInfo("Manual settings save completed", "Settings");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Manual settings save failed: {ex.Message}", "Settings");
-                ShowInlineStatus("? Failed to save settings", true);
+                ShowInlineStatus("⚠️ Failed to save settings", true);
             }
         }
 
@@ -238,18 +238,18 @@ namespace ATS_TwoWheeler_WPF.Views
                     UpdateStreamingIndicators();
                     UpdateDashboardMode();
                     _logger.LogInfo("Stopped stream", "CAN");
-                    ShowInlineStatus("? Stop stream command sent");
+                    ShowInlineStatus("■ Stop stream command sent");
                 }
                 else
                 {
                     _logger.LogError("Failed to stop all streams", "CAN");
-                    ShowInlineStatus("? Failed to send stop command", true);
+                    ShowInlineStatus("⚠️ Failed to send stop command", true);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Stop all error: {ex.Message}", "CAN");
-                ShowInlineStatus($"? Stop Error: {ex.Message}", true);
+                ShowInlineStatus($"⚠️ Stop Error: {ex.Message}", true);
             }
         }
 
@@ -702,12 +702,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 {
                     if (channels.Length > 0)
                     {
-                        PcanStatusTxt.Text = $"? PCAN available ({channels.Length} channel(s) detected)";
+                        PcanStatusTxt.Text = $"✅ PCAN available ({channels.Length} channel(s) detected)";
                         PcanStatusTxt.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Green);
                     }
                     else
                     {
-                        PcanStatusTxt.Text = "? PCAN driver not detected. Please install PEAK PCAN driver from PEAK-System website.";
+                        PcanStatusTxt.Text = "⚠️ PCAN driver not detected. Please install PEAK PCAN driver from PEAK-System website.";
                         PcanStatusTxt.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
                     }
                 }
@@ -716,7 +716,7 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 if (PcanStatusTxt != null)
                 {
-                    PcanStatusTxt.Text = $"? PCAN error: {ex.Message}";
+                    PcanStatusTxt.Text = $"❌ PCAN error: {ex.Message}";
                     PcanStatusTxt.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
                 }
             }
@@ -759,7 +759,7 @@ namespace ATS_TwoWheeler_WPF.Views
                     UpdateConnectionStatus(true);
                     ResetStatistics();
                     string adapterName = GetSelectedAdapterType();
-                    ShowStatusBanner("? Connected Successfully", true);
+                    ShowStatusBanner("✅ Connected Successfully", true);
                     ShowInlineStatus($"{adapterName} Connected Successfully. Protocol: CAN v0.1", false);
                     if (ConnectionToggle != null) ConnectionToggle.IsChecked = true;
                     SaveConfiguration(); // Save adapter settings
@@ -773,7 +773,7 @@ namespace ATS_TwoWheeler_WPF.Views
                 else
                 {
                     UpdateConnectionStatus(false);
-                    ShowStatusBanner("? Connection Failed", false);
+                    ShowStatusBanner("❌ Connection Failed", false);
                     ShowInlineStatus($"Connection Failed: {errorMessage}", true);
                     if (ConnectionToggle != null) ConnectionToggle.IsChecked = false;
                 }
@@ -781,7 +781,7 @@ namespace ATS_TwoWheeler_WPF.Views
             catch (Exception ex)
             {
                 UpdateConnectionStatus(false);
-                ShowStatusBanner($"? Connection Error: {ex.Message}", false);
+                ShowStatusBanner($"❌ Connection Error: {ex.Message}", false);
                 ShowInlineStatus($"Connection Error: {ex.Message}", true);
                 if (ConnectionToggle != null) ConnectionToggle.IsChecked = false;
             }
@@ -1040,6 +1040,13 @@ namespace ATS_TwoWheeler_WPF.Views
                         
                         // Round and format based on setting
                         double roundedWeight = Math.Round(totalData.TaredWeight, decimals);
+                        
+                        // Normalize negative zero to positive zero (avoid displaying "-0.0 kg")
+                        if (roundedWeight == 0.0)
+                        {
+                            roundedWeight = 0.0; // Force positive zero
+                        }
+                        
                         WeightDisplayTxt.Text = $"{roundedWeight.ToString(format)} kg";
                     }
                     else
@@ -3792,7 +3799,7 @@ Most users should keep default values unless experiencing specific issues.";
                 if (ConnectionToggle != null)
                 {
                     ConnectionToggle.IsChecked = connected;
-                    ConnectionToggle.Content = connected ? "?? Disconnect" : "?? Connect";
+                    ConnectionToggle.Content = connected ? "❌ Disconnect" : "🔌 Connect";
                 }
                 
                 if (RequestStreamBtn != null)

@@ -254,6 +254,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 }
 
                 double total = totalWeight;
+                
+                // Normalize negative zero to positive zero (avoid displaying "-0.0 kg")
+                if (totalWeight == 0.0)
+                {
+                    totalWeight = 0.0; // Force positive zero
+                }
 
                 // Update weight displays (total weight only)
                 if (TotalWeightText != null)
@@ -272,8 +278,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 {
                     if (_hasMinMaxData)
                     {
-                        MinWeightText.Text = $"{_minWeight:F1} kg";
-                        MaxWeightText.Text = $"{_maxWeight:F1} kg";
+                        // Normalize negative zero to positive zero
+                        double minWeight = _minWeight == 0.0 ? 0.0 : _minWeight;
+                        double maxWeight = _maxWeight == 0.0 ? 0.0 : _maxWeight;
+                        
+                        MinWeightText.Text = $"{minWeight:F1} kg";
+                        MaxWeightText.Text = $"{maxWeight:F1} kg";
                     }
                     else
                     {

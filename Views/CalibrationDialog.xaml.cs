@@ -109,9 +109,9 @@ namespace ATS_TwoWheeler_WPF.Views
                     // Update the appropriate ADC value based on current mode
                     if (_adcMode == 0)
                     {
-                        // Internal ADC: must be in range 0-4095 (unsigned)
+                        // Internal ADC: must be in range 0-16380 (4 channels × 4095)
                         // Only update if value is in valid range to avoid errors
-                        if (_currentRawADC >= 0 && _currentRawADC <= 4095)
+                        if (_currentRawADC >= 0 && _currentRawADC <= 16380)
                         {
                             point.InternalADC = (ushort)_currentRawADC;
                         }
@@ -119,19 +119,9 @@ namespace ATS_TwoWheeler_WPF.Views
                     }
                     else
                     {
-                        // ADS1115: Store as signed int (can be negative, -65536 to +65534)
-                        // Value should already be correctly signed from CAN parsing (BitConverter.ToInt32)
-                        // However, if value appears as unsigned (32768-65535), convert to signed
-                        // This handles cases where unsigned values slip through the pipeline
+                        // ADS1115: Store as signed int (-131072 to +131068 for 4 channels)
+                        // Value is already correctly signed from CAN parsing (BitConverter.ToInt32)
                         int signedValue = _currentRawADC;
-                        // Convert if value is in unsigned 16-bit range (> 32767)
-                        // This covers cases like 65523 (unsigned) -> -13 (signed)
-                        // Note: Legitimate positive values up to 32767 are preserved
-                        if (signedValue > 32767 && signedValue <= 65535)
-                        {
-                            // Convert unsigned 16-bit to signed: values > 32767 are negative in two's complement
-                            signedValue = (short)(ushort)signedValue;
-                        }
                         point.ADS1115ADC = signedValue;
                     }
                 }
@@ -329,17 +319,17 @@ namespace ATS_TwoWheeler_WPF.Views
                     }
                     
                     // Validate ranges
-                    if (point.InternalADC > 4095)
+                    if (point.InternalADC > 16380)
                     {
-                        MessageBox.Show($"Internal ADC value must be between 0-4095. Current: {point.InternalADC}", 
+                        MessageBox.Show($"Internal ADC value must be between 0-16380. Current: {point.InternalADC}", 
                                       "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
                     
-                    // Combined channel value range: -65536 to +65534 (Ch0+Ch1 or Ch2+Ch3)
-                    if (point.ADS1115ADC < -65536 || point.ADS1115ADC > 65534)
+                    // Combined 4-channel value range: -131072 to +131068 (4 channels × 16-bit signed)
+                    if (point.ADS1115ADC < -131072 || point.ADS1115ADC > 131068)
                     {
-                        MessageBox.Show($"ADS1115 ADC value must be between -65536 to +65534. Current: {point.ADS1115ADC}", 
+                        MessageBox.Show($"ADS1115 ADC value must be between -131072 to +131068. Current: {point.ADS1115ADC}", 
                                       "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -492,11 +482,11 @@ namespace ATS_TwoWheeler_WPF.Views
                     }
                     else // Internal mode
                     {
-                        // Validate Internal ADC is in range 0-4095
-                        if (_currentRawADC < 0 || _currentRawADC > 4095)
+                        // Validate Internal ADC is in range 0-16380
+                        if (_currentRawADC < 0 || _currentRawADC > 16380)
                         {
                             throw new ArgumentOutOfRangeException(nameof(_currentRawADC), 
-                                $"Internal ADC value must be between 0-4095. Value: {_currentRawADC}");
+                                $"Internal ADC value must be between 0-16380. Value: {_currentRawADC}");
                         }
                         firstModeADC = (ushort)_currentRawADC;
                     }
@@ -507,26 +497,19 @@ namespace ATS_TwoWheeler_WPF.Views
                 // Store first mode ADC value with validation
                 if (_adcMode == 0)
                 {
-                    // Internal ADC: must be in range 0-4095 (unsigned)
-                    if (firstModeADC < 0 || firstModeADC > 4095)
+                    // Internal ADC: must be in range 0-16380 (unsigned sum)
+                    if (firstModeADC < 0 || firstModeADC > 16380)
                     {
                         throw new ArgumentOutOfRangeException(nameof(firstModeADC), 
-                            $"Internal ADC value must be between 0-4095. Value: {firstModeADC}");
+                            $"Internal ADC value must be between 0-16380. Value: {firstModeADC}");
                     }
                     point.InternalADC = (ushort)firstModeADC;
                 }
                 else
                 {
-                    // ADS1115: signed value (-65536 to +65534)
-                    // Value should already be correctly signed from CAN parsing
-                    // However, if value appears as unsigned (32768-65535), convert to signed
-                    int signedValue = firstModeADC;
-                    if (signedValue > 32767 && signedValue <= 65535)
-                    {
-                        // Convert unsigned 16-bit to signed: values > 32767 are negative in two's complement
-                        signedValue = (short)(ushort)signedValue;
-                    }
-                    point.ADS1115ADC = signedValue;
+                    // ADS1115: signed value (-131072 to +131068)
+                    // Value is already correctly signed from CAN parsing
+                    point.ADS1115ADC = firstModeADC;
                 }
                 
                 // Step 2: Switch to other ADC mode
@@ -604,15 +587,15 @@ namespace ATS_TwoWheeler_WPF.Views
                     // Validate the captured value matches the expected mode
                     if (_adcMode == 0) // Internal mode
                     {
-                        // Internal ADC must be in range 0-4095
-                        if (secondModeADC < 0 || secondModeADC > 4095)
+                        // Internal ADC must be in range 0-16380
+                        if (secondModeADC < 0 || secondModeADC > 16380)
                         {
                             throw new ArgumentOutOfRangeException(nameof(secondModeADC), 
-                                $"Internal ADC value must be between 0-4095. Value: {secondModeADC}. " +
+                                $"Internal ADC value must be between 0-16380. Value: {secondModeADC}. " +
                                 $"This may indicate the mode switch did not complete properly. Please try again.");
                         }
                     }
-                    // ADS1115 mode: value can be signed (-65536 to +65534), no range check needed here
+                    // ADS1115 mode: value can be signed (-131072 to +131068), no range check needed here
                     
                     // Store statistics from second mode capture (for display)
                     point.CaptureMean = secondResult.Mean;
@@ -663,11 +646,11 @@ namespace ATS_TwoWheeler_WPF.Views
                     }
                     else // Internal mode
                     {
-                        // Validate Internal ADC is in range 0-4095
-                        if (_currentRawADC < 0 || _currentRawADC > 4095)
+                        // Validate Internal ADC is in range 0-16380
+                        if (_currentRawADC < 0 || _currentRawADC > 16380)
                         {
                             throw new ArgumentOutOfRangeException(nameof(_currentRawADC), 
-                                $"Internal ADC value must be between 0-4095. Value: {_currentRawADC}");
+                                $"Internal ADC value must be between 0-16380. Value: {_currentRawADC}");
                         }
                         secondModeADC = (ushort)_currentRawADC;
                     }
@@ -684,11 +667,11 @@ namespace ATS_TwoWheeler_WPF.Views
                 // Store second mode ADC value with validation
                 if (_adcMode == 0)
                 {
-                    // Internal ADC: must be in range 0-4095 (unsigned)
-                    if (secondModeADC < 0 || secondModeADC > 4095)
+                    // Internal ADC: must be in range 0-16380 (unsigned sum)
+                    if (secondModeADC < 0 || secondModeADC > 16380)
                     {
                         throw new ArgumentOutOfRangeException(nameof(secondModeADC), 
-                            $"Internal ADC value must be between 0-4095. Value: {secondModeADC}. " +
+                            $"Internal ADC value must be between 0-16380. Value: {secondModeADC}. " +
                             $"This may indicate the mode switch did not complete properly or the wrong mode value was captured. " +
                             $"Please ensure the hardware has switched to Internal ADC mode and try again.");
                     }
@@ -696,16 +679,9 @@ namespace ATS_TwoWheeler_WPF.Views
                 }
                 else
                 {
-                    // ADS1115: signed value (-65536 to +65534)
-                    // Value should already be correctly signed from CAN parsing
-                    // However, if value appears as unsigned (32768-65535), convert to signed
-                    int signedValue = secondModeADC;
-                    if (signedValue > 32767 && signedValue <= 65535)
-                    {
-                        // Convert unsigned 16-bit to signed: values > 32767 are negative in two's complement
-                        signedValue = (short)(ushort)signedValue;
-                    }
-                    point.ADS1115ADC = signedValue;
+                    // ADS1115: signed value (-131072 to +131068)
+                    // Value is already correctly signed from CAN parsing
+                    point.ADS1115ADC = secondModeADC;
                 }
                 
                 // Step 4: Mark as captured

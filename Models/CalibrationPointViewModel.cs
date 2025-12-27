@@ -42,8 +42,8 @@ namespace ATS_TwoWheeler_WPF.Models
             get => _internalADC;
             set 
             { 
-                if (value > 4095)
-                    throw new ArgumentOutOfRangeException(nameof(InternalADC), $"Internal ADC value must be between 0-4095. Value: {value}");
+                if (value > 16380)
+                    throw new ArgumentOutOfRangeException(nameof(InternalADC), $"Internal ADC value must be between 0-16380. Value: {value}");
                 _internalADC = value; 
                 OnPropertyChanged(nameof(InternalADC));
                 UpdateStatusText();
@@ -55,10 +55,9 @@ namespace ATS_TwoWheeler_WPF.Models
             get => _ads1115ADC;
             set 
             { 
-                // Combined channel value range: -65536 to +65534 (Ch0+Ch1 or Ch2+Ch3)
-                // Individual channel range: -32768 to +32767, but combined can exceed this
-                if (value < -65536 || value > 65534)
-                    throw new ArgumentOutOfRangeException(nameof(ADS1115ADC), $"ADS1115 ADC value must be between -65536 to +65534. Value: {value}");
+                // Combined channel value range: -131072 to +131068 (4 channels × -32768 to +32767)
+                if (value < -131072 || value > 131068)
+                    throw new ArgumentOutOfRangeException(nameof(ADS1115ADC), $"ADS1115 ADC value must be between -131072 to +131068. Value: {value}");
                 _ads1115ADC = value; 
                 OnPropertyChanged(nameof(ADS1115ADC));
                 UpdateStatusText();

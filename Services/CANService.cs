@@ -437,13 +437,23 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool SwitchToInternalADC()
         {
             // Empty message (0 bytes) for mode switch
-            return SendMessage(CAN_MSG_ID_MODE_INTERNAL, new byte[0]);
+            bool success = SendMessage(CAN_MSG_ID_MODE_INTERNAL, new byte[0]);
+            if (success)
+            {
+                _currentADCMode = 0; // Update mode immediately for correct parsing
+            }
+            return success;
         }
 
         public bool SwitchToADS1115()
         {
             // Empty message (0 bytes) for mode switch
-            return SendMessage(CAN_MSG_ID_MODE_ADS1115, new byte[0]);
+            bool success = SendMessage(CAN_MSG_ID_MODE_ADS1115, new byte[0]);
+            if (success)
+            {
+                _currentADCMode = 1; // Update mode immediately for correct parsing
+            }
+            return success;
         }
 
         /// <summary>

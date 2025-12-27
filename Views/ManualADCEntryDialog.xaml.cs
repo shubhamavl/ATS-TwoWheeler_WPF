@@ -18,22 +18,28 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             try
             {
-                if (ushort.TryParse(InternalADCTxt.Text, out ushort internalADC))
+                if (int.TryParse(InternalADCTxt.Text, out int internalADC))
                 {
-                    InternalADC = internalADC;
+                    if (internalADC < 0 || internalADC > 16380)
+                    {
+                        MessageBox.Show("Invalid Internal ADC value. Please enter a number between 0 and 16380.", 
+                                      "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    InternalADC = (ushort)internalADC;
                 }
                 else
                 {
-                    MessageBox.Show("Invalid Internal ADC value. Please enter a number between 0 and 65535.", 
+                    MessageBox.Show("Invalid Internal ADC value. Please enter a valid number.", 
                                   "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 
                 if (int.TryParse(ADS1115ADCTxt.Text, out int ads1115ADC))
                 {
-                    if (ads1115ADC < -32768 || ads1115ADC > 32767)
+                    if (ads1115ADC < -131072 || ads1115ADC > 131068)
                     {
-                        MessageBox.Show("Invalid ADS1115 ADC value. Please enter a signed number between -32768 and +32767.", 
+                        MessageBox.Show("Invalid ADS1115 ADC value. Please enter a signed number between -131072 and +131068.", 
                                       "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -41,7 +47,7 @@ namespace ATS_TwoWheeler_WPF.Views
                 }
                 else
                 {
-                    MessageBox.Show("Invalid ADS1115 ADC value. Please enter a signed number between -32768 and +32767 (e.g., -15, 0, 100).", 
+                    MessageBox.Show("Invalid ADS1115 ADC value. Please enter a signed number (e.g., -15, 0, 100).", 
                                   "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }

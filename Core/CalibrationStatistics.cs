@@ -61,8 +61,8 @@ namespace ATS_TwoWheeler_WPF.Core
                 int currentADC = getCurrentADC();
                 
                 // Accept all valid signed values (including zero and negative for ADS1115)
-                // Range: -65536 to +65534 for combined channels
-                if (currentADC >= -65536 && currentADC <= 65534)
+                // Range for 4 channels summed: -131072 to +131068
+                if (currentADC >= -131072 && currentADC <= 131068)
                 {
                     samples.Add(currentADC);
                     updateProgress?.Invoke(samples.Count, sampleCount);
@@ -134,11 +134,11 @@ namespace ATS_TwoWheeler_WPF.Core
         /// </summary>
         public static double CalculateStandardDeviation(List<int> samples, double mean)
         {
-            if (samples.Count == 0)
+            if (samples.Count <= 1)
                 return 0.0;
 
             double sumSquaredDiff = samples.Sum(s => Math.Pow(s - mean, 2));
-            return Math.Sqrt(sumSquaredDiff / samples.Count);
+            return Math.Sqrt(sumSquaredDiff / (samples.Count - 1));
         }
 
         /// <summary>
