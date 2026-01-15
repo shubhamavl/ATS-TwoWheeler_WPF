@@ -45,14 +45,23 @@ namespace ATS_TwoWheeler_WPF.Views
         }
         
         private byte _adcMode = 0;
+        private bool _isBrakeMode = false;
         
-        public CalibrationDialog(byte adcMode = 0, int calibrationDelayMs = 500)
+        public CalibrationDialog(byte adcMode = 0, int calibrationDelayMs = 500, bool isBrakeMode = false)
         {
             InitializeComponent();
             DataContext = this;
             _adcMode = adcMode;
             _startingADCMode = adcMode;
             _calibrationDelayMs = calibrationDelayMs;
+            _isBrakeMode = isBrakeMode;
+
+            // Update UI Title
+            Title = _isBrakeMode ? "Brake Force Calibration" : "Total Weight Calibration";
+            
+            // Update Header Text if possible (not bound in XAML, so finding by type/content might be tricky or just assume it's fine)
+            // But we can update log messages
+            string modeStr = _isBrakeMode ? "Brake Force" : "Total Weight";
             
             // Get CAN service instance
             _canService = CANService._instance;
@@ -60,12 +69,12 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 _canService.RawDataReceived += OnRawDataReceived;
                 _hasStream = true;
-                _logger.LogInfo($"Calibration dialog opened for total weight (ADC mode: {adcMode}) - Stream available", "CalibrationDialog");
+                _logger.LogInfo($"Calibration dialog opened for {modeStr} (ADC mode: {adcMode}) - Stream available", "CalibrationDialog");
             }
             else
             {
                 _hasStream = false;
-                _logger.LogInfo($"Calibration dialog opened for total weight (ADC mode: {adcMode}) - Manual entry mode (no stream)", "CalibrationDialog");
+                _logger.LogInfo($"Calibration dialog opened for {modeStr} (ADC mode: {adcMode}) - Manual entry mode (no stream)", "CalibrationDialog");
             }
             
             // Start refresh timer to update current raw ADC (only if stream available)
@@ -787,13 +796,17 @@ namespace ATS_TwoWheeler_WPF.Views
                 // Zero point is automatically included in the calculation
                 var internalPoints = capturedPoints.Select(p => p.ToCalibrationPointInternal()).ToList();
                 _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
+                _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
                 _internalCalibration.ADCMode = 0;
+                _internalCalibration.IsBrakeMode = _isBrakeMode;
                 
                 // Calculate ADS1115 calibration using ADS1115 ADC values
                 // Zero point is automatically included in the calculation
                 var ads1115Points = capturedPoints.Select(p => p.ToCalibrationPointADS1115()).ToList();
                 _ads1115Calibration = LinearCalibration.FitMultiplePoints(ads1115Points);
+                _ads1115Calibration = LinearCalibration.FitMultiplePoints(ads1115Points);
                 _ads1115Calibration.ADCMode = 1;
+                _ads1115Calibration.IsBrakeMode = _isBrakeMode;
                 
                 // Build piecewise segments for both calibrations (if mode is Piecewise, segments will be used)
                 // Segments are always built from points, but only used if Mode == Piecewise
@@ -886,7 +899,8 @@ namespace ATS_TwoWheeler_WPF.Views
                 string internalEq = _internalCalibration.GetEquationString();
                 string ads1115Eq = _ads1115Calibration.GetEquationString();
                 
-                MessageBox.Show($"Calibration saved successfully for total weight (both modes).\n\n" +
+                string modeStr = _isBrakeMode ? "brake force" : "total weight";
+                MessageBox.Show($"Calibration saved successfully for {modeStr} (both modes).\n\n" +
                               $"Internal ADC: {internalEq}\n" +
                               $"ADS1115: {ads1115Eq}\n\n" +
                               "You can now use the 'Tare' button on the main window to zero-out platform weight.",

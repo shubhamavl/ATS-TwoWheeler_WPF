@@ -41,6 +41,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private const uint CAN_MSG_ID_MODE_INTERNAL = 0x030;      // Switch to Internal ADC mode (empty message)
         private const uint CAN_MSG_ID_MODE_ADS1115 = 0x031;       // Switch to ADS1115 mode (empty message)
         private const uint CAN_MSG_ID_VERSION_REQUEST = 0x033;    // Request firmware version (empty message)
+        private const uint CAN_MSG_ID_SET_SYSTEM_MODE = 0x050;    // Set system mode (1 byte: 0=Weight, 1=Brake)
         private const uint CAN_MSG_ID_VERSION_RESPONSE = 0x301;   // Firmware version response (4 bytes: major, minor, patch, build)
 
         // Bootloader protocol IDs (matching STM32 implementation)
@@ -81,7 +82,8 @@ namespace ATS_TwoWheeler_WPF.Services
         public event EventHandler<BootQueryResponseEventArgs>? BootQueryResponseReceived;
 
         public bool IsConnected => _connected;
-
+        public byte CurrentADCMode => _currentADCMode;
+        
         private ICanAdapter? _adapter;
 
         public CANService()
@@ -454,6 +456,17 @@ namespace ATS_TwoWheeler_WPF.Services
                 _currentADCMode = 1; // Update mode immediately for correct parsing
             }
             return success;
+        }
+
+        /// <summary>
+        /// Switch system mode (Weight vs Brake)
+        /// </summary>
+        /// <param name="isBrakeMode">True combined with System Mode 1 for Brake, 0 for Weight</param>
+        public bool SwitchSystemMode(bool isBrakeMode)
+        {
+            byte[] data = new byte[] { isBrakeMode ? (byte)1 : (byte)0 };
+            // Set System Mode (0x050)
+            return SendMessage(CAN_MSG_ID_SET_SYSTEM_MODE, data);
         }
 
         /// <summary>

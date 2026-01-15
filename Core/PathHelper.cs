@@ -121,10 +121,12 @@ namespace ATS_TwoWheeler_WPF.Core
         /// Gets the path to a calibration file (portable, in Data directory)
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public static string GetCalibrationPath(byte adcMode)
+        /// <param name="isBrakeMode">True if brake calibration, False if weight calibration</param>
+        public static string GetCalibrationPath(byte adcMode, bool isBrakeMode = false)
         {
             string modeSuffix = adcMode == 0 ? "internal" : "ads1115";
-            return Path.Combine(GetDataDirectory(), $"calibration_total_{modeSuffix}.json");
+            string typeSuffix = isBrakeMode ? "_brake" : "";
+            return Path.Combine(GetDataDirectory(), $"calibration_total_{modeSuffix}{typeSuffix}.json");
         }
         
         /// <summary>

@@ -38,7 +38,9 @@ namespace ATS_TwoWheeler_WPF.Core
         public DateTime CalibrationDate { get; set; }
         public bool IsValid { get; set; }
         public string Side { get; set; } = "";     // "Left" or "Right"
+        public string Side { get; set; } = "";     // "Left" or "Right"
         public byte ADCMode { get; set; } = 0;    // 0=Internal, 1=ADS1115
+        public bool IsBrakeMode { get; set; } = false; // True=Brake Force, False=Total Weight
         
         // Calibration mode: Regression (default) or Piecewise
         public CalibrationMode Mode { get; set; } = CalibrationMode.Regression;
@@ -343,12 +345,12 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115). If not provided, uses current ADCMode property.</param>
         public void SaveToFile(byte? adcMode = null)
         {
-            Side = "Total";
+            Side = IsBrakeMode ? "Brake" : "Total";
             if (adcMode.HasValue)
             {
                 ADCMode = adcMode.Value;
             }
-            string filename = PathHelper.GetCalibrationPath(ADCMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(ADCMode, IsBrakeMode); // Portable: in Data directory
             string jsonString = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filename, jsonString);
         }
@@ -357,10 +359,11 @@ namespace ATS_TwoWheeler_WPF.Core
         /// Load calibration from JSON file
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
+        /// <param name="isBrakeMode">True for brake calibration</param>
         /// <returns>Loaded calibration or null if file doesn't exist</returns>
-        public static LinearCalibration? LoadFromFile(byte adcMode)
+        public static LinearCalibration? LoadFromFile(byte adcMode, bool isBrakeMode = false)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
             if (!File.Exists(filename))
                 return null;
                 
@@ -395,21 +398,29 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <summary>
         /// Check if calibration file exists for ADC mode
         /// </summary>
+        /// <summary>
+        /// Check if calibration file exists for ADC mode
+        /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
+        /// <param name="isBrakeMode">True for brake calibration</param>
         /// <returns>True if calibration file exists</returns>
-        public static bool CalibrationExists(byte adcMode)
+        public static bool CalibrationExists(byte adcMode, bool isBrakeMode = false)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
             return File.Exists(filename);
         }
         
         /// <summary>
         /// Delete calibration file for ADC mode
         /// </summary>
+        /// <summary>
+        /// Delete calibration file for ADC mode
+        /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public static void DeleteCalibration(byte adcMode)
+        /// <param name="isBrakeMode">True for brake calibration</param>
+        public static void DeleteCalibration(byte adcMode, bool isBrakeMode = false)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
             if (File.Exists(filename))
             {
                 try

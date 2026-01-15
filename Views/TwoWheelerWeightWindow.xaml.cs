@@ -609,6 +609,81 @@ namespace ATS_TwoWheeler_WPF.Views
             }
         }
 
+        private async void BrakeModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Primitives.ToggleButton toggle)
+            {
+                _isBrakeMode = toggle.IsChecked ?? false;
+                
+                // Switch mode in UI and Service
+                toggle.Content = _isBrakeMode ? "🛑 Brake Mode (ON)" : "🛑 Brake Mode";
+                toggle.Background = _isBrakeMode 
+                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFDC3545")) // Red for ON
+                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6C757D")); // Grey for OFF
+                
+                try 
+                {
+                    // 1. Switch firmware mode
+                    _canService?.SwitchSystemMode(_isBrakeMode);
+                    
+                    // 2. Switch calibration in WeightProcessor
+                    if (_weightProcessor != null)
+                    {
+                        _weightProcessor.SetBrakeMode(_isBrakeMode);
+                    }
+                    
+                    // 3. Update UI Labels
+                    if (TotalWeightText != null) 
+                    {
+                        // Update label next to value? The XAML has "Total:" hardcoded.
+                        // We might need to access the label if it has an x:Name, or just rely on context.
+                        // The XAML: <TextBlock Text="Total:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                        // It doesn't have x:Name. We might want to add one or just accept "Total:" is generic.
+                    }
+                    
+                    // 4. Update window title or status
+                    StatusMessageText.Text = _isBrakeMode ? "Brake Force Mode Active" : "Weight Mode Active";
+                    
+                    ProductionLogger.Instance.LogInfo($"Switched to {(_isBrakeMode ? "Brake" : "Weight")} mode", "TwoWheeler");
+                }
+                catch (Exception ex)
+                {
+                    ProductionLogger.Instance.LogError($"Error switching mode: {ex.Message}", "TwoWheeler");
+                    MessageBox.Show($"Error switching mode: {ex.Message}", "Error");
+                    
+                    // Revert toggle if failed
+                    _isBrakeMode = !_isBrakeMode;
+                    toggle.IsChecked = _isBrakeMode;
+                }
+            }
+        }
+
+        private void CalibrateBtn_Click(object sender, RoutedEventArgs e)
+        {
+            try 
+            {
+                byte currentMode = _canService?.CurrentADCMode ?? 0;
+                var calibrationDialog = new CalibrationDialog(currentMode, 500, _isBrakeMode);
+                calibrationDialog.Owner = this;
+                
+                if (calibrationDialog.ShowDialog() == true)
+                {
+                    // Reload calibration in WeightProcessor
+                    _weightProcessor?.LoadCalibration();
+                    
+                    // Reset filters
+                    _weightProcessor?.ResetFilters();
+                    
+                    ProductionLogger.Instance.LogInfo($"Calibration updated from dialog (BrakeMode={_isBrakeMode})", "TwoWheeler");
+                }
+            }
+            catch (Exception ex)
+            {
+                ProductionLogger.Instance.LogError($"Error opening calibration: {ex.Message}", "TwoWheeler");
+                MessageBox.Show($"Error opening calibration: {ex.Message}", "Error");
+            }
+        }
+
         private async void ExportBtn_Click(object sender, RoutedEventArgs e)
         {
             var exportBtn = sender as System.Windows.Controls.Button;

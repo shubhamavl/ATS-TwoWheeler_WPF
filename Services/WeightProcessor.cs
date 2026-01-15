@@ -33,7 +33,11 @@ namespace ATS_TwoWheeler_WPF.Services
         private volatile ProcessedWeightData _latestTotal = new();
         
         // Calibration references (immutable after set)
-        private LinearCalibration? _totalCalibration;
+        // Calibration references (immutable after set)
+        private LinearCalibration? _internalCalibration;
+        private LinearCalibration? _ads1115Calibration;
+        private SettingsManager _settingsManager = SettingsManager.Instance;
+        private bool _isBrakeMode = false;
         private TareManager? _tareManager;
         
         // ADC mode tracking (0=Internal, 1=ADS1115)
@@ -70,6 +74,11 @@ namespace ATS_TwoWheeler_WPF.Services
         public long ProcessedCount => _processedCount;
         public long DroppedCount => _droppedCount;
         public bool IsRunning => _isRunning;
+
+        public WeightProcessor()
+        {
+            LoadCalibration();
+        }
         
         /// <summary>
         /// Start the processing thread
@@ -104,9 +113,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public void SetCalibration(LinearCalibration? calibration)
         {
-            _totalCalibration = calibration;
-            
-            ProductionLogger.Instance.LogInfo($"Calibration set - Total: {calibration?.IsValid}", "WeightProcessor");
+            // Deprecated: use LoadCalibration internal logic instead
+            // _totalCalibration = calibration;
+            // ProductionLogger.Instance.LogInfo($"Calibration set - Total: {calibration?.IsValid}", "WeightProcessor");
         }
         
         /// <summary>
@@ -115,6 +124,38 @@ namespace ATS_TwoWheeler_WPF.Services
         public void SetADCMode(byte adcMode)
         {
             _totalADCMode = adcMode;
+        }
+
+        public void SetBrakeMode(bool isBrakeMode)
+        {
+            if (_isBrakeMode != isBrakeMode)
+            {
+                _isBrakeMode = isBrakeMode;
+                LoadCalibration();
+            }
+        }
+        
+        public void LoadCalibration()
+        {
+            try
+            {
+                // Load calibrations for both nodes
+                _internalCalibration = LinearCalibration.LoadFromFile(0, _isBrakeMode);
+                _ads1115Calibration = LinearCalibration.LoadFromFile(1, _isBrakeMode);
+                
+                string modeStr = _isBrakeMode ? "Brake" : "Weight";
+                
+                // Log calibration status
+                if (_internalCalibration != null)
+                    ProductionLogger.Instance.LogInfo($"Internal calibration loaded ({modeStr}): {_internalCalibration.GetEquationString()}", "WeightProcessor");
+
+                if (_ads1115Calibration != null)
+                    ProductionLogger.Instance.LogInfo($"ADS1115 calibration loaded ({modeStr}): {_ads1115Calibration.GetEquationString()}", "WeightProcessor");
+            }
+            catch (Exception ex)
+            {
+                ProductionLogger.Instance.LogError($"Error loading calibration: {ex.Message}", "WeightProcessor");
+            }
         }
         
         /// <summary>
@@ -203,9 +244,12 @@ namespace ATS_TwoWheeler_WPF.Services
             };
             
             // Apply calibration (fast floating-point math)
-            if (_totalCalibration?.IsValid == true)
+            // Select calibration based on current ADC mode
+            var calibration = _totalADCMode == 0 ? _internalCalibration : _ads1115Calibration;
+            
+            if (calibration?.IsValid == true)
             {
-                double calibratedWeight = _totalCalibration.RawToKg(raw.RawADC);
+                double calibratedWeight = calibration.RawToKg(raw.RawADC);
                 
                 // Apply filtering if enabled
                 if (_filterEnabled)
