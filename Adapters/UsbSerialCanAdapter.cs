@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Concurrent;
 using ATS_TwoWheeler_WPF.Models;
+using ATS_TwoWheeler_WPF.Services;
 
 namespace ATS_TwoWheeler_WPF.Adapters
 {
@@ -61,6 +62,14 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 }
 
                 _serialPort = new SerialPort(usbConfig.PortName, usbConfig.SerialBaudRate, Parity.None, 8, StopBits.One);
+                
+                // Configure timeouts to prevent blocking during high-speed transfers
+                _serialPort.WriteTimeout = 100; // 100ms timeout instead of infinite (prevents blocking)
+                _serialPort.ReadTimeout = 100;  // 100ms read timeout (may be removable if BytesToRead check prevents blocking)
+                // Note: Handshake defaults to None, no need to set explicitly
+                _serialPort.DtrEnable = true; // Enable DTR for better USB-CAN adapter compatibility
+                _serialPort.RtsEnable = true; // Enable RTS for better USB-CAN adapter compatibility
+                
                 _serialPort.Open();
                 _connected = true;
 
@@ -293,26 +302,28 @@ namespace ATS_TwoWheeler_WPF.Adapters
                     MessageReceived?.Invoke(canMessage);
 
                     System.Diagnostics.Debug.WriteLine($"Processed: ID=0x{canId:X3}, DLC={dlc}, Data={BitConverter.ToString(canData)}");
+                    // Log valid messages to ProductionLogger for visibility
+                    // ProductionLogger.Instance.LogInfo($"Adapter Valid RX: ID=0x{canId:X3} Data={BitConverter.ToString(canData)}", "Adapter");
                 }
+                // Ignored messages are silently dropped to avoid log flooding at high rates (1kHz+)
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Decode error: {ex.Message}");
+                ProductionLogger.Instance.LogError($"Adapter Decode Error: {ex.Message}", "Adapter");
             }
         }
 
         private bool IsTwoWheelerMessage(uint canId)
         {
-            // Protocol v0.9 - ATS Two-Wheeler System - Semantic IDs
+            // Protocol v0.1 - ATS Two-Wheeler System - Semantic IDs
             switch (canId)
             {
                 // Raw ADC Data Transmission (STM32 → PC3)
-                case 0x200:  // Left side raw ADC data (Ch0+Ch1)
-                case 0x201:  // Right side raw ADC data (Ch2+Ch3)
+                case 0x200:  // Total raw ADC data (all 4 channels: Ch0+Ch1+Ch2+Ch3)
 
                 // Stream Control Commands (PC3 → STM32, but we receive them too for monitoring)
-                case 0x040:  // Start left side streaming
-                case 0x041:  // Start right side streaming
+                case 0x040:  // Start streaming (1 byte: rate)
                 case 0x044:  // Stop all streams
 
                 // System Control Messages (PC3 → STM32, but we receive them too for monitoring)
@@ -320,6 +331,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 case 0x031:  // Switch to ADS1115 mode
                 case 0x032:  // Request system status
                 case 0x033:  // Request firmware version
+                case 0x050:  // Set system mode (1 byte: 0=Weight, 1=Brake)
 
                 // System Status (STM32 → PC3)
                 case 0x300:  // System status response

@@ -313,7 +313,8 @@ namespace ATS_TwoWheeler_WPF.Services
                     // Fire specific events for WeightCalibrationPoint
                     FireSpecificEvents(canId, canData);
 
-                    ProductionLogger.Instance.LogInfo($"Processed: ID=0x{canId:X3}, Data={BitConverter.ToString(canData)}", "CANService");
+                    // Removed verbose logging for 1kHz performance - too slow!
+                    // ProductionLogger.Instance.LogInfo($"Processed: ID=0x{canId:X3}, Data={BitConverter.ToString(canData)}", "CANService");
                 }
             }
             catch (Exception ex)
@@ -336,6 +337,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 case CAN_MSG_ID_MODE_INTERNAL:      // 0x030 - Switch to Internal ADC mode
                 case CAN_MSG_ID_MODE_ADS1115:       // 0x031 - Switch to ADS1115 mode
                 case CAN_MSG_ID_VERSION_REQUEST:    // 0x033 - Request firmware version
+                case CAN_MSG_ID_SET_SYSTEM_MODE:    // 0x050 - Set system mode (0=Weight, 1=Brake)
                 case CAN_MSG_ID_VERSION_RESPONSE:   // 0x301 - Firmware version response
                 case CAN_MSG_ID_BOOT_ENTER:          // 0x510 - Enter Bootloader
                 case CAN_MSG_ID_BOOT_QUERY_INFO:     // 0x511 - Query Boot Info

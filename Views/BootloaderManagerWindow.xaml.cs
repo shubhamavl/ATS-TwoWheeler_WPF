@@ -151,12 +151,6 @@ namespace ATS_TwoWheeler_WPF.Views
 
         private void UpdateUI()
         {
-            // Update active bank display
-            if (ActiveBankText != null)
-            {
-                ActiveBankText.Text = $"Active Bank: {_bootloaderInfo.ActiveBankName}";
-            }
-
             // Update bootloader status
             if (BootloaderStatusText != null)
             {
@@ -166,8 +160,7 @@ namespace ATS_TwoWheeler_WPF.Views
             }
 
             // Update bank information
-            UpdateBankInfo(_bootloaderInfo.BankA, BankAVersionText, BankAStatusText, BankASizeText, BankACrcText, BankALastUpdateText);
-            UpdateBankInfo(_bootloaderInfo.BankB, BankBVersionText, BankBStatusText, BankBSizeText, BankBCrcText, BankBLastUpdateText);
+            UpdateBankInfo(_bootloaderInfo.Bank, BankAVersionText, BankAStatusText, BankASizeText, BankACrcText, BankALastUpdateText);
 
             // Update firmware version
             if (FirmwareVersionText != null)
@@ -238,9 +231,9 @@ namespace ATS_TwoWheeler_WPF.Views
 
         private async void StartFirmwareUpdateBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (_firmwareUpdateService == null)
+            if (_firmwareUpdateService == null || _canService == null)
             {
-                MessageBox.Show("Firmware update service not available.", "Error", 
+                MessageBox.Show("Required services (Firmware/CAN) not available.", "Error", 
                               MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -260,9 +253,9 @@ namespace ATS_TwoWheeler_WPF.Views
             }
 
             var result = MessageBox.Show(
-                $"Update firmware to {_bootloaderInfo.GetInactiveBankInfo().BankName}?\n\n" +
+                $"Update firmware?\n\n" +
                 $"File: {Path.GetFileName(_selectedFirmwarePath)}\n" +
-                $"This will erase the inactive bank and write new firmware.",
+                $"This will erase the application and write new firmware.",
                 "Confirm Firmware Update",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -274,7 +267,71 @@ namespace ATS_TwoWheeler_WPF.Views
             _updateCts = new CancellationTokenSource();
             _updateStartTime = DateTime.Now;
             _bytesSent = 0;
-            _currentStep = BootloaderProcessStep.EnterBootloader;
+            
+            // -----------------------------------------------------------
+            // STEP 1: ENTER BOOTLOADER (AUTOMATED)
+            // -----------------------------------------------------------
+            try 
+            {
+                UpdateStepIndicator(BootloaderProcessStep.EnterBootloader, false);
+                UpdateStatusText("Checking bootloader status...");
+                
+                // First check if we are ALREADY in bootloader mode (e.g. from previous run)
+                if (_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready) 
+                {
+                     LogOperation("Check Status", "SYSTEM", 0, "Ready", "Already in bootloader mode");
+                }
+                else 
+                {
+                    // Not ready, so send Entry Command
+                    UpdateStatusText("Sending bootloader entry command...");
+                    LogOperation("Enter Bootloader", "TX", BootloaderProtocol.CanIdBootEnter, "Sent", "Requesting bootloader entry");
+                    
+                    _canService.RequestEnterBootloader();
+                    
+                    // Wait for proactive PING response (0x517)
+                    UpdateStatusText("Waiting for bootloader response...");
+                    bool bootloaderReady = false;
+                    
+                    // Wait up to 3 seconds for the "I am Ready" message
+                    for(int i=0; i<30; i++) 
+                    {
+                        if (_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready) 
+                        {
+                            bootloaderReady = true;
+                            break;
+                        }
+                        await Task.Delay(100);
+                    }
+                    
+                    if (!bootloaderReady) 
+                    {
+                        // Try one manual ping just in case
+                        UpdateStatusText("Pinging bootloader...");
+                        _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
+                        await Task.Delay(500);
+                        
+                        // Check again
+                        if (!(_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready))
+                        {
+                             throw new Exception("Bootloader did not respond. Check connection or try manual Entry.");
+                        }
+                    }
+                }
+                
+                UpdateStepIndicator(BootloaderProcessStep.EnterBootloader, true); // Mark Entry as Done
+            }
+            catch(Exception ex) 
+            {
+                 MessageBox.Show($"Failed to enter bootloader: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                 _updateInProgress = false;
+                 return;
+            }
+
+            // -----------------------------------------------------------
+            // STEP 2: START UPDATE
+            // -----------------------------------------------------------
+            _currentStep = BootloaderProcessStep.Begin;
             
             // Initialize progress tracking
             var fileInfo = new FileInfo(_selectedFirmwarePath);
@@ -493,7 +550,7 @@ namespace ATS_TwoWheeler_WPF.Views
                 EnterBootloaderBtn.IsEnabled = false;
                 EnterBootloaderBtn.Content = "Entering...";
                 
-                _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootEnter, Array.Empty<byte>(), true);
+                // _diagnosticsService?.CaptureMessage call removed to avoid duplicate logging (handled by CANService)
                 bool sent = _canService.RequestEnterBootloader();
                 
                 if (sent)
@@ -574,148 +631,6 @@ namespace ATS_TwoWheeler_WPF.Views
             }
         }
 
-        private void SwitchBankBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var inactiveBank = _bootloaderInfo.GetInactiveBankInfo();
-            
-            if (!inactiveBank.IsValid)
-            {
-                MessageBox.Show(
-                    $"Cannot switch to {inactiveBank.BankName}.\n\n" +
-                    $"Reason: Bank is invalid or contains no firmware.\n\n" +
-                    $"Please update firmware to {inactiveBank.BankName} first.",
-                    "Cannot Switch Bank",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                return;
-            }
-
-            var result = MessageBox.Show(
-                $"Switch active bank to {inactiveBank.BankName}?\n\n" +
-                $"Current Active: {_bootloaderInfo.ActiveBankName}\n" +
-                $"Target: {inactiveBank.BankName}\n" +
-                $"Version: {inactiveBank.VersionString}\n\n" +
-                $"Note: This requires a firmware update to the inactive bank.\n" +
-                $"The bank switch happens automatically after a successful update.",
-                "Switch Bank",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                MessageBox.Show(
-                    $"To switch to {inactiveBank.BankName}, please:\n\n" +
-                    $"1. Select a firmware file\n" +
-                    $"2. Click 'Start Update'\n" +
-                    $"3. The system will automatically switch banks after successful update\n\n" +
-                    $"The inactive bank ({inactiveBank.BankName}) will become active.",
-                    "How to Switch Bank",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-            }
-        }
-
-        private void RollbackBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var inactiveBank = _bootloaderInfo.GetInactiveBankInfo();
-            
-            if (!inactiveBank.IsValid)
-            {
-                MessageBox.Show(
-                    $"Cannot rollback to {inactiveBank.BankName}.\n\n" +
-                    $"Reason: Bank is invalid or contains no firmware.\n\n" +
-                    $"Rollback is only possible if the inactive bank contains valid firmware.",
-                    "Cannot Rollback",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                return;
-            }
-
-            var result = MessageBox.Show(
-                $"Rollback to {inactiveBank.BankName}?\n\n" +
-                $"Current Active: {_bootloaderInfo.ActiveBankName}\n" +
-                $"Rollback Target: {inactiveBank.BankName}\n" +
-                $"Version: {inactiveBank.VersionString}\n\n" +
-                $"This will switch to the previous firmware version.\n" +
-                $"Note: This requires a firmware update to trigger bank switch.",
-                "Confirm Rollback",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                MessageBox.Show(
-                    $"To rollback to {inactiveBank.BankName}, please:\n\n" +
-                    $"1. Select a firmware file (or use the same version)\n" +
-                    $"2. Click 'Start Update'\n" +
-                    $"3. The system will switch to {inactiveBank.BankName} after update\n\n" +
-                    $"Alternatively, if {inactiveBank.BankName} already has valid firmware,\n" +
-                    $"you can trigger a switch by updating firmware.",
-                    "How to Rollback",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-            }
-        }
-
-        private async void ValidateBanksBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (_canService == null)
-            {
-                MessageBox.Show("CAN service not available.", "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                ValidateBanksBtn.IsEnabled = false;
-                ValidateBanksBtn.Content = "Validating...";
-                
-                // Query bootloader info to get current status
-                bool sent = _canService.RequestBootloaderInfo();
-                if (sent)
-                {
-                    await Task.Delay(2000); // Wait for response
-                    
-                    string message = "Bank Validation Results:\n\n";
-                    message += $"Active Bank: {_bootloaderInfo.ActiveBankName}\n";
-                    message += $"Bank A Status: {_bootloaderInfo.BankA.StatusString}\n";
-                    if (_bootloaderInfo.BankA.IsValid)
-                    {
-                        message += $"  Version: {_bootloaderInfo.BankA.VersionString}\n";
-                        message += $"  Size: {_bootloaderInfo.BankA.Size:N0} bytes\n";
-                        message += $"  CRC: 0x{_bootloaderInfo.BankA.Crc:X8}\n";
-                    }
-                    message += $"\nBank B Status: {_bootloaderInfo.BankB.StatusString}\n";
-                    if (_bootloaderInfo.BankB.IsValid)
-                    {
-                        message += $"  Version: {_bootloaderInfo.BankB.VersionString}\n";
-                        message += $"  Size: {_bootloaderInfo.BankB.Size:N0} bytes\n";
-                        message += $"  CRC: 0x{_bootloaderInfo.BankB.Crc:X8}\n";
-                    }
-                    
-                    MessageBox.Show(message, "Bank Validation",
-                                  MessageBoxButton.OK,
-                                  MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Failed to request bootloader info.", "Error",
-                                  MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Validate banks error: {ex.Message}", "BootloaderManager");
-                MessageBox.Show($"Error: {ex.Message}", "Error",
-                              MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                ValidateBanksBtn.IsEnabled = true;
-                ValidateBanksBtn.Content = "Validate Banks";
-            }
-        }
 
         private async void QueryBootInfoBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -832,15 +747,12 @@ namespace ATS_TwoWheeler_WPF.Views
                     _bootloaderInfo.FirmwareVersion = new Version(e.Major, e.Minor, e.Patch);
                     _bootloaderInfo.Status = BootloaderStatus.Ready;
                     
-                    // Update bank information from extended Query Response
-                    _bootloaderInfo.ActiveBank = e.ActiveBank;
-                    _bootloaderInfo.BankA.IsValid = (e.BankAValid == 0xFF);
-                    _bootloaderInfo.BankB.IsValid = (e.BankBValid == 0xFF);
+                    // Update bank information (Standard Single Bank A)
+                    _bootloaderInfo.Bank.IsValid = (e.BankAValid == 0xFF);
                     
                     LogOperation("Query Response", "RX", BootloaderProtocol.CanIdBootQueryResponse, "Success", 
-                               $"Version: {e.Major}.{e.Minor}.{e.Patch}, Active: Bank {(e.ActiveBank == 0 ? 'A' : 'B')}, " +
-                               $"Bank A: {(e.BankAValid == 0xFF ? "Valid" : "Invalid")}, " +
-                               $"Bank B: {(e.BankBValid == 0xFF ? "Valid" : "Invalid")}");
+                               $"Version: {e.Major}.{e.Minor}.{e.Patch}, " +
+                               $"Bank IsValid: {(_bootloaderInfo.Bank.IsValid ? "Yes" : "No")}");
                 }
                 else
                 {

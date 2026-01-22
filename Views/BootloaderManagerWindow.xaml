@@ -28,12 +28,11 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
-                    <TextBlock x:Name="ActiveBankText" Text="Active Bank: Unknown" FontWeight="Bold" FontSize="12"/>
-                    <TextBlock x:Name="BootloaderStatusText" Text="Bootloader: Unknown" FontSize="11" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="BootloaderStatusText" Text="Bootloader: Unknown" FontWeight="Bold" FontSize="12"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="LastUpdateText" Text="Last Update: Never" FontSize="11"/>
-                    <TextBlock x:Name="FirmwareVersionText" Text="Firmware: Unknown" FontSize="11" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="FirmwareVersionText" Text="Firmware: Unknown" FontSize="11"/>
+                    <TextBlock x:Name="LastUpdateText" Text="Last Update: Never" FontSize="11" Margin="0,4,0,0"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -43,31 +42,17 @@
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 
-                <!-- Bank A Card -->
+                <!-- Application Info Card -->
                 <Border Grid.Column="0" Background="#E8F4F8" Padding="12" CornerRadius="6" BorderThickness="2" BorderBrush="#4A90E2">
                     <StackPanel>
-                        <TextBlock Text="Bank A" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                        <TextBlock Text="Application Firmware" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
                         <TextBlock x:Name="BankAVersionText" Text="Version: Unknown" FontSize="11" Margin="0,2,0,0"/>
                         <TextBlock x:Name="BankAStatusText" Text="Status: Unknown" FontSize="11" Margin="0,2,0,0"/>
                         <TextBlock x:Name="BankASizeText" Text="Size: Unknown" FontSize="11" Margin="0,2,0,0"/>
                         <TextBlock x:Name="BankACrcText" Text="CRC: Unknown" FontSize="11" Margin="0,2,0,0"/>
                         <TextBlock x:Name="BankALastUpdateText" Text="Last Update: Never" FontSize="10" Margin="0,2,0,0" Foreground="Gray"/>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Bank B Card -->
-                <Border Grid.Column="2" Background="#F8E8F4" Padding="12" CornerRadius="6" BorderThickness="2" BorderBrush="#E24A90">
-                    <StackPanel>
-                        <TextBlock Text="Bank B" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="BankBVersionText" Text="Version: Unknown" FontSize="11" Margin="0,2,0,0"/>
-                        <TextBlock x:Name="BankBStatusText" Text="Status: Unknown" FontSize="11" Margin="0,2,0,0"/>
-                        <TextBlock x:Name="BankBSizeText" Text="Size: Unknown" FontSize="11" Margin="0,2,0,0"/>
-                        <TextBlock x:Name="BankBCrcText" Text="CRC: Unknown" FontSize="11" Margin="0,2,0,0"/>
-                        <TextBlock x:Name="BankBLastUpdateText" Text="Last Update: Never" FontSize="10" Margin="0,2,0,0" Foreground="Gray"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -265,16 +250,6 @@
                             Click="QueryBootInfoBtn_Click" Width="120" Margin="0,0,8,0"/>
                     <Button x:Name="ResetBtn" Content="Reset STM32" 
                             Click="ResetBtn_Click" Width="120"/>
-                </StackPanel>
-                <!-- Bank Management Buttons -->
-                <TextBlock Text="Bank Management" FontWeight="Bold" FontSize="11" Margin="0,0,0,6" Foreground="#666"/>
-                <StackPanel Orientation="Horizontal">
-                    <Button x:Name="SwitchBankBtn" Content="Switch Bank" 
-                            Click="SwitchBankBtn_Click" Width="120" Margin="0,0,8,0"/>
-                    <Button x:Name="RollbackBtn" Content="Rollback" 
-                            Click="RollbackBtn_Click" Width="120" Margin="0,0,8,0"/>
-                    <Button x:Name="ValidateBanksBtn" Content="Validate Banks" 
-                            Click="ValidateBanksBtn_Click" Width="120"/>
                 </StackPanel>
             </StackPanel>
         </GroupBox>

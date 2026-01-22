@@ -822,7 +822,7 @@ namespace ATS_TwoWheeler_WPF.Views
                 if (message == null) return;
 
                 // REMOVED: Verbose logging for 1kHz performance - too slow!
-                // _logger.LogInfo($"Processing CAN message: ID=0x{message.ID:X3}, Data={BitConverter.ToString(message.Data)}", "CAN");
+                _logger.LogInfo($"Processing CAN message: ID=0x{message.ID:X3}, Data={BitConverter.ToString(message.Data)}", "CAN");
 
                 var vm = new CANMessageViewModel(message, _rxMessageIds, _txMessageIds);
                 _messageQueue.Enqueue(vm);
