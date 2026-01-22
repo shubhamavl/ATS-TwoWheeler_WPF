@@ -45,6 +45,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private bool _isPaused = false;
         private const int MAX_SAMPLES = 21000;    // Sliding window size for data display
         private int _sampleCount = 0;
+        private bool _isBrakeMode = false;
 
         // Test state management
         private enum TestState { Idle, Reading, Stopped, Completed }
@@ -609,7 +610,7 @@ namespace ATS_TwoWheeler_WPF.Views
             }
         }
 
-        private async void BrakeModeToggle_Click(object sender, RoutedEventArgs e)
+        private void BrakeModeToggle_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.Primitives.ToggleButton toggle)
             {

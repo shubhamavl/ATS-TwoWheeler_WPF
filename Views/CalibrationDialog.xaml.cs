@@ -899,8 +899,8 @@ namespace ATS_TwoWheeler_WPF.Views
                 string internalEq = _internalCalibration.GetEquationString();
                 string ads1115Eq = _ads1115Calibration.GetEquationString();
                 
-                string modeStr = _isBrakeMode ? "brake force" : "total weight";
-                MessageBox.Show($"Calibration saved successfully for {modeStr} (both modes).\n\n" +
+                string displayModeStr = _isBrakeMode ? "brake force" : "total weight";
+                MessageBox.Show($"Calibration saved successfully for {displayModeStr} (both modes).\n\n" +
                               $"Internal ADC: {internalEq}\n" +
                               $"ADS1115: {ads1115Eq}\n\n" +
                               "You can now use the 'Tare' button on the main window to zero-out platform weight.",

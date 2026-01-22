@@ -38,7 +38,6 @@ namespace ATS_TwoWheeler_WPF.Core
         public DateTime CalibrationDate { get; set; }
         public bool IsValid { get; set; }
         public string Side { get; set; } = "";     // "Left" or "Right"
-        public string Side { get; set; } = "";     // "Left" or "Right"
         public byte ADCMode { get; set; } = 0;    // 0=Internal, 1=ADS1115
         public bool IsBrakeMode { get; set; } = false; // True=Brake Force, False=Total Weight
         
