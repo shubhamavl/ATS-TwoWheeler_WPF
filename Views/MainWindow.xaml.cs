@@ -74,7 +74,14 @@ namespace ATS_TwoWheeler_WPF.Views
         // v0.1 Protocol - Only semantic IDs (ATS Two-Wheeler)
         private readonly HashSet<uint> _rxMessageIds = new HashSet<uint> {
             0x200,  // Total raw ADC data (all 4 channels summed)
-            0x300   // System status (on-demand)
+            0x300,  // System status (on-demand)
+            0x301,  // Firmware version response
+            0x517,  // Boot: Ping Response
+            0x518,  // Boot: Begin Response
+            0x519,  // Boot: Progress Update
+            0x51A,  // Boot: End Response
+            0x51B,  // Boot: Error Response
+            0x51C   // Boot: Query Response
         };
 
         private readonly HashSet<uint> _txMessageIds = new HashSet<uint> {
@@ -82,11 +89,15 @@ namespace ATS_TwoWheeler_WPF.Views
             0x044,  // Stop all streams
             0x030,  // Switch to Internal ADC mode
             0x031,  // Switch to ADS1115 mode
-            0x032   // Request system status
+            0x032,  // Request system status
+            0x050   // Switch System Mode (0=Weight, 1=Brake)
         };
 
         // Current transmission state
         private byte _currentTransmissionRate = 3; // Default 500Hz
+        
+        // System Mode (0=Weight, 1=Brake Force)
+        private byte _currentSystemMode = 0; // Default to Weight Mode
 
         public MainWindow()
         {
@@ -821,8 +832,8 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 if (message == null) return;
 
-                // REMOVED: Verbose logging for 1kHz performance - too slow!
-                _logger.LogInfo($"Processing CAN message: ID=0x{message.ID:X3}, Data={BitConverter.ToString(message.Data)}", "CAN");
+                // DEBUG: Log every message received from CANService
+                _logger.LogInfo($"MainWindow RX: ID=0x{message.ID:X3} Dir={message.Direction} QueueSize={_messageQueue.Count}", "MainWindow");
 
                 var vm = new CANMessageViewModel(message, _rxMessageIds, _txMessageIds);
                 _messageQueue.Enqueue(vm);
@@ -950,7 +961,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 if (Messages.Count > messageLimit) Messages.RemoveAt(0);
             }
 
-            if (processed > 0) ApplyMessageFilter();
+            // DEBUG: Log when messages are processed
+            if (processed > 0)
+            {
+                _logger.LogInfo($"ProcessPendingMessages: Processed {processed} msgs, Messages.Count={Messages.Count}, FilteredMessages.Count={FilteredMessages.Count}", "UI");
+                ApplyMessageFilter();
+            }
         }
         
         private void ApplyMessageFilter()
@@ -1047,7 +1063,7 @@ namespace ATS_TwoWheeler_WPF.Views
                             roundedWeight = 0.0; // Force positive zero
                         }
                         
-                        WeightDisplayTxt.Text = $"{roundedWeight.ToString(format)} kg";
+                        WeightDisplayTxt.Text = $"{roundedWeight.ToString(format)} {(_currentSystemMode == 0 ? "kg" : "N")}";
                     }
                     else
                     {
@@ -4976,8 +4992,9 @@ Most users should keep default values unless experiencing specific issues.";
                 }
                 else
                 {
+                    string systemModeText = _currentSystemMode == 0 ? "Total Weight" : "Brake Force";
                     string adcModeText = _activeADCMode == 0 ? "Internal ADC (12-bit)" : "ADS1115 (16-bit)";
-                    DashboardModeHeader.Text = $"Total Weight - {adcModeText}";
+                    DashboardModeHeader.Text = $"{systemModeText} - {adcModeText}";
                 }
             }
             catch (Exception ex)
@@ -5025,6 +5042,79 @@ Most users should keep default values unless experiencing specific issues.";
                 _logger.LogError($"Error switching ADC mode: {ex.Message}", "ADC");
                 MessageBox.Show($"Error switching ADC mode: {ex.Message}", 
                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SwitchSystemModeBtn_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_canService?.IsConnected != true)
+                {
+                    ShowInlineStatus("? CAN service not connected", true);
+                    return;
+                }
+
+                // Toggle mode: 0->1, 1->0
+                byte newMode = (byte)(_currentSystemMode == 0 ? 1 : 0);
+                SwitchSystemMode(newMode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in SwitchSystemModeBtn_Click: {ex.Message}", "UI");
+            }
+        }
+
+        private void SwitchSystemMode(byte newMode)
+        {
+            try
+            {
+                // Send 0x050 command
+                // Payload: [newMode]
+                bool success = _canService?.SendCANMessage(0x050, new byte[] { newMode }) ?? false;
+                FlashTxIndicator();
+
+                if (success)
+                {
+                    _currentSystemMode = newMode;
+                    UpdateDashboardMode();
+                    
+                    string modeName = newMode == 0 ? "Weight Mode" : "Brake Force Mode";
+                    _logger.LogInfo($"Switched system mode to: {modeName}", "Mode");
+                    ShowInlineStatus($"? Switched to {modeName}");
+                    
+                    // Update System Mode Indicator Logic (if added to UI)
+                    UpdateSystemModeUI();
+                }
+                else
+                {
+                    _logger.LogError("Failed to send Switch System Mode command", "Mode");
+                    ShowInlineStatus("? Failed to switch system mode", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"SwitchSystemMode error: {ex.Message}", "Mode");
+            }
+        }
+
+        private void UpdateSystemModeUI()
+        {
+            try 
+            {
+                Dispatcher.Invoke(() => {
+                    if (SystemModeText != null) 
+                    {
+                         SystemModeText.Text = _currentSystemMode == 0 ? "Weight Mode" : "Brake Mode";
+                         SystemModeText.Foreground = _currentSystemMode == 0 ? 
+                            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)) : 
+                            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 87, 34)); // OrangeRed
+                    }
+                });
+            }
+            catch(Exception ex) 
+            {
+                _logger.LogError($"Error updating system mode UI: {ex.Message}", "UI");
             }
         }
 

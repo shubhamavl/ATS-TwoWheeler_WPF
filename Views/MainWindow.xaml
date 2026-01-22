@@ -789,31 +789,44 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Column 1: ADC Mode Control -->
+                    <!-- Column 1: System Configuration (Mode & ADC) -->
                     <Border Grid.Column="0" Style="{StaticResource DataCard}" 
                             BorderBrush="#FF2196F3" BorderThickness="2" Margin="0,0,5,0">
                         <StackPanel Margin="15">
-                            <TextBlock Text="ADC MODE" FontWeight="Bold" FontSize="12" 
+                            <TextBlock Text="SYSTEM CONFIG" FontWeight="Bold" FontSize="12" 
                                        HorizontalAlignment="Center" Margin="0,0,0,10"/>
                             
-                            <!-- Radio-style mode selector -->
+                            <!-- System Mode Selection -->
                             <StackPanel Margin="0,0,0,10">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <Ellipse x:Name="InternalModeIndicator" Width="12" Height="12" 
-                                             Fill="#FF2196F3" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Internal (12-bit)" FontSize="12"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <Ellipse x:Name="ADS1115ModeIndicator" Width="12" Height="12" 
-                                             Fill="#FFCCCCCC" Margin="0,0,8,0"/>
-                                    <TextBlock Text="ADS1115 (16-bit)" FontSize="12"/>
+                                <TextBlock Text="Measurement Mode:" FontSize="10" Foreground="Gray" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="SystemModeText" Text="Weight Mode" FontSize="14" FontWeight="Bold" 
+                                           HorizontalAlignment="Center" Foreground="Green" Margin="0,0,0,5"/>
+                                <Button x:Name="SwitchSystemModeBtn" Content="Switch (Weight/Brake)" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Background="#FF673AB7" Click="SwitchSystemModeBtn_Click" 
+                                        Height="28" Margin="0,0,0,10"/>
+                            </StackPanel>
+
+                            <Separator Margin="0,0,0,10"/>
+                            
+                            <!-- ADC Mode Selection -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="ADC Resolution:" FontSize="10" Foreground="Gray" Margin="0,0,0,2"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5" HorizontalAlignment="Center">
+                                    <Ellipse x:Name="InternalModeIndicator" Width="10" Height="10" 
+                                             Fill="#FF2196F3" Margin="0,0,5,0"/>
+                                    <TextBlock Text="12-bit" FontSize="11" Margin="0,0,10,0"/>
+                                    
+                                    <Ellipse x:Name="ADS1115ModeIndicator" Width="10" Height="10" 
+                                             Fill="#FFCCCCCC" Margin="0,0,5,0"/>
+                                    <TextBlock Text="16-bit" FontSize="11"/>
                                 </StackPanel>
                             </StackPanel>
                             
-                            <Button x:Name="SwitchModeBtn" Content="Switch Mode" 
+                            <Button x:Name="SwitchModeBtn" Content="Switch ADC (12/16-bit)" 
                                     Style="{StaticResource ModernButton}" 
                                     Background="#FF2196F3" Click="SwitchModeBtn_Click" 
-                                    Height="32" Margin="0,5,0,5"/>
+                                    Height="28" Margin="0,5,0,5"/>
                         </StackPanel>
                     </Border>
 
