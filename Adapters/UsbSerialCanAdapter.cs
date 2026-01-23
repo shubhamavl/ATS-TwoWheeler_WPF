@@ -163,6 +163,10 @@ namespace ATS_TwoWheeler_WPF.Adapters
                     {
                         int count = _serialPort.Read(buffer, 0, buffer.Length);
 
+                        // HEX DUMP for debugging: Log raw bytes arriving from serial
+                        string hex = BitConverter.ToString(buffer, 0, count);
+                        ProductionLogger.Instance.LogInfo($"RAW SERIAL: {hex}", "Adapter");
+
                         for (int i = 0; i < count; i++)
                             _frameBuffer.Enqueue(buffer[i]);
 
@@ -191,125 +195,139 @@ namespace ATS_TwoWheeler_WPF.Adapters
 
         private void ProcessFrames()
         {
-            // Variable-length protocol: [0xAA] [Type] [ID_LOW] [ID_HIGH] [DATA...] [0x55]
-            // Minimum frame length: 5 bytes (header + type + ID(2) + footer, DLC=0)
-            // Maximum frame length: 13 bytes (header + type + ID(2) + data(8) + footer)
+            // USB-CAN-A Protocol Detection
+            // Based on logs, the hardware is sending FIXED 20-byte frames starting with AA 55.
+            // Format: [AA] [55] [?] [?] [?] [ID_L] [ID_H] [?] [?] [?] [Data 0-7] [?] [Footer?]
             
-            while (_frameBuffer.Count >= 5) // Minimum frame size
+            while (_frameBuffer.Count >= 5) 
             {
-                // Look for frame header (0xAA)
-                if (!_frameBuffer.TryPeek(out byte first) || first != FRAME_HEADER)
-                {
-                    _frameBuffer.TryDequeue(out _);
-                    continue;
-                }
-
-                // Need at least 2 bytes to read Type byte and determine DLC
-                if (_frameBuffer.Count < 2) break;
-
-                // Peek at first 2 bytes to determine DLC
-                // We'll temporarily dequeue them, check, and re-queue if needed
-                if (!_frameBuffer.TryDequeue(out byte header) || !_frameBuffer.TryDequeue(out byte typeByte))
-                {
-                    // Failed to peek, skip this byte and continue
-                    continue;
-                }
-
-                // Validate header
-                if (header != FRAME_HEADER)
-                {
-                    // Not a valid header, discard typeByte and continue
-                    continue;
-                }
-
-                // Extract DLC from Type byte (bits 0-3)
-                byte dlc = (byte)(typeByte & 0x0F);
+                byte[] bytes = _frameBuffer.ToArray();
+                int headerIndex = -1;
                 
-                // Calculate frame length: header(1) + type(1) + ID(2) + data(DLC) + footer(1) = 5 + DLC
-                int frameLength = 5 + dlc;
-
-                // Check if we have enough bytes for complete frame (we already have header + type, need ID(2) + data(DLC) + footer(1))
-                int remainingBytes = 2 + dlc + 1; // ID(2) + data(DLC) + footer(1)
-                if (_frameBuffer.Count < remainingBytes)
+                // Search for 0xAA (Packet Start Flag)
+                for (int i = 0; i < bytes.Length; i++)
                 {
-                    // Not enough bytes, re-queue what we took and wait
-                    _frameBuffer.Enqueue(header);
-                    _frameBuffer.Enqueue(typeByte);
-                    break;
-                }
-
-                // We have enough bytes, build the complete frame
-                var frame = new byte[frameLength];
-                frame[0] = header;
-                frame[1] = typeByte;
-                
-                // Extract remaining bytes: ID(2) + data(DLC) + footer(1)
-                for (int i = 2; i < frameLength; i++)
-                {
-                    if (!_frameBuffer.TryDequeue(out frame[i]))
+                    if (bytes[i] == 0xAA)
                     {
-                        // Frame extraction failed, this shouldn't happen but handle it
-                        return;
+                        headerIndex = i;
+                        break;
+                    }
+                }
+                
+                // Fallback for simple 0xAA variable length header
+                if (headerIndex == -1)
+                {
+                    for (int i = 0; i < bytes.Length; i++)
+                    {
+                        if (bytes[i] == 0xAA)
+                        {
+                            headerIndex = i;
+                            break;
+                        }
                     }
                 }
 
-                DecodeFrame(frame);
+                if (headerIndex == -1)
+                {
+                    // No header found, clear buffer
+                    while (_frameBuffer.TryDequeue(out _)) ;
+                    return;
+                }
+
+                // Discard bytes before header
+                for (int i = 0; i < headerIndex; i++)
+                {
+                    _frameBuffer.TryDequeue(out _);
+                }
+
+                // Refresh byte array after alignment
+                bytes = _frameBuffer.ToArray();
+                if (bytes.Length < 2) break; // Need at least Header+Type
+
+                // Strict Variable Length Protocol (Waveshare)
+                // [AA] [Type/DLC] [ID] ...
+                if (bytes.Length < 2) break; // Need at least header and type to determine length
+
+                // Sanity check: Header must be 0xAA
+                if (bytes[0] != 0xAA)
+                {
+                    // Should be unreachable due to alignment above, but safe to check
+                    _frameBuffer.TryDequeue(out _);
+                    continue; 
+                }
+
+                byte typeByte = bytes[1];
+                if ((typeByte & 0xF0) == 0) // Sanity check: Type usually starts with 0xC0 or 0xE0, or at least has high bits
+                {
+                     // If type byte looks wrong (e.g. 0x00), usually not a variable frame start.
+                     // But strictly speaking, spec says bits 0-3 are DLC.
+                }
+
+                bool isExtended = (typeByte & 0x20) != 0;
+                byte dlc = (byte)(typeByte & 0x0F);
+                int overhead = isExtended ? 7 : 5; // Header(1) + Type(1) + ID(2 or 4) + Footer(1)
+                int expectedLength = overhead + dlc;
+
+                if (bytes.Length < expectedLength) break;
+
+                // Validate footer
+                if (bytes[expectedLength - 1] == 0x55)
+                {
+                    var frame = new byte[expectedLength];
+                    for (int i = 0; i < expectedLength; i++) _frameBuffer.TryDequeue(out frame[i]);
+                    DecodeFrame(frame);
+                }
+                else
+                {
+                    // Invalid frame sequence, drop header and retry
+                    _frameBuffer.TryDequeue(out _);
+                }
             }
         }
 
         private void DecodeFrame(byte[] frame)
         {
-            // Variable-length protocol format: [0xAA] [Type] [ID_LOW] [ID_HIGH] [DATA...] [0x55]
-            // Minimum frame length: 5 bytes (DLC=0)
-            if (frame.Length < 5 || frame[0] != FRAME_HEADER)
-                return;
-
             try
             {
-                // Validate footer
-                if (frame[frame.Length - 1] != FRAME_FOOTER)
+                uint canId = 0;
+                byte[]? canData = null;
+                byte dlc = 0;
+
+                // Variable Length Protocol
+                if (frame.Length >= 5 && frame[0] == 0xAA)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Invalid frame footer: expected 0x55, got 0x{frame[frame.Length - 1]:X2}");
+                    byte typeByte = frame[1];
+                    bool isExtended = (typeByte & 0x20) != 0;
+                    dlc = (byte)(typeByte & 0x0F);
+                    
+                    if (isExtended)
+                    {
+                         canId = (uint)(frame[2] | (frame[3] << 8) | (frame[4] << 16) | (frame[5] << 24));
+                         canData = new byte[dlc];
+                         if (dlc > 0) Array.Copy(frame, 6, canData, 0, dlc);
+                    }
+                    else
+                    {
+                         canId = (uint)(frame[2] | (frame[3] << 8));
+                         canData = new byte[dlc];
+                         if (dlc > 0) Array.Copy(frame, 4, canData, 0, dlc);
+                    }
+                    
+                    ProductionLogger.Instance.LogInfo($"Adapter RX (Var): ID=0x{canId:X} ({(isExtended?"EXT":"STD")}) Data={BitConverter.ToString(canData)}", "Adapter");
+                }
+                else
+                {
                     return;
                 }
 
-                // Extract Type byte (byte 1)
-                byte typeByte = frame[1];
-                byte dlc = (byte)(typeByte & 0x0F); // Extract DLC from bits 0-3
-                
-                // Validate frame length matches expected: 5 + DLC
-                int expectedLength = 5 + dlc;
-                if (frame.Length != expectedLength)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Frame length mismatch: expected {expectedLength}, got {frame.Length}");
-                    return;
-                }
-
-                // Extract CAN ID from bytes 2-3 (low byte, high byte)
-                uint canId = (uint)(frame[2] | (frame[3] << 8));
-
-                // Extract CAN data from bytes 4 to (4+DLC-1)
-                byte[] canData = new byte[dlc];
-                if (dlc > 0)
-                {
-                    Array.Copy(frame, 4, canData, 0, dlc);
-                }
-
-                // Process two-wheeler system messages
-                if (IsTwoWheelerMessage(canId))
+                if (canData != null && IsTwoWheelerMessage(canId))
                 {
                     var canMessage = new CANMessage(canId, canData);
                     MessageReceived?.Invoke(canMessage);
-
-                    System.Diagnostics.Debug.WriteLine($"Processed: ID=0x{canId:X3}, DLC={dlc}, Data={BitConverter.ToString(canData)}");
-                    // Log valid messages to ProductionLogger for visibility
-                    // ProductionLogger.Instance.LogInfo($"Adapter Valid RX: ID=0x{canId:X3} Data={BitConverter.ToString(canData)}", "Adapter");
                 }
-                // Ignored messages are silently dropped to avoid log flooding at high rates (1kHz+)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Decode error: {ex.Message}");
                 ProductionLogger.Instance.LogError($"Adapter Decode Error: {ex.Message}", "Adapter");
             }
         }
