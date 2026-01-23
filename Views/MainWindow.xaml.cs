@@ -5071,7 +5071,7 @@ Most users should keep default values unless experiencing specific issues.";
             {
                 // Send 0x050 command
                 // Payload: [newMode]
-                bool success = _canService?.SendCANMessage(0x050, new byte[] { newMode }) ?? false;
+                bool success = _canService?.SendMessage(0x050, new byte[] { newMode }) ?? false;
                 FlashTxIndicator();
 
                 if (success)
