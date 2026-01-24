@@ -37,6 +37,7 @@ namespace ATS_TwoWheeler_WPF.Views
         // Services
         private readonly CANService? _canService;
         private readonly WeightProcessor? _weightProcessor;
+        private string _unitLabel = "kg"; // Default to kg (Weight Mode)
 
         // Chart control
         private CartesianChart _axleChart = null!;
@@ -226,10 +227,14 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 if (totalWeight > 0)
                 {
+                    // Peak Hold Logic (Enhanced)
+                    // Reset peak if starting new test is handled in StartTest()
+                    
                     if (!_hasMinMaxData || totalWeight < _minWeight)
                         _minWeight = totalWeight;
                     if (!_hasMinMaxData || totalWeight > _maxWeight)
                         _maxWeight = totalWeight;
+                        
                     _hasMinMaxData = true;
                 }
 
@@ -264,9 +269,9 @@ namespace ATS_TwoWheeler_WPF.Views
 
                 // Update weight displays (total weight only)
                 if (TotalWeightText != null)
-                    TotalWeightText.Text = $"{totalWeight:F1} kg";
+                    TotalWeightText.Text = $"{totalWeight:F1} {_unitLabel}";
                 if (MainWeightText != null)
-                    MainWeightText.Text = $"{totalWeight:F1} kg";
+                    MainWeightText.Text = $"{totalWeight:F1} {_unitLabel}";
 
                 // Update sample count (use test sample count if test is active)
                 if (SampleCountText != null)
@@ -283,13 +288,13 @@ namespace ATS_TwoWheeler_WPF.Views
                         double minWeight = _minWeight == 0.0 ? 0.0 : _minWeight;
                         double maxWeight = _maxWeight == 0.0 ? 0.0 : _maxWeight;
                         
-                        MinWeightText.Text = $"{minWeight:F1} kg";
-                        MaxWeightText.Text = $"{maxWeight:F1} kg";
+                        MinWeightText.Text = $"{minWeight:F1} {_unitLabel}";
+                        MaxWeightText.Text = $"{maxWeight:F1} {_unitLabel}";
                     }
                     else
                     {
-                        MinWeightText.Text = "-- kg";
-                        MaxWeightText.Text = "-- kg";
+                        MinWeightText.Text = $"-- {_unitLabel}";
+                        MaxWeightText.Text = $"-- {_unitLabel}";
                     }
                 }
 
@@ -610,39 +615,37 @@ namespace ATS_TwoWheeler_WPF.Views
             }
         }
 
-        private void BrakeModeToggle_Click(object sender, RoutedEventArgs e)
+        private async void BrakeModeToggle_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.Primitives.ToggleButton toggle)
             {
-                _isBrakeMode = toggle.IsChecked ?? false;
+                bool targetMode = toggle.IsChecked ?? false;
                 
-                // Switch mode in UI and Service
-                toggle.Content = _isBrakeMode ? "🛑 Brake Mode (ON)" : "🛑 Brake Mode";
-                toggle.Background = _isBrakeMode 
-                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFDC3545")) // Red for ON
-                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6C757D")); // Grey for OFF
+                // UX: Disable toggle momentarily to indicate "Switching" (Mechanical Relay Settling)
+                toggle.IsEnabled = false;
+                toggle.Content = "⏳ Switching...";
+                
+                // UX: Wait 1 second for relay settling (visual feedback only, firmware handles the 20ms safety)
+                await Task.Delay(1000);
+                
+                bool success = true;
+                _isBrakeMode = targetMode;
+                // Switch unit label: Weight=kg, Brake=N
+                _unitLabel = _isBrakeMode ? "N" : "kg";
                 
                 try 
                 {
-                    // 1. Switch firmware mode
+                    // 1. Switch firmware mode (0x050)
                     _canService?.SwitchSystemMode(_isBrakeMode);
                     
                     // 2. Switch calibration in WeightProcessor
+                    // Note: If calibrated with Newtons, values will be Newtons. If Kg, then Kg.
                     if (_weightProcessor != null)
                     {
                         _weightProcessor.SetBrakeMode(_isBrakeMode);
                     }
                     
-                    // 3. Update UI Labels
-                    if (TotalWeightText != null) 
-                    {
-                        // Update label next to value? The XAML has "Total:" hardcoded.
-                        // We might need to access the label if it has an x:Name, or just rely on context.
-                        // The XAML: <TextBlock Text="Total:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                        // It doesn't have x:Name. We might want to add one or just accept "Total:" is generic.
-                    }
-                    
-                    // 4. Update window title or status
+                    // 3. Update window title or status
                     StatusMessageText.Text = _isBrakeMode ? "Brake Force Mode Active" : "Weight Mode Active";
                     
                     ProductionLogger.Instance.LogInfo($"Switched to {(_isBrakeMode ? "Brake" : "Weight")} mode", "TwoWheeler");
@@ -651,10 +654,28 @@ namespace ATS_TwoWheeler_WPF.Views
                 {
                     ProductionLogger.Instance.LogError($"Error switching mode: {ex.Message}", "TwoWheeler");
                     MessageBox.Show($"Error switching mode: {ex.Message}", "Error");
+                    success = false;
+                }
+                finally
+                {
+                    // Re-enable toggle
+                    toggle.IsEnabled = true;
                     
-                    // Revert toggle if failed
-                    _isBrakeMode = !_isBrakeMode;
-                    toggle.IsChecked = _isBrakeMode;
+                    if (success)
+                    {
+                        // Update visual state based on mode
+                        toggle.Content = _isBrakeMode ? "🛑 Brake Mode (ON)" : "🛑 Brake Mode";
+                        toggle.Background = _isBrakeMode 
+                            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFDC3545")) // Red for ON
+                            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6C757D")); // Grey for OFF
+                    }
+                    else
+                    {
+                        // Revert if failed
+                        _isBrakeMode = !targetMode;
+                        toggle.IsChecked = _isBrakeMode;
+                        toggle.Content = _isBrakeMode ? "🛑 Brake Mode (ON)" : "🛑 Brake Mode";
+                    }
                 }
             }
         }

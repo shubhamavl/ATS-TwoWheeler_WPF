@@ -47,6 +47,33 @@ namespace ATS_TwoWheeler_WPF.Views
         private byte _adcMode = 0;
         private bool _isBrakeMode = false;
         
+        private bool _isNewtonCalibration = false;
+        public bool IsNewtonCalibration
+        {
+            get => _isNewtonCalibration;
+            set 
+            { 
+                _isNewtonCalibration = value; 
+                OnPropertyChanged(nameof(IsNewtonCalibration));
+                UpdateInputHeader();
+            }
+        }
+
+        private string _inputUnitHeader = "Weight (kg):";
+        public string InputUnitHeader
+        {
+            get => _inputUnitHeader;
+            set { _inputUnitHeader = value; OnPropertyChanged(nameof(InputUnitHeader)); }
+        }
+        
+        private void UpdateInputHeader()
+        {
+            if (_isNewtonCalibration)
+                InputUnitHeader = "Mass (kg):";  // We will convert to N
+            else
+                InputUnitHeader = "Value (Units):"; // Direct input (N or kg)
+        }
+        
         public CalibrationDialog(byte adcMode = 0, int calibrationDelayMs = 500, bool isBrakeMode = false)
         {
             InitializeComponent();
@@ -58,6 +85,10 @@ namespace ATS_TwoWheeler_WPF.Views
 
             // Update UI Title
             Title = _isBrakeMode ? "Brake Force Calibration" : "Total Weight Calibration";
+            
+            // Default to Newtons for Brake Mode
+            IsNewtonCalibration = _isBrakeMode;
+            UpdateInputHeader();
             
             // Update Header Text if possible (not bound in XAML, so finding by type/content might be tricky or just assume it's fine)
             // But we can update log messages
@@ -793,8 +824,17 @@ namespace ATS_TwoWheeler_WPF.Views
                 }
                 
                 // Calculate Internal calibration using Internal ADC values
-                // Zero point is automatically included in the calculation
-                var internalPoints = capturedPoints.Select(p => p.ToCalibrationPointInternal()).ToList();
+                // Zero point is automatically included in the calculation (KnownWeight=0)
+                // If Newton mode is active, convert KnownWeight (kg) to Newtons before fitting
+                const double GRAVITY = 9.80665;
+                
+                var internalPoints = capturedPoints.Select(p => 
+                {
+                    var cp = p.ToCalibrationPointInternal();
+                    if (IsNewtonCalibration) cp.KnownValue *= GRAVITY;
+                    return cp;
+                }).ToList();
+                
                 _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
                 _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
                 _internalCalibration.ADCMode = 0;

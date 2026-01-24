@@ -255,26 +255,34 @@
                     <TextBlock Text="/" FontSize="12" Foreground="#FF6C757D" Margin="0,0,3,0"/>
                     <TextBlock Text="{Binding Points.Count}" FontSize="12" FontWeight="Bold" Foreground="#FF6C757D"/>
                 </StackPanel>
-                <Button Grid.Column="1" x:Name="AddPointBtn" Content="➕ Add Point" 
-                        Background="#FF28A745" Foreground="White" 
-                        BorderThickness="0" Padding="12,6" FontSize="11" FontWeight="SemiBold"
-                        Click="AddPoint_Click" Cursor="Hand" VerticalAlignment="Center">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" 
-                                    CornerRadius="6" 
-                                    Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" 
-                                                VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF218838"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <CheckBox Content="Calibrate in Newtons (Input kg)" 
+                              IsChecked="{Binding IsNewtonCalibration}"
+                              VerticalAlignment="Center" Margin="0,0,15,0"
+                              ToolTip="If checked, input weights (kg) are converted to Newtons (x9.8) for result"/>
+                    
+                    <Button x:Name="AddPointBtn" Content="➕ Add Point" 
+                            Background="#FF28A745" Foreground="White" 
+                            BorderThickness="0" Padding="12,6" FontSize="11" FontWeight="SemiBold"
+                            Click="AddPoint_Click" Cursor="Hand" VerticalAlignment="Center">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" 
+                                        CornerRadius="6" 
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#FF218838"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -352,7 +360,7 @@
                                             
                                             <!-- Weight Input -->
                                             <StackPanel Grid.Column="2" Margin="0,0,10,0">
-                                                <TextBlock Text="Weight (kg):" FontSize="10" Foreground="#FF6C757D" Margin="0,0,0,3"/>
+                                                <TextBlock Text="{Binding DataContext.InputUnitHeader, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" Foreground="#FF6C757D" Margin="0,0,0,3"/>
                                                 <TextBox Text="{Binding KnownWeight, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
                                                          Background="White" BorderBrush="#FF1B5E96" 
                                                          BorderThickness="1" Padding="4" TextAlignment="Center" 
