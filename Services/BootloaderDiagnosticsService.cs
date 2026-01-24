@@ -24,8 +24,8 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public void CaptureMessage(uint canId, byte[] data, bool isTx)
         {
-            // Only capture bootloader-related messages (0x510-0x51C)
-            if (canId >= 0x510 && canId <= 0x51C)
+            // Only capture bootloader control/error messages (excluding high-volume 0x520 Data frames)
+            if (canId >= 0x510 && canId < 0x520)
             {
                 var message = new BootloaderMessage
                 {
@@ -64,15 +64,13 @@ namespace ATS_TwoWheeler_WPF.Services
                         RecordError(status, message);
                     }
                 }
-                else if (canId == BootloaderProtocol.CanIdBootError && data.Length > 0)
+                else if (canId == BootloaderProtocol.CanIdBootError || 
+                         canId == BootloaderProtocol.CanIdErrSize ||
+                         canId == BootloaderProtocol.CanIdErrWrite ||
+                         canId == BootloaderProtocol.CanIdErrValidation ||
+                         canId == BootloaderProtocol.CanIdErrBuffer)
                 {
-                    var status = (BootloaderStatus)data[0];
-                    if (status == BootloaderStatus.FailedChecksum ||
-                        status == BootloaderStatus.FailedTimeout ||
-                        status == BootloaderStatus.FailedFlash)
-                    {
-                        RecordError(status, message);
-                    }
+                    RecordSpecificError(canId, data, message);
                 }
             }
         }
@@ -153,16 +151,11 @@ namespace ATS_TwoWheeler_WPF.Services
                     return "End Response";
 
                 case BootloaderProtocol.CanIdBootError:
-                    if (data.Length >= 2)
-                    {
-                        var status = (BootloaderStatus)data[0];
-                        if (status == BootloaderStatus.FailedChecksum && data[1] != 0)
-                        {
-                            return $"Error: {BootloaderProtocol.DescribeStatus(status)} (Retry from seq {data[1]})";
-                        }
-                        return $"Error: {BootloaderProtocol.DescribeStatus(status)}";
-                    }
-                    return "Error Response";
+                case BootloaderProtocol.CanIdErrSize:
+                case BootloaderProtocol.CanIdErrWrite:
+                case BootloaderProtocol.CanIdErrValidation:
+                case BootloaderProtocol.CanIdErrBuffer:
+                    return BootloaderProtocol.ParseErrorMessage(canId, data);
 
                 case BootloaderProtocol.CanIdBootQueryResponse:
                     if (data.Length >= 4)
@@ -177,8 +170,29 @@ namespace ATS_TwoWheeler_WPF.Services
         }
 
         /// <summary>
-        /// Record an error for analysis
+        /// Record a specific error for analysis (new multi-ID protocol)
         /// </summary>
+        private void RecordSpecificError(uint canId, byte[] data, BootloaderMessage message)
+        {
+            var error = new BootloaderError
+            {
+                Timestamp = message.Timestamp,
+                ErrorCode = (byte)(canId & 0xFF), // Just for display
+                Description = BootloaderProtocol.ParseErrorMessage(canId, data),
+                Message = message,
+                SuggestedResolution = GetSuggestedResolutionFromCanId(canId)
+            };
+
+            _errors.Add(error);
+
+            if (_errors.Count > 100)
+            {
+                _errors.RemoveAt(0);
+            }
+
+            _logger.LogError($"Bootloader specific error: {error.Description}", "BootloaderDiagnostics");
+        }
+
         private void RecordError(BootloaderStatus status, BootloaderMessage message)
         {
             var error = new BootloaderError
@@ -199,6 +213,28 @@ namespace ATS_TwoWheeler_WPF.Services
             }
 
             _logger.LogError($"Bootloader error: {error.Description}", "BootloaderDiagnostics");
+        }
+
+        /// <summary>
+        /// Get suggested resolution for a specific error ID
+        /// </summary>
+        private string GetSuggestedResolutionFromCanId(uint canId)
+        {
+            switch (canId)
+            {
+                case BootloaderProtocol.CanIdBootError:
+                    return "Sequence mismatch. A data packet was lost. The system is attempting to retry automatically.";
+                case BootloaderProtocol.CanIdErrSize:
+                    return "Size mismatch. The transferred bytes don't match the expected size. Check the binary file.";
+                case BootloaderProtocol.CanIdErrWrite:
+                    return "Flash operation failed. Memory may be worn or protected. Check hardware connection.";
+                case BootloaderProtocol.CanIdErrValidation:
+                    return "Firmware validation failed. The header or memory layout is invalid for this chip.";
+                case BootloaderProtocol.CanIdErrBuffer:
+                    return "CAN buffer overflow. Data is being sent too fast. Increase the delay between packets.";
+                default:
+                    return "Unknown bootloader error. Check CAN connection and try again.";
+            }
         }
 
         /// <summary>
@@ -269,6 +305,13 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool IsTx { get; set; }
         public string Direction { get; set; } = "";
         public string Description { get; set; } = "";
+        
+        /// <summary>
+        /// Hex representation of the data bytes for display in the UI grid
+        /// </summary>
+        public string DataHex => Data.Length > 0 
+            ? BitConverter.ToString(Data).Replace("-", " ") 
+            : "";
     }
 
     /// <summary>

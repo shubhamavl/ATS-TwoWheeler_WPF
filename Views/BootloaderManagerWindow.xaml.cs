@@ -140,8 +140,8 @@ namespace ATS_TwoWheeler_WPF.Views
 
         private void OnCANMessageReceived(CANMessage msg)
         {
-            // Capture bootloader messages for diagnostics
-            if ((msg.ID >= 0x510 && msg.ID <= 0x51C) || msg.ID == 0x520)
+            // Capture bootloader messages for diagnostics (excluding high-traffic Data frames 0x520)
+            if (msg.ID >= 0x510 && msg.ID < 0x520)
             {
                 // Determine if this is TX or RX based on message direction
                 bool isTx = msg.Direction == "TX";
@@ -820,13 +820,8 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 _currentStep = BootloaderProcessStep.Failed;
                 UpdateStepIndicator(_currentStep, false);
-                string details = $"Error: {BootloaderProtocol.DescribeStatus(e.ErrorCode)}";
-                if (e.AdditionalData != 0)
-                {
-                    details += $", Additional: 0x{e.AdditionalData:X2}";
-                }
-                LogOperation("Error Response", "RX", BootloaderProtocol.CanIdBootError, "Failed", details);
-                UpdateStatusText($"Error: {BootloaderProtocol.DescribeStatus(e.ErrorCode)}");
+                LogOperation("Error Response", "RX", e.CanId, "Failed", e.Message);
+                UpdateStatusText(e.Message);
                 UpdateUI();
             });
         }

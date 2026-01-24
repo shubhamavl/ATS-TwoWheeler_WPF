@@ -362,13 +362,17 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 case 0x513:  // Begin Update
                 case 0x514:  // End Update
                 case 0x515:  // Reset
-                case 0x520:  // Data frames
+                case 0x516:  // Buffer Overflow Error
                 case 0x517:  // Ping Response
                 case 0x518:  // Begin Response
                 case 0x519:  // Progress Update
                 case 0x51A:  // End Response
-                case 0x51B:  // Error Response
+                case 0x51B:  // Sequence Mismatch Error
                 case 0x51C:  // Query Response
+                case 0x51D:  // Size Mismatch Error
+                case 0x51E:  // Write Error  
+                case 0x51F:  // Validation Error
+                case 0x520:  // Data frames
 
                 // Legacy calibration responses (for backward compatibility)
                 case 0x400:  // Variable calibration data

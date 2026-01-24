@@ -26,7 +26,11 @@ namespace ATS_TwoWheeler_WPF.Core
         public const uint CanIdBootBeginResponse = 0x518;    // Begin Response (IN_PROGRESS/FAILED)
         public const uint CanIdBootProgress = 0x519;          // Progress Update
         public const uint CanIdBootEndResponse = 0x51A;      // End Response (SUCCESS/FAILED)
-        public const uint CanIdBootError = 0x51B;             // Error Response (all errors)
+        public const uint CanIdBootError = 0x51B;             // Sequence Mismatch (Retry)
+        public const uint CanIdErrSize = 0x51D;              // Size Mismatch
+        public const uint CanIdErrWrite = 0x51E;             // Flash Write Failed
+        public const uint CanIdErrValidation = 0x51F;        // Validation Failed
+        public const uint CanIdErrBuffer = 0x516;            // Buffer Overflow
         public const uint CanIdBootQueryResponse = 0x51C;    // Query Response
 
         public static string DescribeStatus(BootloaderStatus status)
@@ -40,9 +44,68 @@ namespace ATS_TwoWheeler_WPF.Core
                 BootloaderStatus.FailedChecksum => "Checksum failed",
                 BootloaderStatus.FailedTimeout => "Timeout while updating",
                 BootloaderStatus.FailedFlash => "Flash error",
-                _ => "Unknown",
+                _ => $"Unknown (0x{(byte)status:X2})",
             };
         }
+
+        public static string ParseErrorMessage(uint canId, byte[] data)
+        {
+            if (data == null) return "Unknown Error";
+
+            switch (canId)
+            {
+                case CanIdBootError: // Sequence Mismatch
+                    if (data.Length >= 2)
+                    {
+                        byte expected = data[0];
+                        byte received = data[1];
+                        return $"Sequence Mismatch: Expected {expected}, Received {received} (Auto-retrying)";
+                    }
+                    return "Sequence Mismatch";
+
+                case CanIdErrSize:
+                    if (data.Length >= 8)
+                    {
+                        uint expected = BitConverter.ToUInt32(data, 0);
+                        uint received = BitConverter.ToUInt32(data, 4);
+                        return $"Size Mismatch: Expected {expected} bytes, Received {received} bytes";
+                    }
+                    return "Size Mismatch";
+
+                case CanIdErrWrite:
+                    if (data.Length >= 4)
+                    {
+                        if (data[0] == 'E') // Erase error (custom format)
+                        {
+                            uint address = BitConverter.ToUInt32(data, 1);
+                            return $"Flash Erase Failed at 0x{address:X8}";
+                        }
+                        uint addr = BitConverter.ToUInt32(data, 0);
+                        return $"Flash Write Failed at 0x{addr:X8}";
+                    }
+                    return "Flash Write Failed";
+
+                case CanIdErrValidation:
+                    if (data.Length >= 8)
+                    {
+                        // Now we get the FULL 8 bytes!
+                        uint stack = BitConverter.ToUInt32(data, 0);
+                        uint reset = BitConverter.ToUInt32(data, 4);
+                        return $"Validation Failed: Stack=0x{stack:X8}, Reset=0x{reset:X8} (Expect 0x2000xxxx, 0x08008xxx)";
+                    }
+                    return "Firmware Validation Failed (Invalid Header)";
+
+                case CanIdErrBuffer:
+                    return "CAN Buffer Overflow (PC is sending too fast)";
+
+                default:
+                    return $"Error (ID: 0x{canId:X3})";
+            }
+        }
+
+
     }
 }
+
+
 

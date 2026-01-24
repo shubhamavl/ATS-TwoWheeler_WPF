@@ -76,17 +76,10 @@ namespace ATS_TwoWheeler_WPF.Services
 
             byte[] fullFirmware = await File.ReadAllBytesAsync(binPath, cancellationToken).ConfigureAwait(false);
             
-            // Skip first 8KB (bootloader) - extract only application portion
-            const int BootloaderSize = 0x2000; // 8KB
-            if (fullFirmware.Length < BootloaderSize)
-            {
-                _logger.LogError($"Firmware file too small: {fullFirmware.Length} bytes (expected at least {BootloaderSize} bytes)", "FWUpdater");
-                return false;
-            }
-            
-            // Extract application portion (skip bootloader)
-            byte[] firmware = new byte[fullFirmware.Length - BootloaderSize];
-            Array.Copy(fullFirmware, BootloaderSize, firmware, 0, firmware.Length);
+            // In the current setup, we assume the provided .bin file is the application-only binary 
+            // starting directly at APP_BANK_A_START (0x08008000). 
+            // Previous logic was skipping 8KB (0x2000) which led to corrupted data being sent.
+            byte[] firmware = fullFirmware;
             
             // Validate firmware size (max 120KB for Bank A)
             if (firmware.Length > MAX_FIRMWARE_SIZE)
@@ -429,43 +422,42 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         private void OnErrorReceived(BootErrorEventArgs e)
         {
+            _logger.LogError($"Bootloader error: {e.Message}", "FWUpdater");
+
             // Route error to appropriate wait source based on current phase
             switch (_currentPhase)
             {
                 case UpdatePhase.Begin:
-                    // Error during BEGIN phase - set begin wait source
-                    _beginWaitSource?.TrySetResult(e.ErrorCode);
+                    _beginWaitSource?.TrySetResult(BootloaderStatus.FailedFlash); // Map any bootloader-sent error to failure
                     break;
                     
                 case UpdatePhase.End:
-                    // Error during END phase - set end wait source
-                    _endWaitSource?.TrySetResult(e.ErrorCode);
+                    _endWaitSource?.TrySetResult(BootloaderStatus.FailedFlash);
                     break;
                     
                 case UpdatePhase.Transfer:
-                    // Error during transfer phase - track for data loop to check
-                    if (e.ErrorCode == BootloaderStatus.FailedChecksum && e.AdditionalData != 0)
+                    // Check for retry request: CanIdBootError is now used specifically for SEQ mismatch (0x51B)
+                    // New Payload format: [ExpectedSeq, ReceivedSeq]
+                    if (e.CanId == BootloaderProtocol.CanIdBootError && e.RawData != null && e.RawData.Length >= 2)
                     {
-                        // Retry request: STM32 wants us to retransmit from this sequence number
-                        _logger.LogWarning($"Bootloader requested retry from sequence {e.AdditionalData} during transfer", "FWUpdater");
-                        _retryRequestedSequence = (byte)e.AdditionalData;
-                        // Clear transfer error since this is a retry request, not a fatal error
+                        byte requestedSeq = e.RawData[0]; // Expected sequence
+                        _logger.LogWarning($"Bootloader requested retry from sequence {requestedSeq} due to mismatch", "FWUpdater");
+                        _retryRequestedSequence = requestedSeq;
                         _transferError = null;
                     }
                     else
                     {
-                        _logger.LogError($"Transfer error received: {BootloaderProtocol.DescribeStatus(e.ErrorCode)}", "FWUpdater");
-                        // Set transfer error to abort update
-                        _transferError = e.ErrorCode;
+                        // Any other CAN ID (Size, Write, Validation, Buffer) is a fatal transfer error
+                        _transferError = BootloaderStatus.FailedFlash;
                     }
                     break;
                     
                 default:
-                    // Error in other phases - log but don't set wait source
-                    _logger.LogWarning($"Error received in phase {_currentPhase}: {BootloaderProtocol.DescribeStatus(e.ErrorCode)}", "FWUpdater");
+                    _logger.LogWarning($"Error received in phase {_currentPhase}: {e.Message}", "FWUpdater");
                     break;
             }
         }
+
         
         /// <summary>
         /// Send ping and wait for READY response
@@ -657,47 +649,23 @@ namespace ATS_TwoWheeler_WPF.Services
         private bool SendPing()
         {
             // Ping command: no data bytes needed
-            bool result = _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
-            
-            if (result)
-            {
-                _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>(), true);
-            }
-            else
-            {
-                _logger.LogError($"Failed to send Ping command (CAN ID: 0x{BootloaderProtocol.CanIdBootPing:X3})", "FWUpdater");
-            }
-            
-            return result;
+            return _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
         }
 
         private bool SendBeginCommand(int size)
         {
             // Begin command: 4 bytes (firmware size, little-endian uint32_t)
             byte[] payload = BitConverter.GetBytes(size);
-            
-            // Send message first, then capture in diagnostics only if successful
-            bool result = _canService.SendMessage(BootloaderProtocol.CanIdBootBegin, payload);
-            
-            if (result)
-            {
-                _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootBegin, payload, true);
-            }
-            else
-            {
-                _logger.LogError($"Failed to send Begin command (CAN ID: 0x{BootloaderProtocol.CanIdBootBegin:X3})", "FWUpdater");
-            }
-            
-            return result;
+            return _canService.SendMessage(BootloaderProtocol.CanIdBootBegin, payload);
         }
 
         private bool SendEndCommand(uint crc)
         {
             // End command: 4 bytes (CRC32, little-endian uint32_t)
             byte[] payload = BitConverter.GetBytes(crc);
-            _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootEnd, payload, true);
             return _canService.SendMessage(BootloaderProtocol.CanIdBootEnd, payload);
         }
+
 
         // Note: PadData is no longer used - data frames now include sequence number
         // Frame format: [Sequence(1 byte)][Data(1-7 bytes)][Padding(0xFF if needed)]

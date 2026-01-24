@@ -345,13 +345,17 @@ namespace ATS_TwoWheeler_WPF.Services
                 case CAN_MSG_ID_BOOT_BEGIN:          // 0x513 - Begin Update
                 case CAN_MSG_ID_BOOT_END:            // 0x514 - End Update
                 case CAN_MSG_ID_BOOT_RESET:          // 0x515 - Reset
-                case CAN_MSG_ID_BOOT_DATA:           // 0x516 - Boot Data
+                case BootloaderProtocol.CanIdErrBuffer:     // 0x516 - Buffer Overflow Error
                 case CAN_MSG_ID_BOOT_PING_RESPONSE:  // 0x517 - Ping Response
                 case CAN_MSG_ID_BOOT_BEGIN_RESPONSE: // 0x518 - Begin Response
                 case CAN_MSG_ID_BOOT_PROGRESS:       // 0x519 - Progress Update
                 case CAN_MSG_ID_BOOT_END_RESPONSE:   // 0x51A - End Response
-                case CAN_MSG_ID_BOOT_ERROR:          // 0x51B - Error Response
+                case CAN_MSG_ID_BOOT_ERROR:          // 0x51B - Sequence Mismatch
                 case CAN_MSG_ID_BOOT_QUERY_RESPONSE: // 0x51C - Query Response
+                case BootloaderProtocol.CanIdErrSize:       // 0x51D - Size Mismatch Error
+                case BootloaderProtocol.CanIdErrWrite:      // 0x51E - Write Error
+                case BootloaderProtocol.CanIdErrValidation: // 0x51F - Validation Error
+                case CAN_MSG_ID_BOOT_DATA:           // 0x520 - Boot Data Frames
                     return true;
 
                 default:
@@ -641,12 +645,16 @@ namespace ATS_TwoWheeler_WPF.Services
                             Timestamp = DateTime.Now
                         });
                     break;
-                case CAN_MSG_ID_BOOT_ERROR:
-                    if (canData != null && canData.Length >= 2)
+                case BootloaderProtocol.CanIdBootError:
+                case BootloaderProtocol.CanIdErrSize:
+                case BootloaderProtocol.CanIdErrWrite:
+                case BootloaderProtocol.CanIdErrValidation:
+                case BootloaderProtocol.CanIdErrBuffer:
+                    if (canData != null)
                         BootErrorReceived?.Invoke(this, new BootErrorEventArgs
                         {
-                            ErrorCode = (BootloaderStatus)canData[0],
-                            AdditionalData = canData[1],
+                            CanId = canId,
+                            RawData = canData,
                             Timestamp = DateTime.Now
                         });
                     break;
@@ -768,9 +776,10 @@ namespace ATS_TwoWheeler_WPF.Services
     
     public class BootErrorEventArgs : EventArgs
     {
-        public BootloaderStatus ErrorCode { get; set; }
-        public byte AdditionalData { get; set; }
+        public uint CanId { get; set; }
+        public byte[]? RawData { get; set; }
         public DateTime Timestamp { get; set; }
+        public string Message => RawData != null ? BootloaderProtocol.ParseErrorMessage(CanId, RawData) : "Unknown Error";
     }
     
     public class BootQueryResponseEventArgs : EventArgs
