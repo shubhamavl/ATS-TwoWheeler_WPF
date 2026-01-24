@@ -141,7 +141,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private void OnCANMessageReceived(CANMessage msg)
         {
             // Capture bootloader messages for diagnostics
-            if (msg.ID >= 0x510 && msg.ID <= 0x51C)
+            if ((msg.ID >= 0x510 && msg.ID <= 0x51C) || msg.ID == 0x520)
             {
                 // Determine if this is TX or RX based on message direction
                 bool isTx = msg.Direction == "TX";
@@ -273,53 +273,12 @@ namespace ATS_TwoWheeler_WPF.Views
             // -----------------------------------------------------------
             try 
             {
-                UpdateStepIndicator(BootloaderProcessStep.EnterBootloader, false);
-                UpdateStatusText("Checking bootloader status...");
+                // DIRECT HANDOFF TO SERVICE (Fixes Double-Reset Issue)
+                // The FirmwareUpdateService already handles "Enter Bootloader" -> "Ping" -> "Begin" sequence.
+                // Doing it here first caused a double-reset, crashing the STM32 logic.
                 
-                // First check if we are ALREADY in bootloader mode (e.g. from previous run)
-                if (_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready) 
-                {
-                     LogOperation("Check Status", "SYSTEM", 0, "Ready", "Already in bootloader mode");
-                }
-                else 
-                {
-                    // Not ready, so send Entry Command
-                    UpdateStatusText("Sending bootloader entry command...");
-                    LogOperation("Enter Bootloader", "TX", BootloaderProtocol.CanIdBootEnter, "Sent", "Requesting bootloader entry");
-                    
-                    _canService.RequestEnterBootloader();
-                    
-                    // Wait for proactive PING response (0x517)
-                    UpdateStatusText("Waiting for bootloader response...");
-                    bool bootloaderReady = false;
-                    
-                    // Wait up to 3 seconds for the "I am Ready" message
-                    for(int i=0; i<30; i++) 
-                    {
-                        if (_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready) 
-                        {
-                            bootloaderReady = true;
-                            break;
-                        }
-                        await Task.Delay(100);
-                    }
-                    
-                    if (!bootloaderReady) 
-                    {
-                        // Try one manual ping just in case
-                        UpdateStatusText("Pinging bootloader...");
-                        _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
-                        await Task.Delay(500);
-                        
-                        // Check again
-                        if (!(_bootloaderInfo.IsPresent && _bootloaderInfo.Status == BootloaderStatus.Ready))
-                        {
-                             throw new Exception("Bootloader did not respond. Check connection or try manual Entry.");
-                        }
-                    }
-                }
-                
-                UpdateStepIndicator(BootloaderProcessStep.EnterBootloader, true); // Mark Entry as Done
+                UpdateStepIndicator(BootloaderProcessStep.EnterBootloader, true); 
+                UpdateStatusText("Starting firmware update service...");
             }
             catch(Exception ex) 
             {

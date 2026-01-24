@@ -21,7 +21,7 @@ namespace ATS_TwoWheeler_WPF.Core
         public const uint CanIdBootBegin = 0x513;       // Begin Update (4 bytes: firmware size)
         public const uint CanIdBootEnd = 0x514;         // End Update (4 bytes: CRC32)
         public const uint CanIdBootReset = 0x515;       // Reset (no data bytes)
-        public const uint CanIdBootData = 0x516;        // Data frames (8 bytes: seq + 7 data bytes)
+        public const uint CanIdBootData = 0x520;        // Data frames (8 bytes: seq + 7 data bytes)
         public const uint CanIdBootPingResponse = 0x517;    // Ping Response (READY)
         public const uint CanIdBootBeginResponse = 0x518;    // Begin Response (IN_PROGRESS/FAILED)
         public const uint CanIdBootProgress = 0x519;          // Progress Update

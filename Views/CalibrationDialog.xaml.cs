@@ -831,19 +831,23 @@ namespace ATS_TwoWheeler_WPF.Views
                 var internalPoints = capturedPoints.Select(p => 
                 {
                     var cp = p.ToCalibrationPointInternal();
-                    if (IsNewtonCalibration) cp.KnownValue *= GRAVITY;
+                    if (IsNewtonCalibration) cp.KnownWeight *= GRAVITY;
                     return cp;
                 }).ToList();
                 
-                _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
                 _internalCalibration = LinearCalibration.FitMultiplePoints(internalPoints);
                 _internalCalibration.ADCMode = 0;
                 _internalCalibration.IsBrakeMode = _isBrakeMode;
                 
                 // Calculate ADS1115 calibration using ADS1115 ADC values
                 // Zero point is automatically included in the calculation
-                var ads1115Points = capturedPoints.Select(p => p.ToCalibrationPointADS1115()).ToList();
-                _ads1115Calibration = LinearCalibration.FitMultiplePoints(ads1115Points);
+                var ads1115Points = capturedPoints.Select(p => 
+                {
+                    var cp = p.ToCalibrationPointADS1115();
+                    if (IsNewtonCalibration) cp.KnownWeight *= GRAVITY;
+                    return cp;
+                }).ToList();
+                
                 _ads1115Calibration = LinearCalibration.FitMultiplePoints(ads1115Points);
                 _ads1115Calibration.ADCMode = 1;
                 _ads1115Calibration.IsBrakeMode = _isBrakeMode;

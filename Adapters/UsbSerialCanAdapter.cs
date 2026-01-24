@@ -362,7 +362,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 case 0x513:  // Begin Update
                 case 0x514:  // End Update
                 case 0x515:  // Reset
-                case 0x516:  // Data frames
+                case 0x520:  // Data frames
                 case 0x517:  // Ping Response
                 case 0x518:  // Begin Response
                 case 0x519:  // Progress Update

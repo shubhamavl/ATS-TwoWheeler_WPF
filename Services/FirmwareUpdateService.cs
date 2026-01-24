@@ -46,6 +46,9 @@ namespace ATS_TwoWheeler_WPF.Services
         private TaskCompletionSource<BootloaderStatus>? _beginWaitSource;
         private TaskCompletionSource<BootloaderStatus>? _endWaitSource;
         
+        // Queue for collecting multiple Begin responses (InProgress + Success)
+        private System.Collections.Concurrent.ConcurrentQueue<BootloaderStatus>? _beginResponseQueue;
+        
         // Event handlers
         private EventHandler<BootPingResponseEventArgs>? _pingHandler;
         private EventHandler<BootBeginResponseEventArgs>? _beginHandler;
@@ -374,11 +377,22 @@ namespace ATS_TwoWheeler_WPF.Services
         }
         
         /// <summary>
-        /// Handle begin response (IN_PROGRESS or FAILED)
+        /// Handle begin response (IN_PROGRESS or SUCCESS or FAILED)
         /// </summary>
         private void OnBeginResponseReceived(BootBeginResponseEventArgs e)
         {
-            _beginWaitSource?.TrySetResult(e.Status);
+            // If we're using a queue (2-stage response), queue the response
+            if (_beginResponseQueue != null)
+            {
+                _beginResponseQueue.Enqueue(e.Status);
+                // Signal that a response arrived
+                _beginWaitSource?.TrySetResult(e.Status);
+            }
+            else
+            {
+                // Normal single-response mode
+                _beginWaitSource?.TrySetResult(e.Status);
+            }
         }
         
         /// <summary>
@@ -482,10 +496,12 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
         
+        private const int ERASE_TIMEOUT_MS = 10000; // 10 seconds for flash erase (generous buffer)
+
         /// <summary>
-        /// Send BEGIN command and wait for IN_PROGRESS response
+        /// Send BEGIN command and wait for IN_PROGRESS then SUCCESS response
         /// </summary>
-        private async Task<bool> SendBeginCommandWithResponse(int size, int timeoutMs, CancellationToken cancellationToken)
+        private async Task<bool> SendBeginCommandWithResponse(int size, int responseTimeoutMs, CancellationToken cancellationToken)
         {
             _logger.LogInfo($"Sending Begin command with firmware size: {size} bytes", "FWUpdater");
             
@@ -495,31 +511,71 @@ namespace ATS_TwoWheeler_WPF.Services
                 return false;
             }
             
+            // Use a queue to collect responses safely
+            _beginResponseQueue = new System.Collections.Concurrent.ConcurrentQueue<BootloaderStatus>();
             _beginWaitSource = new TaskCompletionSource<BootloaderStatus>();
             
+            // Combined timeout for both responses (total time should accommodate erase)
             using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                timeoutCts.CancelAfter(timeoutMs);
+                timeoutCts.CancelAfter(ERASE_TIMEOUT_MS);
                 
                 try
                 {
-                    var receivedStatus = await _beginWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+                    // Wait for FIRST response (should be InProgress)
+                    await _beginWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                     
-                    if (receivedStatus == BootloaderStatus.InProgress)
+                    if (!_beginResponseQueue.TryDequeue(out var firstStatus))
                     {
-                        _logger.LogInfo("Begin command accepted - update in progress", "FWUpdater");
+                        _logger.LogError("Received Begin response signal but queue is empty", "FWUpdater");
+                        return false;
+                    }
+                    
+                    if (firstStatus != BootloaderStatus.InProgress)
+                    {
+                        _logger.LogError($"Begin command rejected with status: {BootloaderProtocol.DescribeStatus(firstStatus)}", "FWUpdater");
+                        return false;
+                    }
+                    
+                    _logger.LogInfo("Begin accepted. Erasing Flash - waiting for SUCCESS signal...", "FWUpdater");
+                    
+                    // Wait for SECOND response (should be Success)
+                    // Reset the wait source to signal when second response arrives
+                    _beginWaitSource = new TaskCompletionSource<BootloaderStatus>();
+                    
+                    // If the second response already arrived (queued), process it immediately
+                    if (_beginResponseQueue.IsEmpty)
+                    {
+                        // Wait for it
+                        await _beginWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+                    }
+                    
+                    if (!_beginResponseQueue.TryDequeue(out var secondStatus))
+                    {
+                        _logger.LogError("Expected SUCCESS response but queue is empty", "FWUpdater");
+                        return false;
+                    }
+                    
+                    if (secondStatus == BootloaderStatus.Success)
+                    {
+                        _logger.LogInfo("Flash Erase Complete. Ready to stream data.", "FWUpdater");
                         return true;
                     }
                     else
                     {
-                        _logger.LogError($"Begin command rejected with status: {BootloaderProtocol.DescribeStatus(receivedStatus)}", "FWUpdater");
+                        _logger.LogError($"Flash Erase failed with status: {BootloaderProtocol.DescribeStatus(secondStatus)}", "FWUpdater");
                         return false;
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogError($"Timeout waiting for begin response (timeout: {timeoutMs}ms) - STM32 may not be in bootloader mode or CAN communication issue", "FWUpdater");
+                    _logger.LogError($"Timeout waiting for Begin responses (timeout: {ERASE_TIMEOUT_MS}ms)", "FWUpdater");
                     return false;
+                }
+                finally
+                {
+                    // Clean up queue
+                    _beginResponseQueue = null;
                 }
             }
         }

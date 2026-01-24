@@ -386,13 +386,11 @@ namespace ATS_TwoWheeler_WPF.Services
                 }
 
                 bool result = _adapter.SendMessage(id, data);
-
-                // Fire event for TX messages so they appear in monitor (adapter may already fire this, but ensure it's fired)
-                if (result)
-                {
-                    var txMessage = new CANMessage(id, data, "TX");
-                    MessageReceived?.Invoke(txMessage);
-                }
+                
+                // Note: The adapter (UsbSerialCanAdapter) already fires the MessageReceived event for TX messages.
+                // Firing it again here causes duplicate entries in the UI monitors.
+                // var txMessage = new CANMessage(id, data, "TX");
+                // MessageReceived?.Invoke(txMessage);
 
                 ProductionLogger.Instance.LogInfo($"CAN: Sent CAN frame ID=0x{id:X3}, Data={BitConverter.ToString(data ?? new byte[0])}", "CANService");
                 return result;
