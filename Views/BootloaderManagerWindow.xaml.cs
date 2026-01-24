@@ -48,7 +48,7 @@ namespace ATS_TwoWheeler_WPF.Views
         private BootloaderProcessStep _currentStep = BootloaderProcessStep.Idle;
         private long _totalBytes = 0;
         private int _totalChunks = 0;
-        private byte _currentSequenceNumber = 0;
+
 
         public BootloaderManagerWindow(CANService? canService, FirmwareUpdateService? firmwareUpdateService, 
                                       BootloaderDiagnosticsService? diagnosticsService)
@@ -159,8 +159,7 @@ namespace ATS_TwoWheeler_WPF.Views
                     : "Bootloader: Not Responding";
             }
 
-            // Update bank information
-            UpdateBankInfo(_bootloaderInfo.Bank, BankAVersionText, BankAStatusText, BankASizeText, BankACrcText, BankALastUpdateText);
+
 
             // Update firmware version
             if (FirmwareVersionText != null)
@@ -179,22 +178,6 @@ namespace ATS_TwoWheeler_WPF.Views
             }
         }
 
-        private void UpdateBankInfo(BankInfo bank, TextBlock? versionText, TextBlock? statusText, 
-                                   TextBlock? sizeText, TextBlock? crcText, TextBlock? lastUpdateText)
-        {
-            if (versionText != null)
-                versionText.Text = $"Version: {bank.VersionString}";
-            if (statusText != null)
-                statusText.Text = $"Status: {bank.StatusString}";
-            if (sizeText != null)
-                sizeText.Text = bank.Size > 0 ? $"Size: {bank.Size:N0} bytes" : "Size: Unknown";
-            if (crcText != null)
-                crcText.Text = bank.Crc > 0 ? $"CRC: 0x{bank.Crc:X8}" : "CRC: Unknown";
-            if (lastUpdateText != null)
-                lastUpdateText.Text = bank.LastUpdateTime.HasValue
-                    ? $"Last Update: {bank.LastUpdateTime.Value:yyyy-MM-dd HH:mm:ss}"
-                    : "Last Update: Never";
-        }
 
         private void BrowseFirmwareBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -296,7 +279,7 @@ namespace ATS_TwoWheeler_WPF.Views
             var fileInfo = new FileInfo(_selectedFirmwarePath);
             _totalBytes = Math.Max(0, fileInfo.Length - 0x2000);
             _totalChunks = (int)((_totalBytes + 6) / 7); // 7 bytes per chunk
-            _currentSequenceNumber = 0;
+
             
             // Reset all step indicators
             ResetStepIndicators();
@@ -305,8 +288,7 @@ namespace ATS_TwoWheeler_WPF.Views
             if (BytesTransferredText != null) BytesTransferredText.Text = $"0 / {_totalBytes:N0}";
             if (TimeElapsedText != null) TimeElapsedText.Text = "00:00";
             if (TimeRemainingText != null) TimeRemainingText.Text = "--:--";
-            if (ChunksSentText != null) ChunksSentText.Text = $"0 / {_totalChunks}";
-            if (SequenceNumberText != null) SequenceNumberText.Text = "0";
+
             
             StartFirmwareUpdateBtn.IsEnabled = false;
             CancelFirmwareUpdateBtn.IsEnabled = true;
@@ -344,8 +326,7 @@ namespace ATS_TwoWheeler_WPF.Views
                         UpdateDetailedProgress(_bytesSent, (int)p.Percentage);
                     }
                     
-                    // Update sequence number (approximate)
-                    _currentSequenceNumber = (byte)(p.ChunksSent % 256);
+
                 });
             });
 
@@ -958,15 +939,6 @@ namespace ATS_TwoWheeler_WPF.Views
                 {
                     TimeRemainingText.Text = "--:--";
                 }
-                
-                if (ChunksSentText != null)
-                {
-                    int chunksSent = (int)((bytesTransferred + 6) / 7);
-                    ChunksSentText.Text = $"{chunksSent} / {_totalChunks}";
-                }
-                
-                if (SequenceNumberText != null)
-                    SequenceNumberText.Text = _currentSequenceNumber.ToString();
             });
         }
 
