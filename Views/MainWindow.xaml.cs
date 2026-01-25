@@ -32,7 +32,6 @@ namespace ATS_TwoWheeler_WPF.Views
         private volatile int _totalMessages, _txMessages, _rxMessages;
         private readonly object _dataLock = new object();
         private DateTime _lastStatusUpdateTime = DateTime.MinValue;
-        private double _statusUpdateRate = 0.0;
         private CANService? _canService;  // Changed from USBCANManager to CANService
         private FirmwareUpdateService? _firmwareUpdateService;
         private BootloaderDiagnosticsService? _bootloaderDiagnosticsService;
@@ -248,6 +247,11 @@ namespace ATS_TwoWheeler_WPF.Views
                     _streamRunning = false;
                     UpdateStreamingIndicators();
                     UpdateDashboardMode();
+                    
+                    // Reset rates in UI
+                    if (DataRateTxt != null) DataRateTxt.Text = "-- Hz";
+                    if (AdcSampleRateTxt != null) AdcSampleRateTxt.Text = "-- Hz";
+                    
                     _logger.LogInfo("Stopped stream", "CAN");
                     ShowInlineStatus("■ Stop stream command sent");
                 }
@@ -927,15 +931,36 @@ namespace ATS_TwoWheeler_WPF.Views
                     }
                     break;
 
-                case 0x300: // System Status (on-demand) - Keep logging for infrequent messages
-                    if (message.Data?.Length >= 3)
+                case 0x300: // System Status (on-demand) - v1.1 Packed
+                    if (message.Data?.Length >= 6)
+                    {
+                        byte packed = message.Data[0];
+                        byte systemStatus = (byte)(packed & 0x03);
+                        byte adcMode = (byte)((packed >> 2) & 0x01);
+                        byte relayState = (byte)((packed >> 3) & 0x01);
+                        byte errorFlags = message.Data[1];
+                        uint uptime = BitConverter.ToUInt32(message.Data, 2);
+                        
+                        _logger.LogInfo($"System Status: {systemStatus}, Errors: 0x{errorFlags:X2}, ADC: {adcMode}, Relay: {relayState}, Uptime: {uptime}", "CAN");
+                        
+                        var statusArgs = new SystemStatusEventArgs
+                        {
+                            SystemStatus = systemStatus,
+                            ErrorFlags = errorFlags,
+                            ADCMode = adcMode,
+                            RelayState = relayState,
+                            UptimeSeconds = uptime,
+                            Timestamp = DateTime.Now
+                        };
+                        HandleSystemStatus(_canService, statusArgs);
+                    }
+                    else if (message.Data?.Length >= 3) // Fallback for v1.0
                     {
                         byte systemStatus = message.Data[0];
                         byte errorFlags = message.Data[1];
                         byte adcMode = message.Data[2];
-                        _logger.LogInfo($"System Status: {systemStatus}, Errors: 0x{errorFlags:X2}, ADC Mode: {adcMode}", "CAN");
+                        _logger.LogInfo($"System Status (Legacy): {systemStatus}, Errors: 0x{errorFlags:X2}, ADC Mode: {adcMode}", "CAN");
                         
-                        // Ensure status is processed even if event doesn't fire
                         var statusArgs = new SystemStatusEventArgs
                         {
                             SystemStatus = systemStatus,
@@ -944,6 +969,21 @@ namespace ATS_TwoWheeler_WPF.Views
                             Timestamp = DateTime.Now
                         };
                         HandleSystemStatus(_canService, statusArgs);
+                    }
+                    break;
+                case 0x302: // Performance Metrics (Raw Hz)
+                    if (message.Data?.Length >= 4)
+                    {
+                        ushort canHz = BitConverter.ToUInt16(message.Data, 0);
+                        ushort adcHz = BitConverter.ToUInt16(message.Data, 2);
+                        _logger.LogInfo($"Performance: CAN={canHz}Hz, ADC={adcHz}Hz", "CAN");
+                        
+                        HandlePerformanceMetrics(_canService, new PerformanceMetricsEventArgs 
+                        { 
+                            CanTxHz = canHz, 
+                            AdcSampleHz = adcHz, 
+                            Timestamp = DateTime.Now 
+                        });
                     }
                     break;
             }
@@ -1432,7 +1472,14 @@ namespace ATS_TwoWheeler_WPF.Views
             _weightProcessor.Start();
 
             // Initialize ADC mode from settings
-            InitializeADCModeFromSettings();
+            // Load persistent ADC mode
+            byte savedAdcModeByte = _settingsManager.Settings.LastKnownADCMode;
+            _currentADCMode = savedAdcModeByte;
+            _activeADCMode = _currentADCMode;
+            
+            string modeName = savedAdcModeByte == 0 ? "Internal" : "ADS1115";
+            UpdateAdcModeIndicators(modeName);
+            UpdateDashboardMode();
             
             // Initialize dashboard mode display
             UpdateDashboardMode();
@@ -1452,6 +1499,7 @@ namespace ATS_TwoWheeler_WPF.Views
                 _canService.RawDataReceived += OnRawDataReceived;
                 _canService.SystemStatusReceived += HandleSystemStatus;
                 _canService.FirmwareVersionReceived += HandleFirmwareVersion;
+                _canService.PerformanceMetricsReceived += HandlePerformanceMetrics;
                 _canService.DataTimeout += OnDataTimeout;
                 
                 // Only subscribe to bootloader events and initialize firmware service if enabled
@@ -1480,19 +1528,8 @@ namespace ATS_TwoWheeler_WPF.Views
                     UpdateUI();
                     ProcessPendingMessages();
                     
-                    // Check if status rate should be reset (no updates for 5 seconds)
-                    if (_lastStatusUpdateTime != DateTime.MinValue && DataRateTxt != null)
-                    {
-                        TimeSpan timeSinceLastUpdate = DateTime.Now - _lastStatusUpdateTime;
-                        if (timeSinceLastUpdate.TotalSeconds > 5.0)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                DataRateTxt.Text = "Rate: --";
-                                _statusUpdateRate = 0.0;
-                            });
-                        }
-                    }
+                    // Perform periodic UI status checks if needed
+                    // (Removed aggressive 5-second rate clearing to match other telemetry persistence)
                 }
                 catch (Exception ex)
                 {
@@ -4307,7 +4344,7 @@ Most users should keep default values unless experiencing specific issues.";
         {
             try
             {
-                _logger.LogInfo($"HandleSystemStatus called: Status={e.SystemStatus}, Errors=0x{e.ErrorFlags:X2}, ADC={e.ADCMode}", "MainWindow");
+                _logger.LogInfo($"HandleSystemStatus called: Status={e.SystemStatus}, Errors=0x{e.ErrorFlags:X2}, ADC={e.ADCMode}, Relay={e.RelayState}, Uptime={e.UptimeSeconds}", "MainWindow");
                 
                 string mode = e.ADCMode == 0 ? "Internal" : "ADS1115";
                 UpdateAdcModeIndicators(mode);
@@ -4353,73 +4390,48 @@ Most users should keep default values unless experiencing specific issues.";
                     {
                         SystemStatusIndicator.Fill = e.SystemStatus switch
                         {
-                            0 => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)),   // Green - OK
-                            1 => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 193, 7)),   // Yellow - Warning
-                            2 => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69)),   // Red - Error
-                            3 => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(139, 0, 0)),     // Dark Red - Critical
-                            _ => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)) // Gray - Unknown
+                            0 => new SolidColorBrush(Color.FromRgb(39, 174, 96)),   // Green - OK
+                            1 => new SolidColorBrush(Color.FromRgb(255, 193, 7)),   // Yellow - Warning
+                            2 => new SolidColorBrush(Color.FromRgb(220, 53, 69)),   // Red - Error
+                            _ => new SolidColorBrush(Color.FromRgb(128, 128, 128)) // Gray - Unknown
                         };
                     }
                     
-                    // Update status text
+                    // Update status text with Error Flags if any
                     if (SystemStatusText != null)
                     {
-                        SystemStatusText.Text = e.SystemStatus switch
+                        string status = e.SystemStatus switch
                         {
                             0 => "OK",
-                            1 => "Warning",
-                            2 => "Error",
-                            3 => "Critical",
-                            _ => "Unknown"
+                            1 => "Warn",
+                            2 => "ERROR",
+                            _ => "???"
                         };
+                        if (e.ErrorFlags != 0) status += $" (0x{e.ErrorFlags:X2})";
+                        SystemStatusText.Text = status;
                     }
                     
-                    // Update error flags display
-                    if (ErrorCountTxt != null)
+                    // Update Relay State
+                    if (RelayStateTxt != null)
                     {
-                        if (e.ErrorFlags == 0)
-                        {
-                            ErrorCountTxt.Text = "Errors: None";
-                        }
-                        else
-                        {
-                            ErrorCountTxt.Text = $"Errors: 0x{e.ErrorFlags:X2}";
-                        }
+                        RelayStateTxt.Text = e.RelayState == 0 ? "Weight" : "Brake";
+                        RelayStateTxt.Foreground = e.RelayState == 0 ? Brushes.Blue : Brushes.Red;
+                    }
+                    
+                    // Update Uptime
+                    if (UptimeTxt != null)
+                    {
+                        TimeSpan t = TimeSpan.FromSeconds(e.UptimeSeconds);
+                        UptimeTxt.Text = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)t.TotalHours, t.Minutes, t.Seconds);
                     }
                     
                     // Update last update time
                     if (LastUpdateTxt != null)
                     {
-                        LastUpdateTxt.Text = $"Updated: {e.Timestamp:HH:mm:ss}";
+                        LastUpdateTxt.Text = e.Timestamp.ToString("HH:mm:ss");
                     }
-                    
-                    // Calculate and update data rate
-                    if (_lastStatusUpdateTime != DateTime.MinValue)
-                    {
-                        TimeSpan timeSinceLastUpdate = e.Timestamp - _lastStatusUpdateTime;
-                        if (timeSinceLastUpdate.TotalSeconds > 0 && timeSinceLastUpdate.TotalSeconds < 10.0) // Sanity check: between 0.1Hz and reasonable max
-                        {
-                            _statusUpdateRate = 1.0 / timeSinceLastUpdate.TotalSeconds;
-                        }
-                        else
-                        {
-                            _statusUpdateRate = 0.0; // Reset if time gap is too large
-                        }
-                    }
+
                     _lastStatusUpdateTime = e.Timestamp;
-                    
-                    // Update data rate display
-                    if (DataRateTxt != null)
-                    {
-                        if (_statusUpdateRate > 0 && _statusUpdateRate < 1000.0) // Reasonable range: 0.1 Hz to 1000 Hz
-                        {
-                            DataRateTxt.Text = $"Rate: {_statusUpdateRate:F2} Hz";
-                        }
-                        else
-                        {
-                            DataRateTxt.Text = "Rate: --";
-                        }
-                    }
                 });
             }
             catch (Exception ex)
@@ -4439,6 +4451,18 @@ Most users should keep default values unless experiencing specific issues.";
             {
                 _logger.LogError($"Firmware version handler error: {ex.Message}", "CAN");
             }
+        }
+
+        private void HandlePerformanceMetrics(object? sender, PerformanceMetricsEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (DataRateTxt != null) DataRateTxt.Text = $"{e.CanTxHz} Hz";
+                if (AdcSampleRateTxt != null) AdcSampleRateTxt.Text = $"{e.AdcSampleHz} Hz";
+                
+                // Also update the general status update time to keep indicators fresh
+                _lastStatusUpdateTime = e.Timestamp;
+            });
         }
 
         private void UpdateFirmwareVersionUI(FirmwareVersionEventArgs e)
@@ -4493,52 +4517,6 @@ Most users should keep default values unless experiencing specific issues.";
             }
         }
 
-        private void InitializeADCModeFromSettings()
-        {
-            try
-            {
-                var (adcMode, systemStatus, errorFlags, lastUpdate) = SettingsManager.Instance.GetLastKnownSystemStatus();
-                
-                // Initialize System Status UI with last known status
-                if (lastUpdate != DateTime.MinValue)
-                {
-                    var statusArgs = new SystemStatusEventArgs
-                    {
-                        SystemStatus = systemStatus,
-                        ErrorFlags = errorFlags,
-                        ADCMode = adcMode,
-                        Timestamp = lastUpdate
-                    };
-                    UpdateSystemStatusUI(statusArgs);
-                }
-                
-                // Set current ADC mode for calibration loading
-                _currentADCMode = adcMode;
-                _activeADCMode = adcMode; // Initialize active mode
-                
-                if (lastUpdate != DateTime.MinValue)
-                {
-                    string mode = adcMode == 0 ? "Internal" : "ADS1115";
-                    // Use the method that updates both header and radio button indicators
-                    UpdateAdcModeIndicators(mode);
-                    
-                    _logger.LogInfo($"Initialized ADC mode from settings: {mode} (last update: {lastUpdate:yyyy-MM-dd HH:mm:ss})", "Settings");
-                }
-                else
-                {
-                    // Default to ADS1115 if no previous mode found
-                    _currentADCMode = 1;  // ADS1115
-                    _activeADCMode = 1;   // ADS1115
-                    // Use the method that updates both header and radio button indicators
-                    UpdateAdcModeIndicators("ADS1115");
-                    _logger.LogInfo("No previous ADC mode found in settings, defaulting to ADS1115", "Settings");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to initialize ADC mode from settings: {ex.Message}", "Settings");
-            }
-        }
 
         private void RequestStatusBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -4958,17 +4936,17 @@ Most users should keep default values unless experiencing specific issues.";
         {
             try
             {
-                if (mode == "Internal")
+                bool isInternal = mode == "Internal";
+                if (TopAdcModeTxt != null)
                 {
-                    InternalModeIndicator.Fill = new SolidColorBrush(Color.FromRgb(33, 150, 243)); // Blue
-                    ADS1115ModeIndicator.Fill = new SolidColorBrush(Color.FromRgb(204, 204, 204)); // Gray
-                    HeaderAdcModeTxt.Text = "Internal 12-bit";
+                    TopAdcModeTxt.Text = isInternal ? "12-bit" : "16-bit";
+                    TopAdcModeTxt.Foreground = isInternal ? Brushes.DimGray : new SolidColorBrush(Color.FromRgb(33, 150, 243));
                 }
-                else if (mode == "ADS1115")
+                
+                // Keep header updated too
+                if (HeaderAdcModeTxt != null)
                 {
-                    InternalModeIndicator.Fill = new SolidColorBrush(Color.FromRgb(204, 204, 204));
-                    ADS1115ModeIndicator.Fill = new SolidColorBrush(Color.FromRgb(76, 175, 80)); // Green
-                    HeaderAdcModeTxt.Text = "ADS1115 16-bit";
+                    HeaderAdcModeTxt.Text = isInternal ? "Internal 12-bit" : "ADS1115 16-bit";
                 }
             }
             catch (Exception ex)
@@ -4986,16 +4964,21 @@ Most users should keep default values unless experiencing specific issues.";
             {
                 if (DashboardModeHeader == null) return;
                 
-                if (!_streamRunning)
+                Dispatcher.Invoke(() =>
                 {
-                    DashboardModeHeader.Text = "No Active Stream";
-                }
-                else
-                {
-                    string systemModeText = _currentSystemMode == 0 ? "Total Weight" : "Brake Force";
-                    string adcModeText = _activeADCMode == 0 ? "Internal ADC (12-bit)" : "ADS1115 (16-bit)";
-                    DashboardModeHeader.Text = $"{systemModeText} - {adcModeText}";
-                }
+                    if (!_streamRunning)
+                    {
+                        DashboardModeHeader.Text = "No Active Stream";
+                        DashboardModeHeader.Foreground = Brushes.Gray;
+                    }
+                    else
+                    {
+                        string systemModeText = _currentSystemMode == 0 ? "Total Weight" : "Brake Force";
+                        string adcModeText = _activeADCMode == 0 ? "Internal ADC (12-bit)" : "ADS1115 (16-bit)";
+                        DashboardModeHeader.Text = $"{systemModeText} - {adcModeText}";
+                        DashboardModeHeader.Foreground = (SolidColorBrush)FindResource("PrimaryBlue");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -5103,12 +5086,10 @@ Most users should keep default values unless experiencing specific issues.";
             try 
             {
                 Dispatcher.Invoke(() => {
-                    if (SystemModeText != null) 
+                    if (SystemModeHeaderTxt != null) 
                     {
-                         SystemModeText.Text = _currentSystemMode == 0 ? "Weight Mode" : "Brake Mode";
-                         SystemModeText.Foreground = _currentSystemMode == 0 ? 
-                            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)) : 
-                            new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 87, 34)); // OrangeRed
+                        SystemModeHeaderTxt.Text = _currentSystemMode == 0 ? "Weight" : "Brake";
+                        SystemModeHeaderTxt.Foreground = _currentSystemMode == 0 ? Brushes.Green : Brushes.OrangeRed;
                     }
                 });
             }

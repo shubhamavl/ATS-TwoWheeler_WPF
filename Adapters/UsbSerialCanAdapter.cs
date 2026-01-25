@@ -354,6 +354,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 // System Status (STM32 → PC3)
                 case 0x300:  // System status response
                 case 0x301:  // Firmware version response
+                case 0x302:  // System performance metrics
 
                 // Bootloader Protocol (must match BootloaderProtocol / STM32)
                 case 0x510:  // Enter Bootloader

@@ -727,55 +727,78 @@
                 <GroupBox x:Name="LiveWeightDataGroupBox" Header="Live Weight Data" Style="{StaticResource ResponsiveGroupBox}">
                     <Border Style="{StaticResource DataCard}" 
                             BorderBrush="#FF27AE60" BorderThickness="2" 
-                            HorizontalAlignment="Center" MaxWidth="900">
+                            HorizontalAlignment="Stretch">
                         <StackPanel>
                             <!-- Mode Indicator Header -->
                             <TextBlock x:Name="DashboardModeHeader" Text="No Active Stream" 
                                        FontSize="16" FontWeight="Bold" 
                                        Foreground="{StaticResource PrimaryBlue}" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                                       HorizontalAlignment="Center" Margin="0,10,0,10"/>
                             
-                            <!-- HERO: Display Weight (48pt, Bold, Centered) -->
+                            <!-- HERO: Display Weight (72pt, Bold, Centered) -->
                             <Border Background="#FFF9F9F9" BorderBrush="#FF27AE60" 
                                     BorderThickness="3" CornerRadius="8" 
-                                    Padding="40,30" Margin="15,15,15,10">
+                                    Padding="25,15" Margin="15,5,15,5">
                                 <TextBlock x:Name="WeightDisplayTxt" Text="0.0 kg" 
-                                           FontSize="48" FontWeight="Bold"
+                                           FontSize="72" FontWeight="Bold"
                                            HorizontalAlignment="Center"
                                            Foreground="#FF27AE60"/>
                             </Border>
                             
-                            <!-- Compact Info Line (Single row with icons) -->
+                            <!-- Row 1: Status & Info (Read Only + Labels) -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" 
                                         Margin="0,5,0,10">
-                                <Ellipse x:Name="StreamIndicator" Width="10" Height="10" 
-                                         Fill="#FFE74C3C" Margin="0,0,5,0"/>
+                                <Ellipse x:Name="StreamIndicator" Width="12" Height="12" 
+                                         Fill="#FFE74C3C" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="StreamStatusTxt" Text="Stopped" 
-                                           FontSize="11" Margin="0,0,10,0"/>
+                                           FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                
+                                <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
+                                <TextBlock Text="Mode:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="SystemModeHeaderTxt" Text="Weight" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="Green" FontWeight="Bold"/>
+
+                                <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
+                                <TextBlock Text="ADC:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="TopAdcModeTxt" Text="12-bit" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="#FF2196F3" FontWeight="Bold"/>
+
+                                <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
                                 <TextBlock Text="?" x:Name="CalStatusIcon" 
-                                           FontSize="11" Foreground="#FF27AE60" Margin="0,0,3,0"/>
-                                <TextBlock x:Name="CalStatusText" Text="Calibrated" FontSize="11" Margin="0,0,10,0"/>
-                                <TextBlock Text="Raw:" FontSize="11" Margin="0,0,3,0"/>
-                                <TextBlock x:Name="RawTxt" Text="0" FontSize="11" Margin="0,0,10,0"/>
-                                <TextBlock x:Name="TareStatusTxt" Text="Tare:?" FontSize="11"/>
+                                           FontSize="13" Foreground="#FF27AE60" Margin="0,0,5,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="CalStatusText" Text="Calibrated" FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="Raw:" FontSize="13" Margin="0,0,5,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="RawTxt" Text="0" FontSize="13" Margin="0,0,20,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TareStatusTxt" Text="Tare:?" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             </StackPanel>
                             
-                            <!-- Compact Buttons -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
+                            <!-- Row 2: Actions (All Buttons) -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,15">
+                                <Button x:Name="TopSwitchSystemModeBtn" Content="Switch Mode" 
+                                        Style="{StaticResource ModernButton}" Background="#FF673AB7" 
+                                        Click="SwitchSystemModeBtn_Click" Height="36" Width="95" FontSize="11" Margin="3,0"/>
+                                
+                                <Button x:Name="TopSwitchAdcModeBtn" Content="Switch ADC" 
+                                        Style="{StaticResource ModernButton}" Background="#FF2196F3" 
+                                        Click="SwitchModeBtn_Click" Height="36" Width="90" FontSize="11" Margin="3,0"/>
+
+                                <Rectangle Width="1" Fill="#FFDDDDDD" Margin="10,2,10,2" Height="24"/>
+
                                 <Button Content="Tare" Style="{StaticResource ModernButton}" 
                                         Background="#FF3498DB" Click="Tare_Click" 
-                                        Width="70" Height="32" Margin="3,0"/>
+                                        Width="70" Height="36" Margin="3,0"/>
                                 <Button Content="Calibrate" Style="{StaticResource ModernButton}" 
                                         Background="#FF27AE60" Click="Calibrate_Click" 
-                                        Width="70" Height="32" Margin="3,0"/>
+                                        Width="75" Height="36" Margin="3,0"/>
                                 <Button Content="Reset Calibration" Style="{StaticResource ModernButton}" 
                                         Background="#FFE74C3C" Click="ResetCalibration_Click" 
-                                        Width="150" Height="32" Margin="3,0"/>
+                                        Width="140" Height="36" Margin="3,0"/>
                                 <Button Content="Reset Tare" Style="{StaticResource DangerButton}" 
-                                        Click="ResetTare_Click" Height="32" Width="90" Margin="3,0"/>
+                                        Click="ResetTare_Click" Height="36" Width="90" Margin="3,0"/>
                                 <Button Content="🚗 Two Wheeler" Style="{StaticResource ModernButton}" 
                                         Background="#FF27AE60" Click="OpenTwoWheelerWindow_Click" 
-                                        Height="32" Width="110" Margin="3,0"/>
+                                        Height="36" Width="120" Margin="3,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -786,99 +809,94 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Column 1: System Configuration (Mode & ADC) -->
+                    <!-- Column 0: System Status (Expanded) -->
                     <Border Grid.Column="0" Style="{StaticResource DataCard}" 
-                            BorderBrush="#FF2196F3" BorderThickness="2" Margin="0,0,5,0">
+                            BorderBrush="#FF17A2B8" BorderThickness="2" Margin="0,0,10,0">
                         <StackPanel Margin="15">
-                            <TextBlock Text="SYSTEM CONFIG" FontWeight="Bold" FontSize="12" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="SYSTEM STATUS" FontWeight="Bold" FontSize="18" 
+                                       Foreground="{StaticResource PrimaryBlue}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,15"/>
                             
-                            <!-- System Mode Selection -->
-                            <StackPanel Margin="0,0,0,10">
-                                <TextBlock Text="Measurement Mode:" FontSize="10" Foreground="Gray" Margin="0,0,0,2"/>
-                                <TextBlock x:Name="SystemModeText" Text="Weight Mode" FontSize="14" FontWeight="Bold" 
-                                           HorizontalAlignment="Center" Foreground="Green" Margin="0,0,0,5"/>
-                                <Button x:Name="SwitchSystemModeBtn" Content="Switch (Weight/Brake)" 
-                                        Style="{StaticResource ModernButton}" 
-                                        Background="#FF673AB7" Click="SwitchSystemModeBtn_Click" 
-                                        Height="28" Margin="0,0,0,10"/>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                            <Separator Margin="0,0,0,10"/>
-                            
-                            <!-- ADC Mode Selection -->
-                            <StackPanel Margin="0,0,0,10">
-                                <TextBlock Text="ADC Resolution:" FontSize="10" Foreground="Gray" Margin="0,0,0,2"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5" HorizontalAlignment="Center">
-                                    <Ellipse x:Name="InternalModeIndicator" Width="10" Height="10" 
-                                             Fill="#FF2196F3" Margin="0,0,5,0"/>
-                                    <TextBlock Text="12-bit" FontSize="11" Margin="0,0,10,0"/>
-                                    
-                                    <Ellipse x:Name="ADS1115ModeIndicator" Width="10" Height="10" 
-                                             Fill="#FFCCCCCC" Margin="0,0,5,0"/>
-                                    <TextBlock Text="16-bit" FontSize="11"/>
+                                <!-- Row 0 -->
+                                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Status:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <Ellipse x:Name="SystemStatusIndicator" Width="12" Height="12" Fill="#FF27AE60" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="SystemStatusText" Text="OK" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </StackPanel>
-                            
-                            <Button x:Name="SwitchModeBtn" Content="Switch ADC (12/16-bit)" 
-                                    Style="{StaticResource ModernButton}" 
-                                    Background="#FF2196F3" Click="SwitchModeBtn_Click" 
-                                    Height="28" Margin="0,5,0,5"/>
-                        </StackPanel>
-                    </Border>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,10">
+                                    <TextBlock Text="Relay:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="RelayStateTxt" Text="Weight" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="Blue"/>
+                                </StackPanel>
 
-                    <!-- Column 2: System Status -->
-                    <Border Grid.Column="1" Style="{StaticResource DataCard}" 
-                            BorderBrush="#FF17A2B8" BorderThickness="2" Margin="5,0">
-                        <StackPanel Margin="15">
-                            <TextBlock Text="SYSTEM STATUS" FontWeight="Bold" FontSize="12" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                            
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,5">
-                                <TextBlock Text="Status:" FontSize="11" Margin="0,0,5,0"/>
-                                <Ellipse x:Name="SystemStatusIndicator" Width="10" Height="10" Fill="#FF27AE60" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="SystemStatusText" Text="OK" FontSize="11" FontWeight="Bold"/>
-                            </StackPanel>
-                            
-                            <TextBlock x:Name="DataRateTxt" Text="Rate: --" FontSize="11" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                            <TextBlock x:Name="FirmwareVersionText" Text="FW: --" FontSize="11" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                            <TextBlock x:Name="LastUpdateTxt" Text="Updated: --" FontSize="11" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,3"/>
-                            <TextBlock x:Name="ErrorCountTxt" Text="Errors: 0" FontSize="11" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <!-- Row 1 -->
+                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="CAN Rate:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="DataRateTxt" Text="-- Hz" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBlue}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,10">
+                                    <TextBlock Text="ADC Rate:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="AdcSampleRateTxt" Text="-- Hz" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="#FF17A2B8"/>
+                                </StackPanel>
+
+                                <!-- Row 2 -->
+                                <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="Uptime:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="UptimeTxt" Text="00:00:00" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,15">
+                                    <TextBlock Text="Firmware:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="FirmwareVersionText" Text="--" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Row 3: Last Data Received (Resolves Build Error) -->
+                                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,5,0,10">
+                                    <TextBlock Text="Last Data Received:" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#FF95A5A6" FontStyle="Italic"/>
+                                    <TextBlock x:Name="LastUpdateTxt" Text="--" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF7F8C8D"/>
+                                </StackPanel>
+                            </Grid>
                             
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Button x:Name="RequestStatusBtn" Content="Status" 
                                         Style="{StaticResource ModernButton}" 
                                         Background="#FF17A2B8" Click="RequestStatusBtn_Click" 
-                                        Width="70" Height="32" Margin="2,0"/>
+                                        Width="70" Height="30" Margin="2,0"/>
                                 <Button x:Name="StatusHistoryBtn" Content="History" 
                                         Style="{StaticResource ModernButton}" 
                                         Background="#FF6F42C1" Click="StatusHistoryBtn_Click" 
-                                        Width="70" Height="32" Margin="2,0"/>
+                                        Width="70" Height="30" Margin="2,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <!-- Column 3: Data Logging -->
-                    <Border Grid.Column="2" Style="{StaticResource DataCard}" 
-                            BorderBrush="#FF28A745" BorderThickness="2" Margin="5,0,0,0">
+                    <!-- Column 2: Data Logging -->
+                    <Border Grid.Column="1" Style="{StaticResource DataCard}" 
+                            BorderBrush="#FF28A745" BorderThickness="2" Margin="10,0,0,0">
                         <StackPanel Margin="15">
-                            <TextBlock Text="DATA LOGGING" FontWeight="Bold" FontSize="12" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="DATA LOGGING" FontWeight="Bold" FontSize="18" 
+                                       Foreground="{StaticResource SuccessGreen}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,15"/>
                             
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,5">
-                                <Ellipse x:Name="LoggingStatusIndicator" Width="10" Height="10" Fill="#FFDC3545" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="LoggingStatusTxt" Text="Not logging" FontSize="11"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                <Ellipse x:Name="LoggingStatusIndicator" Width="14" Height="14" Fill="#FFDC3545" Margin="0,0,10,0"/>
+                                <TextBlock x:Name="LoggingStatusTxt" Text="Not logging" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
                             
-                            <TextBlock x:Name="SampleCountTxt" Text="0 samples" FontSize="11" 
-                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="SampleCountTxt" Text="0 samples" FontSize="15" FontWeight="Bold"
+                                       HorizontalAlignment="Center" Margin="0,0,0,15" Foreground="{StaticResource SuccessGreen}"/>
                             
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,5">
                                 <Button x:Name="StartLoggingBtn" Content="Start" 

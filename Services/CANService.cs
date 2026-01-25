@@ -37,6 +37,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private const uint CAN_MSG_ID_START_STREAM = 0x040;        // Start streaming (1 byte: rate)
         private const uint CAN_MSG_ID_STOP_ALL_STREAMS = 0x044;   // Stop all streaming (empty message)
         private const uint CAN_MSG_ID_SYSTEM_STATUS = 0x300;      // System status (on-demand only)
+        private const uint CAN_MSG_ID_SYS_PERF = 0x302;           // System performance (Raw Hz)
         private const uint CAN_MSG_ID_STATUS_REQUEST = 0x032;     // Request system status (empty message)
         private const uint CAN_MSG_ID_MODE_INTERNAL = 0x030;      // Switch to Internal ADC mode (empty message)
         private const uint CAN_MSG_ID_MODE_ADS1115 = 0x031;       // Switch to ADS1115 mode (empty message)
@@ -72,6 +73,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public event EventHandler<RawDataEventArgs>? RawDataReceived;
         public event EventHandler<SystemStatusEventArgs>? SystemStatusReceived;
         public event EventHandler<FirmwareVersionEventArgs>? FirmwareVersionReceived;
+        public event EventHandler<PerformanceMetricsEventArgs>? PerformanceMetricsReceived;
         
         // Bootloader response events (fixed CAN IDs)
         public event EventHandler<BootPingResponseEventArgs>? BootPingResponseReceived;
@@ -333,6 +335,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 case CAN_MSG_ID_START_STREAM:        // 0x040 - Start streaming
                 case CAN_MSG_ID_STOP_ALL_STREAMS:   // 0x044 - Stop all streaming
                 case CAN_MSG_ID_SYSTEM_STATUS:      // 0x300 - System status
+                case CAN_MSG_ID_SYS_PERF:           // 0x302 - Performance raw Hz
                 case CAN_MSG_ID_STATUS_REQUEST:     // 0x032 - Request system status
                 case CAN_MSG_ID_MODE_INTERNAL:      // 0x030 - Switch to Internal ADC mode
                 case CAN_MSG_ID_MODE_ADS1115:       // 0x031 - Switch to ADS1115 mode
@@ -578,24 +581,53 @@ namespace ATS_TwoWheeler_WPF.Services
                     }
                     break;
 
-                case CAN_MSG_ID_SYSTEM_STATUS: // 0x300 - System status
-                    if (canData != null && canData.Length >= 3)
+                case CAN_MSG_ID_SYSTEM_STATUS: // 0x300 - System status (v1.1 packed)
+                    if (canData != null && canData.Length >= 6)
                     {
+                        // Byte 0: Packed Bits
+                        byte packed = canData[0];
+                        byte systemStatus = (byte)(packed & 0x03);
+                        byte adcMode = (byte)((packed >> 2) & 0x01);
+                        byte relayState = (byte)((packed >> 3) & 0x01);
+                        
+                        // Byte 1: Error Flags
+                        byte errorFlags = canData[1];
+                        
+                        // Byte 2-5: Uptime seconds
+                        uint uptime = BitConverter.ToUInt32(canData, 2);
+                        
                         // Update current ADC mode for mode-dependent parsing
-                        _currentADCMode = canData[2];
+                        _currentADCMode = adcMode;
                         
                         SystemStatusReceived?.Invoke(this, new SystemStatusEventArgs
                         {
-                            SystemStatus = canData[0],
-                            ErrorFlags = canData[1],
-                            ADCMode = canData[2],
+                            SystemStatus = systemStatus,
+                            ErrorFlags = errorFlags,
+                            ADCMode = adcMode,
+                            RelayState = relayState,
+                            UptimeSeconds = uptime,
                             Timestamp = DateTime.Now
                         });
-                        ProductionLogger.Instance.LogInfo($"SystemStatus event fired: Status={canData[0]}, Errors=0x{canData[1]:X2}, ADC={canData[2]}", "CANService");
+                        ProductionLogger.Instance.LogInfo($"SystemStatus event fired: Status={systemStatus}, ADC={adcMode}, Relay={relayState}, Uptime={uptime}", "CANService");
                     }
                     else
                     {
                         ProductionLogger.Instance.LogWarning($"SystemStatus message invalid: Data length={canData?.Length ?? 0}", "CANService");
+                    }
+                    break;
+                case CAN_MSG_ID_SYS_PERF: // 0x302 - Performance metrics
+                    if (canData != null && canData.Length >= 4)
+                    {
+                        ushort canHz = BitConverter.ToUInt16(canData, 0);
+                        ushort adcHz = BitConverter.ToUInt16(canData, 2);
+                        
+                        PerformanceMetricsReceived?.Invoke(this, new PerformanceMetricsEventArgs
+                        {
+                            CanTxHz = canHz,
+                            AdcSampleHz = adcHz,
+                            Timestamp = DateTime.Now
+                        });
+                        ProductionLogger.Instance.LogInfo($"PerformanceMetrics event fired: CAN={canHz}Hz, ADC={adcHz}Hz", "CANService");
                     }
                     break;
 
@@ -735,6 +767,15 @@ namespace ATS_TwoWheeler_WPF.Services
         public byte SystemStatus { get; set; }      // 0=OK, 1=Warning, 2=Error
         public byte ErrorFlags { get; set; }        // Error flags
         public byte ADCMode { get; set; }           // Current ADC mode (0=Internal, 1=ADS1115)
+        public byte RelayState { get; set; }        // Current relay state (0=Weight, 1=Brake)
+        public uint UptimeSeconds { get; set; }     // System uptime in seconds
+        public DateTime Timestamp { get; set; }     // PC3 reception timestamp
+    }
+
+    public class PerformanceMetricsEventArgs : EventArgs
+    {
+        public ushort CanTxHz { get; set; }        // CAN transmission frequency
+        public ushort AdcSampleHz { get; set; }    // ADC sampling frequency
         public DateTime Timestamp { get; set; }     // PC3 reception timestamp
     }
 
