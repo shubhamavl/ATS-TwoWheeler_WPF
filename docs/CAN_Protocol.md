@@ -35,6 +35,14 @@ Periodic health and status heartbeat (1Hz or On-Demand).
 | **1** | 0-7 | Error Flags | Hex | 0x01=ADC Init, 0x02=CAN Init, 0x04=I2C |
 | **2-5** | 0-31 | Uptime | `uint32` | Seconds | System uptime since reset |
 
+### 0x302 - System Performance
+Real-time loop performance metrics (diagnostic).
+
+| Byte | Name | Type | Scaling | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| 0-1 | CAN TX Hz | `uint16` | 1:1 | Actual CAN TX rate (Hz). |
+| 2-3 | ADC Sample Hz | `uint16` | 1:1 | Actual ADC Interrupt rate (Hz). |
+
 ### 0x301 - Firmware Version
 Response to Version Request (0x033).
 
@@ -77,6 +85,7 @@ These commands have DLC=0.
 | **0x030** | Set Internal | Switches to Internal ADC backend (12-bit). |
 | **0x031** | Set ADS1115 | Switches to external ADS1115 backend (16-bit). |
 | **0x032** | Req Status | STM32 immediately replies with 0x300. |
+| **0x033** | Req Version | STM32 replies with 0x301. |
 | **0x510** | Enter Boot | Request system reset into bootloader mode. |
 
 ---
@@ -106,6 +115,20 @@ Sent if update fails.
 | :--- | :--- | :--- | :--- |
 | 0 | Error Code | 0x01 | Sequence Mismatch |
 | | | 0x02 | CRC Mismatch |
+### 0x514 - End Update (RX)
+Verify CRC and finalize update.
+
+| Byte | Name | Type | Description |
+| :--- | :--- | :--- | :--- |
+| 0-3 | CRC32 | `uint32` | CRC32 of entire firmware image. |
+
+### 0x515 - Reset (RX)
+Reboot system to Application.
+
+| Byte | Name | Description |
+| :--- | :--- | :--- |
+| - | - | No Payload. |
+
 ### 0x51B + Expanded Error Set
 Error reporting (TX).
 

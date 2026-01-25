@@ -8,19 +8,21 @@ This page tracks all official releases of the ATS Two-Wheeler System components.
 ## Firmware Releases
 
 ### Latest Stable Version
-**v1.0.0** - Production Ready (14 Dec 2025)
+**v0.2.0** - Production Ready (Current)
 
 ### Version History
 
-| Version | Date | Firmware Binary | Changes | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **v1.0.0** | 2025-12-14 | [ATS_FW_v1.0.0.bin](#) | Production release: 1kHz loop, Dual ADC, Relay control | Stable |
-| v0.9.0 | 2025-12-01 | [ATS_FW_v0.9.0.bin](#) | Beta: CAN protocol v0.1, ADS1115 support | Beta |
-| v0.8.0 | 2025-11-15 | [ATS_FW_v0.8.0.bin](#) | Alpha: Internal ADC only | Alpha |
+| Version | Date | Standalone Binary | Bootloadable Binary | Changes | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **v0.2.0** | 2026-01-25 | [ATS_FW_v0.2.0.bin](#) | [ATS_FW_v0.2.0_BL.bin](#) | Production release: 1kHz loop, Dual ADC | Stable |
+| v0.1.5 | 2026-01-25 | [ATS_FW_v0.1.5.bin](#) | [ATS_FW_v0.1.5_BL.bin](#) | Bugfix: LCD update rate, filtering | Stable |
+| v0.1.4 | 2026-01-23 | [ATS_FW_v0.1.4.bin](#) | [ATS_FW_v0.1.4_BL.bin](#) | Feature: Moving Average Filter (N=4) | Beta |
+| v0.1.1 | 2025-12-25 | [ATS_FW_v0.1.1.bin](#) | [ATS_FW_v0.1.1_BL.bin](#) | Feature: Improved ADC timing | Beta |
+| v0.1.0 | 2025-12-25 | [ATS_FW_v0.1.0.bin](#) | [ATS_FW_v0.1.0_BL.bin](#) | Initial Release: Basic 1kHz Loop | Alpha |
 
 ### Firmware Features by Version
 
-#### v1.0.0 (Current Stable)
+#### v0.2.0 (Current Stable)
 - 1kHz deterministic control loop
 - Dual ADC support (Internal 12-bit / ADS1115 16-bit)
 - Relay control for Brake/Weight modes
@@ -34,28 +36,27 @@ This page tracks all official releases of the ATS Two-Wheeler System components.
 ## Bootloader Releases
 
 ### Latest Stable Version
-**v1.0.0** - Production Ready (14 Dec 2025)
+**v1.1** - Production Ready (Current)
 
 ### Version History
 
 | Version | Date | Bootloader Binary | Changes | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.0.0** | 2025-12-14 | [Bootloader_v1.0.0.bin](#) | Production: Proactive Ping, Magic Flag Entry, LCD Support | Stable |
-| v0.9.0 | 2025-12-01 | [Bootloader_v0.9.0.bin](#) | Beta: Basic CAN flashing support | Beta |
+| **v1.1** | 2026-01-25 | [Bootloader_v1.1.bin](#) | Bugfix: Version reporting | Stable |
+| v1.0.0 | 2026-01-24 | [Bootloader_v1.0.0.bin](#) | Initial Production Release | Stable |
 
 ---
 
 ## PC Software Releases
 
 ### Latest Stable Version
-**v1.0.0** - Production Ready (14 Dec 2025)
+**v0.1.0** - Beta Release (Current)
 
 ### Version History
 
 | Version | Date | Installer | Changes | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **v1.0.0** | 2025-12-14 | [ATS_UI_v1.0.0_Release.zip](#) | Production: Bootloader Manager, Calibration, Taring | Stable |
-| v0.9.0 | 2025-12-01 | [ATS_UI_v0.9.0_Release.zip](#) | Beta: Real-time charting, PCAN support | Beta |
+| **v0.1.0** | 2026-01-25 | [ATS_UI_v0.1.0_Release.zip](#) | Initial Beta: Real-time charting, Calibration, Bootloader | Beta |
 
 ### PC Software Features by Version
 
@@ -73,11 +74,11 @@ This page tracks all official releases of the ATS Two-Wheeler System components.
 ## Simulator Releases
 
 ### Latest Version
-**v0.1.0** - Initial Release (25 Dec 2025)
+**v0.1.0** - Initial Release (25 Jan 2026)
 
 | Version | Date | Download | Changes |
 | :--- | :--- | :--- | :--- |
-| **v0.1.0** | 2025-12-25 | [ATS_Simulator_v0.1.0.zip](#) | Initial release: Pattern generation, Noise injection |
+| **v0.1.0** | 2026-01-25 | [ATS_Simulator_v0.1.0.zip](#) | Initial release: Pattern generation, Noise injection |
 
 ---
 
@@ -115,9 +116,9 @@ This page tracks all official releases of the ATS Two-Wheeler System components.
 
 | Firmware | Bootloader | PC Software | Protocol | Compatible |
 | :--- | :--- | :--- | :--- | :--- |
-| v1.0.0 | v1.0.0 | v1.0.0 | v0.1 | Yes |
-| v0.9.0 | v0.9.0 | v0.9.0 | v0.1 | Yes |
-| v1.0.0 | v0.9.0 | v1.0.0 | v0.1 | Partial |
+| v0.2.0 | v1.1 | v0.1.0 | v0.1 | Yes |
+| v0.1.5 | v1.1 | v0.1.0 | v0.1 | Yes |
+| v0.1.4 | v1.0.0 | v0.1.0 | v0.1 | Partial (Update Recom.) |
 
 ---
 
