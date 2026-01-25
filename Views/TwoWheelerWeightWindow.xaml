@@ -163,7 +163,7 @@
                         Background="#FF6F42C1" Click="ExportBtn_Click" 
                         Width="120" Height="32" Margin="5,0"/>
                 <ToggleButton x:Name="BrakeModeToggle" Content="🛑 Brake Mode"
-                        Style="{StaticResource ModernButton}"
+                        Style="{StaticResource ModernToggleButton}"
                         Background="#FF6C757D" Click="BrakeModeToggle_Click"
                         Width="120" Height="32" Margin="5,0"/>
                 <Button x:Name="CalibrateBtn" Content="⚖ Calibrate" 

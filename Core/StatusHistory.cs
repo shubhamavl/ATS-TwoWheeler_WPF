@@ -26,7 +26,13 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <param name="systemStatus">System status (0=OK, 1=Warning, 2=Error)</param>
         /// <param name="errorFlags">Error flags</param>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public void AddStatusEntry(byte systemStatus, byte errorFlags, byte adcMode)
+        /// <param name="relayState">Relay State (0=Weight, 1=Brake)</param>
+        /// <param name="canTxHz">CAN TX Rate in Hz</param>
+        /// <param name="adcSampleHz">ADC Sample Rate in Hz</param>
+        /// <param name="uptimeSeconds">System Uptime in seconds</param>
+        /// <param name="firmwareVersion">Firmware version string</param>
+        public void AddStatusEntry(byte systemStatus, byte errorFlags, byte adcMode, 
+                                 byte relayState, ushort canTxHz, ushort adcSampleHz, uint uptimeSeconds, string firmwareVersion)
         {
             lock (_lock)
             {
@@ -35,7 +41,12 @@ namespace ATS_TwoWheeler_WPF.Core
                     Timestamp = DateTime.Now,
                     SystemStatus = systemStatus,
                     ErrorFlags = errorFlags,
-                    ADCMode = adcMode
+                    ADCMode = adcMode,
+                    RelayState = relayState,
+                    CanTxHz = canTxHz,
+                    AdcSampleHz = adcSampleHz,
+                    UptimeSeconds = uptimeSeconds,
+                    FirmwareVersion = firmwareVersion
                 };
 
                 _statusHistory.Insert(0, entry); // Add to beginning (most recent first)

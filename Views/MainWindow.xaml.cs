@@ -21,6 +21,7 @@ using ATS_TwoWheeler_WPF.Services;
 using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Adapters;
 using ATS_TwoWheeler_WPF.Core;
+using System.Globalization;
 
 namespace ATS_TwoWheeler_WPF.Views
 {
@@ -51,6 +52,11 @@ namespace ATS_TwoWheeler_WPF.Views
         // Current raw ADC data (from STM32) - Total weight (all 4 channels summed)
         private int _totalRawADC = 0;
         private int _currentRawADC = 0; // Current active stream raw ADC
+        
+        // Cache for latest performance metrics to log with status history
+        private ushort _lastCanTxHz = 0;
+        private ushort _lastAdcSampleHz = 0;
+        private string _lastFirmwareVersion = "--";
         
         // Stream state tracking
         private bool _streamRunning = false;
@@ -4361,14 +4367,16 @@ Most users should keep default values unless experiencing specific issues.";
                     PersistADCMode(_currentADCMode);
                 }
                 
-                // Update data logger with system status
-                _dataLogger?.UpdateSystemStatus(e.SystemStatus, e.ErrorFlags);
+                // Update data logger with system status (full context)
+                _dataLogger?.UpdateSystemStatus(e.SystemStatus, e.ErrorFlags, e.RelayState, 
+                                              _lastCanTxHz, _lastAdcSampleHz, e.UptimeSeconds, _lastFirmwareVersion);
                 
                 // Update settings with system status
                 SettingsManager.Instance.UpdateSystemStatus(e.ADCMode, e.SystemStatus, e.ErrorFlags);
                 
-                // Add to status history
-                _statusHistoryManager.AddStatusEntry(e.SystemStatus, e.ErrorFlags, e.ADCMode);
+                // Add to status history with full context
+                _statusHistoryManager.AddStatusEntry(e.SystemStatus, e.ErrorFlags, e.ADCMode, 
+                                                   e.RelayState, _lastCanTxHz, _lastAdcSampleHz, e.UptimeSeconds, _lastFirmwareVersion);
                 
                 // Update System Status UI panel
                 UpdateSystemStatusUI(e);
@@ -4445,6 +4453,7 @@ Most users should keep default values unless experiencing specific issues.";
             try
             {
                 _logger.LogInfo($"Firmware version received: {e.VersionStringFull}", "Firmware");
+                _lastFirmwareVersion = e.VersionString; // Cache for history logging
                 UpdateFirmwareVersionUI(e);
             }
             catch (Exception ex)
@@ -4620,30 +4629,15 @@ Most users should keep default values unless experiencing specific issues.";
                     Margin = new Thickness(20, 0, 20, 0)
                 };
 
-                dataGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Timestamp",
-                    Binding = new Binding("Timestamp") { StringFormat = "yyyy-MM-dd HH:mm:ss" },
-                    Width = 150
-                });
-                dataGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Status",
-                    Binding = new Binding("StatusText"),
-                    Width = 80
-                });
-                dataGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "ADC Mode",
-                    Binding = new Binding("ModeText"),
-                    Width = 100
-                });
-                dataGrid.Columns.Add(new DataGridTextColumn
-                {
-                    Header = "Error Flags",
-                    Binding = new Binding("ErrorFlagsText"),
-                    Width = 80
-                });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "Timestamp", Binding = new Binding("Timestamp") { StringFormat = "yyyy-MM-dd HH:mm:ss" }, Width = 140 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding("StatusText"), Width = 80 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "ADC Mode", Binding = new Binding("ModeText"), Width = 100 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "Relay", Binding = new Binding("RelayState") { Converter = new RelayStateConverter() }, Width = 80 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "CAN Hz", Binding = new Binding("CanTxHz"), Width = 70 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "ADC Hz", Binding = new Binding("AdcSampleHz"), Width = 70 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "Uptime", Binding = new Binding("UptimeSeconds") { StringFormat = "{0}s" }, Width = 80 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "FW Ver", Binding = new Binding("FirmwareVersion"), Width = 80 });
+                dataGrid.Columns.Add(new DataGridTextColumn { Header = "Error Flags", Binding = new Binding("ErrorFlagsText"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
 
                 dataGrid.ItemsSource = _statusHistoryManager.GetAllEntries();
                 grid.Children.Add(dataGrid);
@@ -4657,21 +4651,26 @@ Most users should keep default values unless experiencing specific issues.";
                     Margin = new Thickness(20, 10, 20, 20)
                 };
 
+
                 var refreshBtn = new Button
                 {
-                    Content = "?? Refresh",
-                    Width = 100,
-                    Height = 30,
-                    Margin = new Thickness(5)
+                    Content = "🔄 Refresh",
+                    Style = (Style)Application.Current.Resources["ModernButton"],
+                    Width = 120,
+                    Height = 40,
+                    Margin = new Thickness(5),
+                    Background = new SolidColorBrush(Color.FromRgb(39, 174, 96)) // Green
                 };
                 refreshBtn.Click += (s, args) => dataGrid.ItemsSource = _statusHistoryManager.GetAllEntries();
 
                 var clearBtn = new Button
                 {
-                    Content = "??? Clear",
-                    Width = 100,
-                    Height = 30,
-                    Margin = new Thickness(5)
+                    Content = "🗑 Clear",
+                    Style = (Style)Application.Current.Resources["ModernButton"],
+                    Width = 120,
+                    Height = 40,
+                    Margin = new Thickness(5),
+                    Background = new SolidColorBrush(Color.FromRgb(220, 53, 69)) // Red
                 };
                 clearBtn.Click += (s, args) =>
                 {
@@ -4682,9 +4681,11 @@ Most users should keep default values unless experiencing specific issues.";
                 var closeBtn = new Button
                 {
                     Content = "Close",
-                    Width = 100,
-                    Height = 30,
-                    Margin = new Thickness(5)
+                    Style = (Style)Application.Current.Resources["ModernButton"],
+                    Width = 120,
+                    Height = 40,
+                    Margin = new Thickness(5),
+                    Background = new SolidColorBrush(Color.FromRgb(108, 117, 125)) // Gray
                 };
                 closeBtn.Click += (s, args) => historyWindow.Close();
 
@@ -5335,5 +5336,22 @@ Most users should keep default values unless experiencing specific issues.";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public class RelayStateConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is byte relayState)
+            {
+                return relayState == 0 ? "Weight" : "Brake";
+            }
+            return "Unknown";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

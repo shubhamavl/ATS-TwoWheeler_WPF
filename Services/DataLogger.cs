@@ -16,8 +16,14 @@ namespace ATS_TwoWheeler_WPF.Services
         private readonly object _logLock = new object();
         
         // System status tracking
+        // System status tracking
         private byte _lastSystemStatus = 0;
         private byte _lastErrorFlags = 0;
+        private byte _lastRelayState = 0;
+        private ushort _lastCanTxHz = 0;
+        private ushort _lastAdcSampleHz = 0;
+        private uint _lastUptimeSeconds = 0;
+        private string _lastFirmwareVersion = "--";
         private DateTime _lastStatusTimestamp = DateTime.MinValue;
         
         public bool IsLogging 
@@ -60,7 +66,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     _logFilePath = Path.Combine(baseDir, $"two_wheeler_log_{timestamp}.csv");
                     
                     // Create CSV header with system status fields
-                    string header = "Timestamp,Side,RawADC,CalibratedKg,TaredKg,TareBaseline,CalSlope,CalIntercept,ADCMode,SystemStatus,ErrorFlags,StatusTimestamp";
+                    string header = "Timestamp,Side,RawADC,CalibratedKg,TaredKg,TareBaseline,CalSlope,CalIntercept,ADCMode,SystemStatus,ErrorFlags,Relay,CanHz,AdcHz,Uptime,FirmwareVersion,StatusTimestamp";
                     File.WriteAllText(_logFilePath, header + Environment.NewLine);
                     
                     _isLogging = true;
@@ -96,14 +102,18 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Update system status for logging
         /// </summary>
-        /// <param name="systemStatus">System status (0=OK, 1=Warning, 2=Error)</param>
-        /// <param name="errorFlags">Error flags</param>
-        public void UpdateSystemStatus(byte systemStatus, byte errorFlags)
+        public void UpdateSystemStatus(byte systemStatus, byte errorFlags, byte relayState, 
+                                     ushort canTxHz, ushort adcSampleHz, uint uptimeSeconds, string firmwareVersion)
         {
             lock (_logLock)
             {
                 _lastSystemStatus = systemStatus;
                 _lastErrorFlags = errorFlags;
+                _lastRelayState = relayState;
+                _lastCanTxHz = canTxHz;
+                _lastAdcSampleHz = adcSampleHz;
+                _lastUptimeSeconds = uptimeSeconds;
+                if (!string.IsNullOrEmpty(firmwareVersion)) _lastFirmwareVersion = firmwareVersion;
                 _lastStatusTimestamp = DateTime.Now;
             }
         }
@@ -141,7 +151,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     
                     string line = $"{timestamp},{side},{rawADC},{calibratedKg:F3},{taredKg:F3}," +
                                  $"{tareBaseline:F3},{calSlope:F6},{calIntercept:F3},{adcMode}," +
-                                 $"{_lastSystemStatus},{_lastErrorFlags},{statusTimestamp}";
+                                 $"{_lastSystemStatus},{_lastErrorFlags},{_lastRelayState},{_lastCanTxHz},{_lastAdcSampleHz},{_lastUptimeSeconds},{_lastFirmwareVersion},{statusTimestamp}";
                     
                     File.AppendAllText(_logFilePath, line + Environment.NewLine);
                 }

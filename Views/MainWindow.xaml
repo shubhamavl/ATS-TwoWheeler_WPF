@@ -798,7 +798,7 @@
                                         Click="ResetTare_Click" Height="36" Width="90" Margin="3,0"/>
                                 <Button Content="🚗 Two Wheeler" Style="{StaticResource ModernButton}" 
                                         Background="#FF27AE60" Click="OpenTwoWheelerWindow_Click" 
-                                        Height="36" Width="120" Margin="3,0"/>
+                                        Height="36" Width="145" Margin="4,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

@@ -11,6 +11,11 @@ namespace ATS_TwoWheeler_WPF.Models
         public byte SystemStatus { get; set; }      // 0=OK, 1=Warning, 2=Error
         public byte ErrorFlags { get; set; }        // Error flags
         public byte ADCMode { get; set; }           // 0=Internal, 1=ADS1115
+        public byte RelayState { get; set; }        // 0=Weight, 1=Brake
+        public ushort CanTxHz { get; set; }         // CAN TX Rate
+        public ushort AdcSampleHz { get; set; }     // ADC Sample Rate
+        public uint UptimeSeconds { get; set; }     // System Uptime in seconds
+        public string FirmwareVersion { get; set; } = "--"; // Firmware Version
         
         public string StatusText => SystemStatus switch
         {
