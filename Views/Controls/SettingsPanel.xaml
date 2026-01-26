@@ -156,7 +156,62 @@
                 </StackPanel>
             </GroupBox>
             
-            <!-- Advanced -->
+            <!-- Calibration Precision -->
+            <GroupBox Header="Calibration Precision (Advanced)">
+                <StackPanel>
+                    <CheckBox Content="Enable Multi-Sample Averaging" IsChecked="{Binding CalibrationAveragingEnabled}" Margin="0,0,0,5"/>
+                    <TextBlock Text="(Averages multiple samples for higher accuracy)" FontSize="10" Foreground="Gray" Margin="20,0,0,10"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="20,0,0,5">
+                         <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="IsEnabled" Value="{Binding CalibrationAveragingEnabled}"/>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Sample Count:" Style="{StaticResource LabelStyle}" Width="100"/>
+                        <TextBox Text="{Binding CalibrationSampleCount}" Width="60" Margin="0,0,5,0"/>
+                        <TextBlock Text="samples" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="(Number of samples to collect)" FontSize="10" Foreground="Gray" Margin="120,0,0,10"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="20,0,0,5">
+                         <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="IsEnabled" Value="{Binding CalibrationAveragingEnabled}"/>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Capture Duration:" Style="{StaticResource LabelStyle}" Width="100"/>
+                        <TextBox Text="{Binding CalibrationCaptureDurationMs}" Width="60" Margin="0,0,5,0"/>
+                        <TextBlock Text="ms" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="(Max time to collect samples)" FontSize="10" Foreground="Gray" Margin="120,0,0,10"/>
+
+                    <CheckBox Content="Use Median instead of Mean" IsChecked="{Binding CalibrationUseMedian}" Margin="20,0,0,5"/>
+                    <TextBlock Text="(More robust against random spikes)" FontSize="10" Foreground="Gray" Margin="40,0,0,10"/>
+
+                    <CheckBox Content="Remove Outliers" IsChecked="{Binding CalibrationRemoveOutliers}" Margin="20,0,0,5"/>
+                    
+                     <StackPanel Orientation="Horizontal" Margin="40,0,0,5">
+                         <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="IsEnabled" Value="{Binding CalibrationRemoveOutliers}"/>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Threshold (σ):" Style="{StaticResource LabelStyle}" Width="80"/>
+                        <TextBox Text="{Binding CalibrationOutlierThreshold}" Width="60" Margin="0,0,5,0"/>
+                        <TextBlock Text="Standard Deviations" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                     <StackPanel Orientation="Horizontal" Margin="20,10,0,5">
+                        <TextBlock Text="Max Std Dev:" Style="{StaticResource LabelStyle}" Width="100"/>
+                        <TextBox Text="{Binding CalibrationMaxStdDev}" Width="60" Margin="0,0,5,0"/>
+                    </StackPanel>
+                    <TextBlock Text="(Warning threshold for noisy signals)" FontSize="10" Foreground="Gray" Margin="120,0,0,5"/>
+
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Advanced System -->
             <GroupBox Header="Advanced System">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">

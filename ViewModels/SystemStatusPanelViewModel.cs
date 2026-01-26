@@ -79,9 +79,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand RequestStatusCommand { get; }
         public ICommand ShowHistoryCommand { get; }
 
-        public SystemStatusPanelViewModel(ICANService? canService)
+        private readonly INavigationService? _navigationService;
+
+        public SystemStatusPanelViewModel(ICANService? canService, INavigationService? navigationService)
         {
             _canService = canService;
+            _navigationService = navigationService;
             
             RequestStatusCommand = new RelayCommand(OnRequestStatus);
             ShowHistoryCommand = new RelayCommand(OnShowHistory);
@@ -160,10 +163,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnShowHistory(object? parameter)
         {
-            // For now, this might need a NavigationService or specialized event
-            // as opening a window is View responsibility.
-            // We can raise an event or use a dialog service.
-            // For MVP, checking if we can just implement this locally or skip
+            _navigationService?.ShowLogs();
         }
     }
 }

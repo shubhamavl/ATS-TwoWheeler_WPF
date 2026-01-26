@@ -56,7 +56,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Connection = new ConnectionViewModel(_canService, _settings);
             Dashboard = new DashboardViewModel(_weightProcessor, _canService, _settings);
             Calibration = new CalibrationViewModel(_weightProcessor, _canService, _settings, navigationService);
-            SystemStatus = new SystemStatusPanelViewModel(_canService);
+            SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService);
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
             StatusBar = new AppStatusBarViewModel(_canService);
             Settings = new SettingsViewModel(_settings);

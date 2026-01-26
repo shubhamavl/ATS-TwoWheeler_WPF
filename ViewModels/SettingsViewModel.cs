@@ -257,6 +257,105 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
+        // Advanced Calibration Settings
+        public bool CalibrationAveragingEnabled
+        {
+            get => _settingsManager.Settings.CalibrationAveragingEnabled;
+            set
+            {
+                if (_settingsManager.Settings.CalibrationAveragingEnabled != value)
+                {
+                    _settingsManager.Settings.CalibrationAveragingEnabled = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public int CalibrationSampleCount
+        {
+            get => _settingsManager.Settings.CalibrationSampleCount;
+            set
+            {
+                if (_settingsManager.Settings.CalibrationSampleCount != value)
+                {
+                    _settingsManager.Settings.CalibrationSampleCount = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public int CalibrationCaptureDurationMs
+        {
+            get => _settingsManager.Settings.CalibrationCaptureDurationMs;
+            set
+            {
+                if (_settingsManager.Settings.CalibrationCaptureDurationMs != value)
+                {
+                    _settingsManager.Settings.CalibrationCaptureDurationMs = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public bool CalibrationUseMedian
+        {
+            get => _settingsManager.Settings.CalibrationUseMedian;
+            set
+            {
+                if (_settingsManager.Settings.CalibrationUseMedian != value)
+                {
+                    _settingsManager.Settings.CalibrationUseMedian = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public bool CalibrationRemoveOutliers
+        {
+            get => _settingsManager.Settings.CalibrationRemoveOutliers;
+            set
+            {
+                if (_settingsManager.Settings.CalibrationRemoveOutliers != value)
+                {
+                    _settingsManager.Settings.CalibrationRemoveOutliers = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public double CalibrationOutlierThreshold
+        {
+            get => _settingsManager.Settings.CalibrationOutlierThreshold;
+            set
+            {
+                if (Math.Abs(_settingsManager.Settings.CalibrationOutlierThreshold - value) > 0.001)
+                {
+                    _settingsManager.Settings.CalibrationOutlierThreshold = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
+        public double CalibrationMaxStdDev
+        {
+            get => _settingsManager.Settings.CalibrationMaxStdDev;
+            set
+            {
+                if (Math.Abs(_settingsManager.Settings.CalibrationMaxStdDev - value) > 0.001)
+                {
+                    _settingsManager.Settings.CalibrationMaxStdDev = value;
+                    OnPropertyChanged();
+                    SaveAdvancedSettings();
+                }
+            }
+        }
+
         // --- Calibration Data Display ---
         private LinearCalibration? _internalCal;
         private LinearCalibration? _adsCal;
