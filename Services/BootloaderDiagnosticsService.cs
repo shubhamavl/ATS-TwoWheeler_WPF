@@ -4,13 +4,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using ATS_TwoWheeler_WPF.Core;
 using ATS_TwoWheeler_WPF.Models;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
     /// <summary>
     /// Service for bootloader diagnostics, message capture, and troubleshooting
     /// </summary>
-    public class BootloaderDiagnosticsService
+    public class BootloaderDiagnosticsService : IBootloaderDiagnosticsService
     {
         private readonly ProductionLogger _logger = ProductionLogger.Instance;
         private readonly ObservableCollection<BootloaderMessage> _messages = new ObservableCollection<BootloaderMessage>();
@@ -270,6 +271,11 @@ namespace ATS_TwoWheeler_WPF.Services
             _errors.Clear();
         }
 
+        /// <summary>
+        /// Export messages - interface method
+        /// </summary>
+        public string ExportMessages() => ExportMessagesToText();
+        
         /// <summary>
         /// Export messages to text file
         /// </summary>

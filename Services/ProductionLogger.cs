@@ -8,12 +8,14 @@ using System.Threading;
 using System.Windows;
 using ATS_TwoWheeler_WPF.Core;
 
+using ATS_TwoWheeler_WPF.Services.Interfaces;
+
 namespace ATS_TwoWheeler_WPF.Services
 {
     /// <summary>
     /// Production logging system with configurable severity levels and UI visibility control
     /// </summary>
-    public class ProductionLogger : INotifyPropertyChanged
+    public class ProductionLogger : IProductionLoggerService, INotifyPropertyChanged
     {
         public enum LogLevel
         {

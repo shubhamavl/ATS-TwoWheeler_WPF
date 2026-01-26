@@ -28,11 +28,11 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
-                    <TextBlock x:Name="BootloaderStatusText" Text="Bootloader: Unknown" FontWeight="Bold" FontSize="12"/>
+                    <TextBlock x:Name="BootloaderStatusText" Text="{Binding BootloaderStatusText}" FontWeight="Bold" FontSize="12"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="FirmwareVersionText" Text="Firmware: Unknown" FontSize="11"/>
-                    <TextBlock x:Name="LastUpdateText" Text="Last Update: Never" FontSize="11" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="FirmwareVersionText" Text="{Binding FirmwareVersionText}" FontSize="11"/>
+                    <TextBlock x:Name="LastUpdateText" Text="{Binding LastUpdateText}" FontSize="11" Margin="0,4,0,0"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -151,21 +151,21 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Button x:Name="BrowseFirmwareBtn" Content="📂 Browse" Grid.Column="0" 
-                            Click="BrowseFirmwareBtn_Click" Width="100" Margin="0,0,8,0"/>
-                    <TextBlock x:Name="FirmwareFilePathText" Text="No file selected" Grid.Column="1" 
+                            Command="{Binding BrowseCommand}" Width="100" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="FirmwareFilePathText" Text="{Binding FirmwarePath}" Grid.Column="1" 
                                VerticalAlignment="Center" FontSize="11"/>
-                    <TextBlock x:Name="FirmwareFileSizeText" Text="" Grid.Column="2" 
+                    <TextBlock x:Name="FirmwareFileSizeText" Text="{Binding FirmwareSize}" Grid.Column="2" 
                                VerticalAlignment="Center" FontSize="11" Foreground="Gray" Margin="8,0,0,0"/>
                 </Grid>
                 
-                <ProgressBar x:Name="FirmwareProgressBar" Height="20" Minimum="0" Maximum="100" Margin="0,0,0,4"/>
+                <ProgressBar x:Name="FirmwareProgressBar" Height="20" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Margin="0,0,0,4"/>
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="FirmwareProgressLabel" Text="0%" Grid.Column="0" FontSize="11" FontWeight="Bold"/>
-                    <TextBlock x:Name="FirmwareTransferRateText" Text="" Grid.Column="1" FontSize="10" Foreground="Gray"/>
+                    <TextBlock x:Name="FirmwareProgressLabel" Text="{Binding ProgressLabel}" Grid.Column="0" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="FirmwareTransferRateText" Text="{Binding TransferRate}" Grid.Column="1" FontSize="10" Foreground="Gray"/>
                 </Grid>
                 
                 <!-- Detailed Progress Information -->
@@ -183,27 +183,27 @@
                         </Grid.RowDefinitions>
                         
                         <TextBlock Text="Bytes:" Grid.Row="0" Grid.Column="0" FontSize="10" Foreground="Gray"/>
-                        <TextBlock x:Name="BytesTransferredText" Text="0 / 0" Grid.Row="1" Grid.Column="0" FontSize="11" FontWeight="Bold"/>
+                        <TextBlock x:Name="BytesTransferredText" Text="{Binding BytesTransferred}" Grid.Row="1" Grid.Column="0" FontSize="11" FontWeight="Bold"/>
                         
                         <TextBlock Text="Time:" Grid.Row="0" Grid.Column="1" FontSize="10" Foreground="Gray"/>
-                        <TextBlock x:Name="TimeElapsedText" Text="00:00" Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="Bold"/>
+                        <TextBlock x:Name="TimeElapsedText" Text="{Binding TimeElapsed}" Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="Bold"/>
                         
                         <TextBlock Text="Remaining:" Grid.Row="0" Grid.Column="2" FontSize="10" Foreground="Gray"/>
-                        <TextBlock x:Name="TimeRemainingText" Text="--:--" Grid.Row="1" Grid.Column="2" FontSize="11" FontWeight="Bold"/>
+                        <TextBlock x:Name="TimeRemainingText" Text="{Binding TimeRemaining}" Grid.Row="1" Grid.Column="2" FontSize="11" FontWeight="Bold"/>
                     </Grid>
                 </Border>
                 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <TextBlock x:Name="StatusIcon" Text="⏳" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBlock x:Name="FirmwareStatusText" Text="Status: Idle" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="FirmwareStatusText" Text="{Binding StatusText}" FontWeight="Bold" VerticalAlignment="Center"/>
                 </StackPanel>
                 
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="StartFirmwareUpdateBtn" Content="⬆ Start Update" 
-                            Click="StartFirmwareUpdateBtn_Click" Width="120" Margin="0,0,8,0" 
+                            Command="{Binding StartUpdateCommand}" Width="120" Margin="0,0,8,0" 
                             Background="#4CAF50" Foreground="White" Padding="8,4"/>
                     <Button x:Name="CancelFirmwareUpdateBtn" Content="Cancel" 
-                            Click="CancelFirmwareUpdateBtn_Click" Width="100" IsEnabled="False"/>
+                            Command="{Binding CancelUpdateCommand}" Width="100"/>
                 </StackPanel>
             </StackPanel>
         </GroupBox>
@@ -215,14 +215,14 @@
                 <TextBlock Text="Bootloader Control" FontWeight="Bold" FontSize="11" Margin="0,0,0,6" Foreground="#666"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                     <Button x:Name="EnterBootloaderBtn" Content="Enter Bootloader" 
-                            Click="EnterBootloaderBtn_Click" Width="130" Margin="0,0,8,0"
+                            Command="{Binding EnterBootloaderCommand}" Width="130" Margin="0,0,8,0"
                             Background="#2196F3" Foreground="White" Padding="8,4"/>
                     <Button x:Name="TestBootloaderBtn" Content="Test Bootloader" 
-                            Click="TestBootloaderBtn_Click" Width="130" Margin="0,0,8,0"/>
+                            Command="{Binding TestBootloaderCommand}" Width="130" Margin="0,0,8,0"/>
                     <Button x:Name="QueryBootInfoBtn" Content="Query Info" 
-                            Click="QueryBootInfoBtn_Click" Width="120" Margin="0,0,8,0"/>
+                            Command="{Binding QueryInfoCommand}" Width="120" Margin="0,0,8,0"/>
                     <Button x:Name="ResetBtn" Content="Reset STM32" 
-                            Click="ResetBtn_Click" Width="120"/>
+                            Command="{Binding ResetCommand}" Width="120"/>
                 </StackPanel>
             </StackPanel>
         </GroupBox>
@@ -239,8 +239,8 @@
                     </Grid.RowDefinitions>
                     
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
-                        <Button x:Name="ClearMessagesBtn" Content="Clear" Click="ClearMessagesBtn_Click" Width="80" Margin="0,0,8,0"/>
-                        <Button x:Name="ExportMessagesBtn" Content="Export Log" Click="ExportMessagesBtn_Click" Width="100"/>
+                        <Button x:Name="ClearMessagesBtn" Content="Clear" Command="{Binding ClearMessagesCommand}" Width="80" Margin="0,0,8,0"/>
+                        <Button x:Name="ExportMessagesBtn" Content="Export Log" Command="{Binding ExportMessagesCommand}" Width="100"/>
                     </StackPanel>
                     
                     <DataGrid x:Name="MessagesDataGrid" Grid.Row="1" 
@@ -265,7 +265,7 @@
                     </Grid.RowDefinitions>
                     
                     <Button x:Name="ClearErrorsBtn" Content="Clear Errors" 
-                            Click="ClearErrorsBtn_Click" Width="100" 
+                            Command="{Binding ClearErrorsCommand}" Width="100" 
                             HorizontalAlignment="Left" Margin="0,0,0,8" Grid.Row="0"/>
                     
                     <DataGrid x:Name="ErrorsDataGrid" Grid.Row="1" 
@@ -290,9 +290,9 @@
                     
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
                         <Button x:Name="ClearOperationLogBtn" Content="Clear Log" 
-                                Click="ClearOperationLogBtn_Click" Width="100" Margin="0,0,8,0"/>
+                                Command="{Binding ClearOperationLogCommand}" Width="100" Margin="0,0,8,0"/>
                         <Button x:Name="ExportOperationLogBtn" Content="Export Log" 
-                                Click="ExportOperationLogBtn_Click" Width="100"/>
+                                Command="{Binding ExportOperationLogCommand}" Width="100"/>
                     </StackPanel>
                     
                     <DataGrid x:Name="OperationLogDataGrid" Grid.Row="1" 

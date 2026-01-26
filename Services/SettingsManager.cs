@@ -3,13 +3,14 @@ using System.IO;
 using System.Text.Json;
 using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
     /// <summary>
     /// Centralized settings manager with JSON persistence
     /// </summary>
-    public class SettingsManager
+    public class SettingsManager : ISettingsService
     {
         private static SettingsManager? _instance;
         private static readonly object _lock = new object();
@@ -98,6 +99,22 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 ProductionLogger.Instance.LogError($"Failed to set COM port: {ex.Message}", "Settings");
             }
+        }
+
+        public void SetTransmissionRate(string baudRate)
+        {
+            // Map string to byte/index (Quick mapping for refactor compatibility)
+            byte rate = 0x01; // Default 250k
+            int index = 1;
+            
+            switch (baudRate)
+            {
+                case "125 kbps": rate = 0x00; index = 0; break;
+                case "250 kbps": rate = 0x01; index = 1; break;
+                case "500 kbps": rate = 0x02; index = 2; break;
+                case "1 Mbps":   rate = 0x03; index = 3; break;
+            }
+            SetTransmissionRate(rate, index);
         }
 
         public void SetTransmissionRate(byte rate, int index)

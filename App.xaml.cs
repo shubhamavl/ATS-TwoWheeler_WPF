@@ -10,6 +10,9 @@ namespace ATS_TwoWheeler_WPF
         {
             base.OnStartup(e);
 
+            // Initialize dependency registry
+            ATS_TwoWheeler_WPF.Core.ServiceRegistry.InitializeDefaultServices();
+
             // Set up global exception handling
             this.DispatcherUnhandledException += (sender, args) =>
             {

@@ -1,0 +1,65 @@
+<UserControl x:Class="ATS_TwoWheeler_WPF.Views.Controls.DashboardPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ATS_TwoWheeler_WPF.Views.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+    </UserControl.Resources>
+
+    <GroupBox Header="Live Weight Data">
+        <Border Style="{StaticResource DataCard}" 
+                BorderBrush="#FF27AE60" BorderThickness="2" 
+                HorizontalAlignment="Stretch">
+            <StackPanel>
+                <!-- Mode Indicator Header -->
+                <TextBlock Text="{Binding StreamStatusText}" 
+                           FontSize="16" FontWeight="Bold" 
+                           Foreground="{StaticResource PrimaryBlue}" 
+                           HorizontalAlignment="Center" Margin="0,10,0,10"/>
+                
+                <!-- HERO: Display Weight -->
+                <Border Background="#FFF9F9F9" BorderBrush="#FF27AE60" 
+                        BorderThickness="3" CornerRadius="8" 
+                        Padding="25,15" Margin="15,5,15,5">
+                    <TextBlock Text="{Binding WeightText}" 
+                               FontSize="72" FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="{Binding WeightColor}"/>
+                </Border>
+                
+                <!-- Row 1: Status & Info -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" 
+                            Margin="0,5,0,10">
+                    <Ellipse Width="12" Height="12" 
+                             Fill="{Binding StreamIndicatorColor}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StreamStatusText}" 
+                               FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    
+                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
+                    <TextBlock Text="Mode:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SystemModeText}" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="Green" FontWeight="Bold"/>
+
+                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
+                    <TextBlock Text="ADC:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding AdcModeText}" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="#FF2196F3" FontWeight="Bold"/>
+
+                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
+
+                    <TextBlock Text="?" FontSize="13" Foreground="#FF27AE60" Margin="0,0,5,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CalStatusText}" FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Raw:" FontSize="13" Margin="0,0,5,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding RawAdcText}" FontSize="13" Margin="0,0,20,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TareStatusText}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </GroupBox>
+</UserControl>
