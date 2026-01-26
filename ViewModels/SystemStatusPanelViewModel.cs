@@ -163,7 +163,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnShowHistory(object? parameter)
         {
-            _navigationService?.ShowLogs();
+            _navigationService?.ShowLogsWindow();
         }
     }
 }
