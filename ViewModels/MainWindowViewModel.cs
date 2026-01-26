@@ -30,16 +30,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly DispatcherTimer _uiTimer;
 
         // UI State
-        private bool _isSettingsVisible;
-        public bool IsSettingsVisible
-        {
-            get => _isSettingsVisible;
-            set => SetProperty(ref _isSettingsVisible, value);
-        }
+
 
         // Commands
-        public ICommand ToggleSettingsCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
         public ICommand StopAllCommand { get; }
+        
+        // Events
+        public event Action? OpenSettingsRequested;
         
         public MainWindowViewModel()
         {
@@ -62,7 +60,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Settings = new SettingsViewModel(_settings);
             
             // Commands
-            ToggleSettingsCommand = new RelayCommand(_ => IsSettingsVisible = !IsSettingsVisible);
+            OpenSettingsCommand = new RelayCommand(_ => OnOpenSettings());
             StopAllCommand = new RelayCommand(OnStopAll);
 
             // Setup UI Timer
@@ -91,6 +89,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _canService.StopAllStreams();
             _dataLogger.StopLogging();
             Connection.IsStreaming = false;
+        }
+
+        private void OnOpenSettings()
+        {
+            OpenSettingsRequested?.Invoke();
         }
 
         public void Cleanup()

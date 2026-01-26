@@ -19,6 +19,16 @@ namespace ATS_TwoWheeler_WPF.Views
             _viewModel = new MainWindowViewModel();
             this.DataContext = _viewModel;
             
+            _viewModel.OpenSettingsRequested += () => 
+            {
+                var settingsWindow = new SettingsWindow
+                {
+                    DataContext = _viewModel,
+                    Owner = this
+                };
+                settingsWindow.Show(); 
+            };
+
             this.Closing += MainWindow_Closing;
         }
 

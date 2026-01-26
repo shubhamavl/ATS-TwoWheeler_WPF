@@ -1,0 +1,32 @@
+<Window x:Class="ATS_TwoWheeler_WPF.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:ATS_TwoWheeler_WPF.Views.Controls"
+        mc:Ignorable="d"
+        Title="System Configuration" Height="700" Width="1000"
+        WindowStartupLocation="CenterOwner" Background="#F5F5F5">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+        <Grid Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left Column: Connection Settings -->
+            <Border Grid.Column="0" Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,10,0">
+                <StackPanel>
+                    <TextBlock Text="Connection Configuration" FontSize="18" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FF2C3E50"/>
+                    <controls:ConnectionConfigurationPanel DataContext="{Binding Connection}"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Right Column: Application Settings -->
+            <Border Grid.Column="1" Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15" Margin="10,0,0,0">
+                <controls:SettingsPanel DataContext="{Binding Settings}"/>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Window>

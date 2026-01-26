@@ -79,12 +79,12 @@
                             Background="#FFDC3545"
                             Margin="0,0,5,0"/>
                     
-                    <!-- Hide Settings Button -->
-                    <Button Content="👁 Hide" Command="{Binding ToggleSettingsCommand}"
+                    
+                    <!-- Open Settings Button -->
+                    <Button Content="⚙ Config" Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource HeaderButton}"
-                            Background="#FF6C757D"
-                            Margin="0,0,5,0"
-                            Visibility="{Binding IsSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            Background="#FF7F8C8D"
+                            Margin="0,0,5,0"/>
                     
                     <!-- Tools Menu Button -->
                     <Button Content="🔧 Tools"
@@ -100,39 +100,9 @@
                         </Button.ContextMenu>
                     </Button>
                     
-                    <!-- Settings Toggle Button -->
-                    <Button Content="⚙ Settings" Command="{Binding ToggleSettingsCommand}"
-                            Style="{StaticResource HeaderButton}"
-                            Background="#FF7F8C8D"/>
                 </StackPanel>
             </Grid>
         </Border>
-
-        <!-- Settings Panel -->
-        <Border Grid.Row="1" Background="White" BorderBrush="#FFCCCCCC" BorderThickness="0,0,0,1" 
-                Padding="0"
-                Visibility="{Binding IsSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- Left Column: Connection Settings -->
-                <Border Grid.Column="0" BorderBrush="#FFEEEEEE" BorderThickness="0,0,1,0" Padding="20">
-                    <StackPanel>
-                        <TextBlock Text="Connection Configuration" FontSize="16" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FF2C3E50"/>
-                        <controls:ConnectionConfigurationPanel DataContext="{Binding Connection}"/>
-                    </StackPanel>
-                </Border>
-                
-                <!-- Right Column: Application Settings -->
-                <Border Grid.Column="1" Padding="20">
-                    <controls:SettingsPanel DataContext="{Binding Settings}"/>
-                </Border>
-            </Grid>
-        </Border>
-
         <!-- Main Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="20">
