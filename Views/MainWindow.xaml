@@ -11,7 +11,6 @@
         Icon="pack://application:,,,/Assets/AVL_Icon.ico">
     
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         
         <Style TargetType="Button" x:Key="HeaderButton">
             <Setter Property="Padding" Value="15,8"/>

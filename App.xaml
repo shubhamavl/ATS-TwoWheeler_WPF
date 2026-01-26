@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <Application.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
         <!-- Centralized Color Resources -->
         <SolidColorBrush x:Key="PrimaryBlue" Color="#FF1B5E96"/>
         <SolidColorBrush x:Key="PrimaryBlueDark" Color="#FF1A5588"/>
