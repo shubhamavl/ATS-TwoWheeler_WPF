@@ -77,12 +77,7 @@ namespace ATS_TwoWheeler_WPF.Services
             win.Show();
         }
 
-        public void ShowSettingsInfo()
-        {
-            var diag = new SettingsInfoDialog("Settings Information", "System Version: 0.1.0\nBuilt by AVL");
-            diag.Owner = Application.Current.MainWindow;
-            diag.ShowDialog();
-        }
+
 
         public void CloseWindow(object window)
         {

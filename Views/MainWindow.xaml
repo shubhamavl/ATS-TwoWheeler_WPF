@@ -60,13 +60,48 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" DataContext="{Binding Connection}">
-                    <Button Content="{Binding ConnectionButtonText}" Command="{Binding ConnectCommand}" 
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <!-- Connection Button -->
+                    <Button Content="{Binding Connection.ConnectionButtonText}" Command="{Binding Connection.ConnectCommand}" 
                             Style="{StaticResource HeaderButton}"
-                            Background="{Binding ConnectionButtonColor}"
-                            Margin="0,0,10,0"/>
+                            Background="{Binding Connection.ConnectionButtonColor}"
+                            Margin="0,0,5,0"/>
                     
-                    <Button Content="⚙ Settings" Command="{Binding DataContext.ToggleSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    <!-- Start Stream Button -->
+                    <Button Content="▶ Start Stream" Command="{Binding Connection.StartStreamCommand}"
+                            Style="{StaticResource HeaderButton}"
+                            Background="#FF28A745"
+                            Margin="0,0,5,0"/>
+                    
+                    <!-- Stop All Button -->
+                    <Button Content="⏹ Stop All" Command="{Binding Connection.StopStreamCommand}"
+                            Style="{StaticResource HeaderButton}"
+                            Background="#FFDC3545"
+                            Margin="0,0,5,0"/>
+                    
+                    <!-- Hide Settings Button -->
+                    <Button Content="👁 Hide" Command="{Binding ToggleSettingsCommand}"
+                            Style="{StaticResource HeaderButton}"
+                            Background="#FF6C757D"
+                            Margin="0,0,5,0"
+                            Visibility="{Binding IsSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    
+                    <!-- Tools Menu Button -->
+                    <Button Content="🔧 Tools"
+                            Style="{StaticResource HeaderButton}"
+                            Background="#FF17A2B8"
+                            Margin="0,0,5,0">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Bootloader Manager" Command="{Binding Calibration.OpenBootloaderCommand}"/>
+                                <MenuItem Header="Monitor Window" Command="{Binding Calibration.OpenMonitorCommand}"/>
+                                <MenuItem Header="Logs Window" Command="{Binding Calibration.OpenLogsCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    
+                    <!-- Settings Toggle Button -->
+                    <Button Content="⚙ Settings" Command="{Binding ToggleSettingsCommand}"
                             Style="{StaticResource HeaderButton}"
                             Background="#FF7F8C8D"/>
                 </StackPanel>
@@ -75,12 +110,27 @@
 
         <!-- Settings Panel -->
         <Border Grid.Row="1" Background="White" BorderBrush="#FFCCCCCC" BorderThickness="0,0,0,1" 
-                Padding="20"
+                Padding="0"
                 Visibility="{Binding IsSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <StackPanel>
-                <TextBlock Text="System Configuration" FontSize="16" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FF2C3E50"/>
-                <controls:ConnectionConfigurationPanel DataContext="{Binding Connection}"/>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Left Column: Connection Settings -->
+                <Border Grid.Column="0" BorderBrush="#FFEEEEEE" BorderThickness="0,0,1,0" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="Connection Configuration" FontSize="16" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FF2C3E50"/>
+                        <controls:ConnectionConfigurationPanel DataContext="{Binding Connection}"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Right Column: Application Settings -->
+                <Border Grid.Column="1" Padding="20">
+                    <controls:SettingsPanel DataContext="{Binding Settings}"/>
+                </Border>
+            </Grid>
         </Border>
 
         <!-- Main Content -->

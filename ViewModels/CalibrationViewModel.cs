@@ -49,6 +49,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand SwitchSystemModeCommand { get; }
         public ICommand SwitchAdcModeCommand { get; }
         public ICommand OpenTwoWheelerCommand { get; }
+        public ICommand OpenBootloaderCommand { get; }
+        public ICommand OpenMonitorCommand { get; }
+        public ICommand OpenLogsCommand { get; }
 
         public CalibrationViewModel(IWeightProcessorService weightProcessor, ICANService canService, ISettingsService settings, INavigationService navigationService)
         {
@@ -64,6 +67,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             SwitchSystemModeCommand = new RelayCommand(OnSwitchSystemMode);
             SwitchAdcModeCommand = new RelayCommand(OnSwitchAdcMode);
             OpenTwoWheelerCommand = new RelayCommand(OnOpenTwoWheeler);
+            OpenBootloaderCommand = new RelayCommand(OnOpenBootloader);
+            OpenMonitorCommand = new RelayCommand(OnOpenMonitor);
+            OpenLogsCommand = new RelayCommand(OnOpenLogs);
         }
 
         private void OnTare(object? parameter)
@@ -99,6 +105,21 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnOpenTwoWheeler(object? parameter)
         {
             _navigationService.ShowTwoWheelerWindow();
+        }
+
+        private void OnOpenBootloader(object? parameter)
+        {
+            _navigationService.ShowBootloaderManager();
+        }
+
+        private void OnOpenMonitor(object? parameter)
+        {
+            _navigationService.ShowMonitorWindow();
+        }
+
+        private void OnOpenLogs(object? parameter)
+        {
+            _navigationService.ShowLogsWindow();
         }
     }
 }

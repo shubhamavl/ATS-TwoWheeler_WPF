@@ -1,0 +1,181 @@
+<UserControl x:Class="ATS_TwoWheeler_WPF.Views.Controls.SettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ATS_TwoWheeler_WPF.Views.Controls"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="400" Background="White">
+    <UserControl.Resources>
+        <!-- Style resources -->
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderBrush" Value="#FFDDDDDD"/>
+        </Style>
+        
+        <Style TargetType="TextBlock" x:Key="LabelStyle">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="140"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FF2C3E50"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="10">
+            
+            <TextBlock Text="Application Settings" FontSize="16" FontWeight="Bold" Margin="0,10,0,15" Foreground="#FF2980B9"/>
+            
+            <!-- Weight Filtering -->
+            <GroupBox Header="Signal Processing (Weight Filtering)">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Filter Type:" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox ItemsSource="{Binding FilterTypes}" 
+                                  SelectedItem="{Binding FilterType}"
+                                  Width="120"/>
+                    </StackPanel>
+
+                    <!-- EMA Settings - Using DataTrigger for visibility since custom converter doesn't exist -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding FilterType}" Value="EMA">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Alpha (Smoothing):" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding FilterAlpha}" Width="60" Margin="0,0,5,0"/>
+                        <TextBlock Text="(0.0 - 1.0)" VerticalAlignment="Center" Foreground="Gray" FontSize="10"/>
+                    </StackPanel>
+
+                    <!-- SMA Settings -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                         <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding FilterType}" Value="SMA">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Window Size:" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding FilterWindowSize}" Width="60"/>
+                    </StackPanel>
+                    
+                    <CheckBox Content="Enable Filtering" IsChecked="{Binding FilterEnabled}" Margin="140,5,0,0"/>
+                </StackPanel>
+            </GroupBox>
+            
+            <!-- Display Settings -->
+            <GroupBox Header="Display &amp; Performance">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Decimal Places:" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox SelectedItem="{Binding WeightDisplayDecimals}" Width="60">
+                            <sys:Int32>0</sys:Int32>
+                            <sys:Int32>1</sys:Int32>
+                            <sys:Int32>2</sys:Int32>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="UI Update Rate (ms):" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding UIUpdateRateMs}" Width="60"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Data Timeout (s):" Style="{StaticResource LabelStyle}"/>
+                        <TextBox Text="{Binding DataTimeoutSeconds}" Width="60"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            
+            <!-- UI Visibility -->
+            <GroupBox Header="UI Elements Visibility">
+                <StackPanel>
+                    <CheckBox Content="Show Raw ADC Values" IsChecked="{Binding ShowRawADC}" Margin="0,0,0,5"/>
+                    <CheckBox Content="Show Streaming Indicators" IsChecked="{Binding ShowStreamingIndicators}" Margin="0,0,0,5"/>
+                    <CheckBox Content="Show Calibration Icons" IsChecked="{Binding ShowCalibrationIcons}" Margin="0,0,0,5"/>
+                    <CheckBox Content="Show Quality Metrics (R²)" IsChecked="{Binding ShowCalibrationQualityMetrics}"/>
+                </StackPanel>
+            </GroupBox>
+            
+            <!-- Calibration Mode -->
+            <GroupBox Header="Calibration Strategy &amp; Status">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                        <TextBlock Text="Mode:" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox ItemsSource="{Binding CalibrationModes}" 
+                                  SelectedItem="{Binding CalibrationMode}"
+                                  Width="120"/>
+                    </StackPanel>
+                    
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Internal ADC Status -->
+                        <Border Grid.Column="0" BorderBrush="#FFCCCCCC" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,5,0">
+                            <StackPanel>
+                                <TextBlock Text="Internal ADC (12-bit)" FontWeight="Bold" Margin="0,0,0,5" Foreground="#FF2980B9"/>
+                                <TextBlock Text="{Binding InternalCalStatus, StringFormat='Status: {0}'}" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding InternalCalSlope, StringFormat='Slope: {0}'}" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding InternalCalIntercept, StringFormat='Offset: {0}'}" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding InternalCalDate, StringFormat='Date: {0}'}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
+                                <Button Content="Reset Internal" Command="{Binding ResetCalibrationInternalCommand}" 
+                                        Background="#FFE74C3C" Foreground="White" Padding="5,2" Style="{x:Null}"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- ADS1115 Status -->
+                        <Border Grid.Column="1" BorderBrush="#FFCCCCCC" BorderThickness="1" CornerRadius="4" Padding="10" Margin="5,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="ADS1115 (16-bit)" FontWeight="Bold" Margin="0,0,0,5" Foreground="#FF2980B9"/>
+                                <TextBlock Text="{Binding AdsCalStatus, StringFormat='Status: {0}'}" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding AdsCalSlope, StringFormat='Slope: {0}'}" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding AdsCalIntercept, StringFormat='Offset: {0}'}" FontSize="11" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding AdsCalDate, StringFormat='Date: {0}'}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
+                                <Button Content="Reset ADS1115" Command="{Binding ResetCalibrationADS1115Command}" 
+                                        Background="#FFE74C3C" Foreground="White" Padding="5,2" Style="{x:Null}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Text="Note: Resets are required when changing strategy." FontSize="10" Foreground="Gray"/>
+                </StackPanel>
+            </GroupBox>
+            
+            <!-- Advanced -->
+            <GroupBox Header="Advanced System">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Log Format:" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox ItemsSource="{Binding LogFormats}" 
+                                  SelectedItem="{Binding LogFileFormat}"
+                                  Width="80"/>
+                    </StackPanel>
+                     <StackPanel Orientation="Horizontal">
+                        <Button Content="Open Data Directory" Command="{Binding OpenDataDirectoryCommand}" Margin="0,0,10,0" Padding="5"/>
+                        <Button Content="Edit Settings File Manually" Command="{Binding OpenSettingsFileCommand}" Padding="5"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+             <!-- Manual Save -->
+            <Button Content="💾 Save All Settings" Command="{Binding SaveSettingsCommand}" 
+                    Height="35" Background="#FF2ecc71" Foreground="White" FontWeight="Bold" Margin="0,10,0,0"/>
+            
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

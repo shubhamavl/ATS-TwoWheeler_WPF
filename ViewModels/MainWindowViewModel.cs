@@ -24,6 +24,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public SystemStatusPanelViewModel SystemStatus { get; }
         public LoggingPanelViewModel Logging { get; }
         public AppStatusBarViewModel StatusBar { get; }
+        public SettingsViewModel Settings { get; }
         
         // Timer for UI updates (polling high-frequency data)
         private readonly DispatcherTimer _uiTimer;
@@ -58,6 +59,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             SystemStatus = new SystemStatusPanelViewModel(_canService);
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
             StatusBar = new AppStatusBarViewModel(_canService);
+            Settings = new SettingsViewModel(_settings);
             
             // Commands
             ToggleSettingsCommand = new RelayCommand(_ => IsSettingsVisible = !IsSettingsVisible);
