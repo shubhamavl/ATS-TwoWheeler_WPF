@@ -265,7 +265,7 @@
                     <Button x:Name="AddPointBtn" Content="➕ Add Point" 
                             Background="#FF28A745" Foreground="White" 
                             BorderThickness="0" Padding="12,6" FontSize="11" FontWeight="SemiBold"
-                            Click="AddPoint_Click" Cursor="Hand" VerticalAlignment="Center">
+                            Command="{Binding AddPointCommand}" Cursor="Hand" VerticalAlignment="Center">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border Background="{TemplateBinding Background}" 
@@ -373,7 +373,7 @@
                                                 <Button Content="✏️ Edit" 
                                                         Background="#FF17A2B8" Foreground="White" 
                                                         BorderThickness="0" Padding="8,6" FontSize="10" FontWeight="SemiBold"
-                                                        Click="EditPoint_Click" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.EditPointCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                                         VerticalAlignment="Bottom" Height="28" Margin="0,0,5,0"
                                                         Visibility="{Binding IsNotEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Button.Template>
@@ -397,7 +397,7 @@
                                                 <Button Content="📸 Capture" 
                                                         Background="#FF28A745" Foreground="White" 
                                                         BorderThickness="0" Padding="10,6" FontSize="10" FontWeight="SemiBold"
-                                                        Click="CapturePoint_Click" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.CapturePointCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                                         VerticalAlignment="Bottom" Height="28" Margin="0,0,5,0"
                                                         Visibility="{Binding IsNotEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Button.Style>
@@ -435,7 +435,7 @@
                                                 <Button Content="💾 Save" 
                                                         Background="#FF28A745" Foreground="White" 
                                                         BorderThickness="0" Padding="10,6" FontSize="10" FontWeight="SemiBold"
-                                                        Click="SavePoint_Click" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.SavePointCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                                         VerticalAlignment="Bottom" Height="28" Margin="0,0,5,0"
                                                         Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Button.Template>
@@ -459,7 +459,7 @@
                                                 <Button Content="❌ Cancel" 
                                                         Background="#FFDC3545" Foreground="White" 
                                                         BorderThickness="0" Padding="8,6" FontSize="10" FontWeight="SemiBold"
-                                                        Click="CancelEdit_Click" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.CancelPointCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                                         VerticalAlignment="Bottom" Height="28"
                                                         Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <Button.Template>
@@ -528,7 +528,7 @@
                                     <Button Grid.Column="2" Content="✕" FontSize="12" FontWeight="Bold"
                                             Background="#FFDC3545" Foreground="White" 
                                             BorderThickness="0" Width="25" Height="25" 
-                                            Click="RemovePoint_Click" DataContext="{Binding}"
+                                            Command="{Binding DataContext.RemovePointCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                             ToolTip="Remove this point" Margin="5,0,0,0"
                                             VerticalAlignment="Top">
                                         <Button.Template>
@@ -600,15 +600,15 @@
                 <!-- Calculate Button (Centered) -->
                 <Button Grid.Column="2" x:Name="CalculateBtn" Content="🧮 Calculate" 
                         Style="{StaticResource SuccessButton}" 
-                        Click="CalculateCalibration_Click" FontSize="12" 
-                        Height="32" Width="150" HorizontalAlignment="Center" IsEnabled="False"/>
+                        Command="{Binding CalculateCommand}" FontSize="12" 
+                        Height="32" Width="150" HorizontalAlignment="Center" />
                 
                 <!-- Save and Cancel Buttons -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="💾 Save" 
                             Style="{StaticResource SuccessButton}" 
-                            Click="SaveCalibration_Click" FontSize="11" 
-                            Height="28" Width="100" IsEnabled="False" x:Name="SaveBtn" Margin="0,0,10,0"/>
+                            Command="{Binding SaveCommand}" FontSize="11" 
+                            Height="28" Width="100" x:Name="SaveBtn" Margin="0,0,10,0"/>
                     <Button Content="❌ Cancel" Style="{StaticResource WarningButton}" 
                             Click="Cancel_Click" FontSize="11" 
                             Height="28" Width="100"/>

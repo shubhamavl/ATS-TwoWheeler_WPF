@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.IO.Ports;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,42 +9,49 @@ using System.Collections.Concurrent;
 using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Adapters;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Services.CAN;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
+using ATS_TwoWheeler_WPF.Core.Exceptions;
+
+using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("ATS_TwoWheeler_WPF.Tests")]
 
 namespace ATS_TwoWheeler_WPF.Services
 {
+
     // USB-CAN-A Binary Protocol Implementation for ATS Two-Wheeler System
-    public class CANService
+    public class CANService : ICANService
     {
         private const uint MAX_CAN_ID = 0x7FF; // 11-bit standard CAN ID maximum
         
         private SerialPort? _serialPort;
-        public static CANService? _instance;
         private readonly ConcurrentQueue<byte> _frameBuffer = new();
-        public volatile bool _connected;
+        private volatile bool _connected;
+        public long TxMessageCount { get; private set; }
+        public long RxMessageCount { get; private set; }
         private CancellationTokenSource? _cancellationTokenSource;
         private readonly object _sendLock = new object();
         private DateTime _lastMessageTime = DateTime.MinValue;
         private TimeSpan _timeout = TimeSpan.FromSeconds(5); // Configurable timeout
         private bool _timeoutNotified = false;
-        private byte _currentADCMode = 0; // Track current ADC mode (0=Internal, 1=ADS1115)
 
         // v0.1 Ultra-Minimal CAN Protocol - Semantic IDs & Maximum Efficiency
         // Raw Data: 2 bytes only (75% reduction from 8 bytes)
         // Stream Control: 1 byte only (87.5% reduction from 8 bytes)
         // System Status: 3 bytes only (62.5% reduction from 8 bytes)
 
-        // CAN Message IDs - Semantic IDs (message type encoded in ID)
-        private const uint CAN_MSG_ID_TOTAL_RAW_DATA = 0x200;      // Total raw ADC data (Ch0+Ch1+Ch2+Ch3)
-        private const uint CAN_MSG_ID_START_STREAM = 0x040;        // Start streaming (1 byte: rate)
-        private const uint CAN_MSG_ID_STOP_ALL_STREAMS = 0x044;   // Stop all streaming (empty message)
-        private const uint CAN_MSG_ID_SYSTEM_STATUS = 0x300;      // System status (on-demand only)
-        private const uint CAN_MSG_ID_SYS_PERF = 0x302;           // System performance (Raw Hz)
-        private const uint CAN_MSG_ID_STATUS_REQUEST = 0x032;     // Request system status (empty message)
-        private const uint CAN_MSG_ID_MODE_INTERNAL = 0x030;      // Switch to Internal ADC mode (empty message)
-        private const uint CAN_MSG_ID_MODE_ADS1115 = 0x031;       // Switch to ADS1115 mode (empty message)
-        private const uint CAN_MSG_ID_VERSION_REQUEST = 0x033;    // Request firmware version (empty message)
-        private const uint CAN_MSG_ID_SET_SYSTEM_MODE = 0x050;    // Set system mode (1 byte: 0=Weight, 1=Brake)
-        private const uint CAN_MSG_ID_VERSION_RESPONSE = 0x301;   // Firmware version response (4 bytes: major, minor, patch, build)
+        // CAN Message IDs - Refactored to CANMessageProcessor
+        private const uint CAN_MSG_ID_TOTAL_RAW_DATA = CANMessageProcessor.CAN_MSG_ID_TOTAL_RAW_DATA;
+        private const uint CAN_MSG_ID_START_STREAM = CANMessageProcessor.CAN_MSG_ID_START_STREAM;
+        private const uint CAN_MSG_ID_STOP_ALL_STREAMS = CANMessageProcessor.CAN_MSG_ID_STOP_ALL_STREAMS;
+        private const uint CAN_MSG_ID_SYSTEM_STATUS = CANMessageProcessor.CAN_MSG_ID_SYSTEM_STATUS;
+        private const uint CAN_MSG_ID_SYS_PERF = CANMessageProcessor.CAN_MSG_ID_SYS_PERF;
+        private const uint CAN_MSG_ID_STATUS_REQUEST = CANMessageProcessor.CAN_MSG_ID_STATUS_REQUEST;
+        private const uint CAN_MSG_ID_MODE_INTERNAL = CANMessageProcessor.CAN_MSG_ID_MODE_INTERNAL;
+        private const uint CAN_MSG_ID_MODE_ADS1115 = CANMessageProcessor.CAN_MSG_ID_MODE_ADS1115;
+        private const uint CAN_MSG_ID_VERSION_REQUEST = CANMessageProcessor.CAN_MSG_ID_VERSION_REQUEST;
+        private const uint CAN_MSG_ID_SET_SYSTEM_MODE = CANMessageProcessor.CAN_MSG_ID_SET_SYSTEM_MODE;
+        private const uint CAN_MSG_ID_VERSION_RESPONSE = CANMessageProcessor.CAN_MSG_ID_VERSION_RESPONSE;
 
         // Bootloader protocol IDs (matching STM32 implementation)
         private const uint CAN_MSG_ID_BOOT_ENTER = BootloaderProtocol.CanIdBootEnter;
@@ -75,23 +83,30 @@ namespace ATS_TwoWheeler_WPF.Services
         public event EventHandler<FirmwareVersionEventArgs>? FirmwareVersionReceived;
         public event EventHandler<PerformanceMetricsEventArgs>? PerformanceMetricsReceived;
         
-        // Bootloader response events (fixed CAN IDs)
-        public event EventHandler<BootPingResponseEventArgs>? BootPingResponseReceived;
-        public event EventHandler<BootBeginResponseEventArgs>? BootBeginResponseReceived;
-        public event EventHandler<BootProgressEventArgs>? BootProgressReceived;
-        public event EventHandler<BootEndResponseEventArgs>? BootEndResponseReceived;
-        public event EventHandler<BootErrorEventArgs>? BootErrorReceived;
-        public event EventHandler<BootQueryResponseEventArgs>? BootQueryResponseReceived;
+
 
         public bool IsConnected => _connected;
-        public byte CurrentADCMode => _currentADCMode;
+        public byte CurrentADCMode => _eventDispatcher.CurrentADCMode;
+        
+        public void SetADCMode(byte mode)
+        {
+            _eventDispatcher.CurrentADCMode = mode;
+        }
         
         private ICanAdapter? _adapter;
+        private readonly CANEventDispatcher _eventDispatcher;
 
         public CANService()
         {
             _connected = false;
-            _instance = this;
+            _eventDispatcher = new CANEventDispatcher();
+            
+            // Wire up event dispatcher to service events
+            _eventDispatcher.RawDataReceived += (s, e) => RawDataReceived?.Invoke(this, e);
+            _eventDispatcher.SystemStatusReceived += (s, e) => SystemStatusReceived?.Invoke(this, e);
+            _eventDispatcher.FirmwareVersionReceived += (s, e) => FirmwareVersionReceived?.Invoke(this, e);
+            _eventDispatcher.PerformanceMetricsReceived += (s, e) => PerformanceMetricsReceived?.Invoke(this, e);
+            _eventDispatcher.DataTimeout += (s, e) => DataTimeout?.Invoke(this, e);
         }
 
         /// <summary>
@@ -143,12 +158,15 @@ namespace ATS_TwoWheeler_WPF.Services
         #region Adapter Event Handlers
         private void OnAdapterMessageReceived(CANMessage message)
         {
+            if (message.Direction == "TX") TxMessageCount++;
+            else RxMessageCount++;
+            
             MessageReceived?.Invoke(message);
             // Fire specific events for protocol messages
             // Note: Some messages (like status/version requests) may have empty data, but responses should have data
             if (message.Data != null)
             {
-                FireSpecificEvents(message.ID, message.Data);
+                _eventDispatcher.FireSpecificEvents(message.ID, message.Data);
             }
         }
 
@@ -178,11 +196,23 @@ namespace ATS_TwoWheeler_WPF.Services
                 ProductionLogger.Instance.LogInfo($"USB-CAN-A Connected on {portName}", "CANService");
                 return true;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                message = "Access denied to COM port. It may be in use by another application.";
+                ProductionLogger.Instance.LogError($"CAN connection error: {message} - {ex.Message}", "CANService");
+                return false;
+            }
+            catch (IOException ex)
+            {
+                message = "IO error while opening COM port.";
+                ProductionLogger.Instance.LogError($"CAN connection error: {message} - {ex.Message}", "CANService");
+                return false;
+            }
             catch (Exception ex)
             {
-                message = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                ProductionLogger.Instance.LogError($"USB-CAN-A connection error: {ex.Message}", "CANService");
-                return false;
+                message = ex.Message;
+                ProductionLogger.Instance.LogError($"CAN connection error: {ex.Message}", "CANService");
+                throw new CANConnectionException(portName, ex.Message, ex);
             }
         }
 
@@ -197,9 +227,9 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     System.Windows.MessageBox.Show("No COM ports found!\n\n" +
                                                   "Please check:\n" +
-                                                  "� USB-CAN-A is connected\n" +
-                                                  "� CH341 driver is installed\n" +
-                                                  "� Device appears in Device Manager",
+                                                  " USB-CAN-A is connected\n" +
+                                                  " CH341 driver is installed\n" +
+                                                  " Device appears in Device Manager",
                                                   "COM Port Not Found");
                     return false;
                 }
@@ -212,7 +242,7 @@ namespace ATS_TwoWheeler_WPF.Services
             catch (Exception ex)
             {
                 ProductionLogger.Instance.LogError($"USB-CAN-A connection error: {ex.Message}", "CANService");
-                return false;
+                throw new CANConnectionException("Auto", ex.Message, ex);
             }
         }
 
@@ -261,7 +291,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 if (!_timeoutNotified && DateTime.UtcNow - _lastMessageTime > _timeout)
                 {
                     _timeoutNotified = true;
-                    DataTimeout?.Invoke(this, "Timeout");
+                    _eventDispatcher.FireTimeout("Timeout");
                 }
 
                 await Task.Delay(5, token);
@@ -296,75 +326,28 @@ namespace ATS_TwoWheeler_WPF.Services
 
             try
             {
-                // Extract real CAN ID (bytes 5 + 6) - EXACTLY like working steering code
-                uint canId = (uint)(frame[5] | (frame[6] << 8));
+                var (canId, canData) = CANMessageProcessor.DecodeFrame(frame);
 
-                // Extract CAN data (bytes 10..17 ? exactly 8 bytes) - EXACTLY like working steering code
-                byte[] canData = new byte[8];
-                Array.Copy(frame, 10, canData, 0, 8);
-
-                // Description for debugging
-                string description = $"CAN ID: 0x{canId:X3}, Data: {BitConverter.ToString(canData)}";
-
-                // Process two-wheeler system messages (expanded from steering code logic)
-                if (IsTwoWheelerMessage(canId))
+                // Process two-wheeler system messages
+                if (CANMessageProcessor.IsTwoWheelerMessage(canId))
                 {
                     var canMessage = new CANMessage(canId, canData);
                     MessageReceived?.Invoke(canMessage);
-
-                    // Fire specific events for WeightCalibrationPoint
-                    FireSpecificEvents(canId, canData);
-
-                    // Removed verbose logging for 1kHz performance - too slow!
-                    // ProductionLogger.Instance.LogInfo($"Processed: ID=0x{canId:X3}, Data={BitConverter.ToString(canData)}", "CANService");
+                    _eventDispatcher.FireSpecificEvents(canId, canData);
                 }
+            }
+            catch (ArgumentException ex)
+            {
+                ProductionLogger.Instance.LogError($"Frame data error: {ex.Message}", "CANService");
             }
             catch (Exception ex)
             {
                 ProductionLogger.Instance.LogError($"Decode error: {ex.Message}", "CANService");
+                throw new CANException($"Failed to decode CAN frame: {ex.Message}", ex);
             }
         }
 
-        // Check if message ID belongs to ATS two-wheeler system protocol (v0.9 - Semantic IDs)
-        private bool IsTwoWheelerMessage(uint canId)
-        {
-            switch (canId)
-            {
-                // v0.1 Ultra-Minimal Protocol - Semantic IDs
-                case CAN_MSG_ID_TOTAL_RAW_DATA:      // 0x200 - Total raw ADC data (all 4 channels)
-                case CAN_MSG_ID_START_STREAM:        // 0x040 - Start streaming
-                case CAN_MSG_ID_STOP_ALL_STREAMS:   // 0x044 - Stop all streaming
-                case CAN_MSG_ID_SYSTEM_STATUS:      // 0x300 - System status
-                case CAN_MSG_ID_SYS_PERF:           // 0x302 - Performance raw Hz
-                case CAN_MSG_ID_STATUS_REQUEST:     // 0x032 - Request system status
-                case CAN_MSG_ID_MODE_INTERNAL:      // 0x030 - Switch to Internal ADC mode
-                case CAN_MSG_ID_MODE_ADS1115:       // 0x031 - Switch to ADS1115 mode
-                case CAN_MSG_ID_VERSION_REQUEST:    // 0x033 - Request firmware version
-                case CAN_MSG_ID_SET_SYSTEM_MODE:    // 0x050 - Set system mode (0=Weight, 1=Brake)
-                case CAN_MSG_ID_VERSION_RESPONSE:   // 0x301 - Firmware version response
-                case CAN_MSG_ID_BOOT_ENTER:          // 0x510 - Enter Bootloader
-                case CAN_MSG_ID_BOOT_QUERY_INFO:     // 0x511 - Query Boot Info
-                case CAN_MSG_ID_BOOT_PING:           // 0x512 - Ping
-                case CAN_MSG_ID_BOOT_BEGIN:          // 0x513 - Begin Update
-                case CAN_MSG_ID_BOOT_END:            // 0x514 - End Update
-                case CAN_MSG_ID_BOOT_RESET:          // 0x515 - Reset
-                case BootloaderProtocol.CanIdErrBuffer:     // 0x516 - Buffer Overflow Error
-                case CAN_MSG_ID_BOOT_PING_RESPONSE:  // 0x517 - Ping Response
-                case CAN_MSG_ID_BOOT_BEGIN_RESPONSE: // 0x518 - Begin Response
-                case CAN_MSG_ID_BOOT_PROGRESS:       // 0x519 - Progress Update
-                case CAN_MSG_ID_BOOT_END_RESPONSE:   // 0x51A - End Response
-                case CAN_MSG_ID_BOOT_ERROR:          // 0x51B - Sequence Mismatch
-                case CAN_MSG_ID_BOOT_QUERY_RESPONSE: // 0x51C - Query Response
-                case BootloaderProtocol.CanIdErrSize:       // 0x51D - Size Mismatch Error
-                case BootloaderProtocol.CanIdErrWrite:      // 0x51E - Write Error
-                case BootloaderProtocol.CanIdErrValidation: // 0x51F - Validation Error
-                case CAN_MSG_ID_BOOT_DATA:           // 0x520 - Boot Data Frames
-                    return true;
 
-                default:
-                    return false;
-            }
-        }
 
         public bool SendMessage(uint id, byte[] data)
         {
@@ -394,9 +377,9 @@ namespace ATS_TwoWheeler_WPF.Services
 
                 bool result = _adapter.SendMessage(id, data);
                 
-                // Note: The adapter (UsbSerialCanAdapter) already fires the MessageReceived event for TX messages.
-                // Firing it again here causes duplicate entries in the UI monitors.
-                // var txMessage = new CANMessage(id, data, "TX");
+                // Fire event for TX messages - REMOVED to avoid duplication as adapter fires it
+                // var txMessage = new CANMessage(id, data ?? new byte[0], DateTime.Now, "TX");
+                // TxMessageCount++; 
                 // MessageReceived?.Invoke(txMessage);
 
                 ProductionLogger.Instance.LogInfo($"CAN: Sent CAN frame ID=0x{id:X3}, Data={BitConverter.ToString(data ?? new byte[0])}", "CANService");
@@ -405,7 +388,7 @@ namespace ATS_TwoWheeler_WPF.Services
             catch (Exception ex)
             {
                 ProductionLogger.Instance.LogError($"Send message error: {ex.Message}", "CANService");
-                return false;
+                throw new CANSendException(id, ex.Message);
             }
         }
 
@@ -449,7 +432,7 @@ namespace ATS_TwoWheeler_WPF.Services
             bool success = SendMessage(CAN_MSG_ID_MODE_INTERNAL, new byte[0]);
             if (success)
             {
-                _currentADCMode = 0; // Update mode immediately for correct parsing
+                _eventDispatcher.CurrentADCMode = 0; // Update mode immediately for correct parsing
             }
             return success;
         }
@@ -460,7 +443,7 @@ namespace ATS_TwoWheeler_WPF.Services
             bool success = SendMessage(CAN_MSG_ID_MODE_ADS1115, new byte[0]);
             if (success)
             {
-                _currentADCMode = 1; // Update mode immediately for correct parsing
+                _eventDispatcher.CurrentADCMode = 1; // Update mode immediately for correct parsing
             }
             return success;
         }
@@ -494,237 +477,6 @@ namespace ATS_TwoWheeler_WPF.Services
             return SendMessage(CAN_MSG_ID_VERSION_REQUEST, new byte[0]);
         }
 
-        // Static methods for easy access from all windows
-        public static bool SendStaticMessage(uint canId, byte[] data)
-        {
-            try
-            {
-                ProductionLogger.Instance.LogInfo($"CAN TX: ID=0x{canId:X3}, Data=[{string.Join(",", Array.ConvertAll(data, b => $"0x{b:X2}"))}]", "CANService");
-
-                if (_instance != null)
-                {
-                    if (_instance._connected)
-                    {
-                        bool success = _instance.SendMessage(canId, data);
-                        return success;
-                    }
-                    else
-                    {
-                        ProductionLogger.Instance.LogWarning("CAN Send Error: Not connected to hardware", "CANService");
-                        return false;
-                    }
-                }
-                else
-                {
-                    ProductionLogger.Instance.LogWarning("CAN Send Error: CANService instance not available", "CANService");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"CAN Send Error: {ex.Message}", "CANService");
-                return false;
-            }
-        }
-
-        public bool RequestBootloaderInfo()
-        {
-            // Query Boot Info: no data bytes needed
-            return SendMessage(CAN_MSG_ID_BOOT_QUERY_INFO, Array.Empty<byte>());
-        }
-
-        public bool RequestEnterBootloader()
-        {
-            // Enter Bootloader: no data bytes needed
-            return SendMessage(CAN_MSG_ID_BOOT_ENTER, Array.Empty<byte>());
-        }
-
-        public bool RequestReset()
-        {
-            // Reset command: no data bytes needed
-            return SendMessage(CAN_MSG_ID_BOOT_RESET, Array.Empty<byte>());
-        }
-
-        #region Event Firing Logic for v0.1 Protocol - Semantic IDs
-        private void FireSpecificEvents(uint canId, byte[] canData)
-        {
-            switch (canId)
-            {
-                case CAN_MSG_ID_TOTAL_RAW_DATA: // 0x200 - Total raw ADC data (all 4 channels)
-                    // Mode-dependent parsing: 2 bytes (Internal) or 4 bytes (ADS1115)
-                    if (_currentADCMode == 0) // Internal ADC
-                    {
-                        if (canData.Length >= 2)
-                        {
-                            // Internal ADC: 2 bytes unsigned (0-16380 for 4�4095)
-                            ushort rawADC = (ushort)(canData[0] | (canData[1] << 8));
-                            // Store as int (0-16380 fits in int, treated as unsigned)
-                            RawDataReceived?.Invoke(this, new RawDataEventArgs
-                            {
-                                RawADCSum = rawADC,  // Unsigned value 0-16380 stored in int
-                                TimestampFull = DateTime.Now
-                            });
-                        }
-                    }
-                    else // ADS1115
-                    {
-                        if (canData.Length >= 4)
-                        {
-                            // ADS1115: 4 bytes signed int32 (-131072 to +131068 for 4 channels)
-                            int rawADC = BitConverter.ToInt32(canData, 0);
-                            RawDataReceived?.Invoke(this, new RawDataEventArgs
-                            {
-                                RawADCSum = rawADC,  // Signed value -131072 to +131068
-                                TimestampFull = DateTime.Now
-                            });
-                        }
-                    }
-                    break;
-
-                case CAN_MSG_ID_SYSTEM_STATUS: // 0x300 - System status (v1.1 packed)
-                    if (canData != null && canData.Length >= 6)
-                    {
-                        // Byte 0: Packed Bits
-                        byte packed = canData[0];
-                        byte systemStatus = (byte)(packed & 0x03);
-                        byte adcMode = (byte)((packed >> 2) & 0x01);
-                        byte relayState = (byte)((packed >> 3) & 0x01);
-                        
-                        // Byte 1: Error Flags
-                        byte errorFlags = canData[1];
-                        
-                        // Byte 2-5: Uptime seconds
-                        uint uptime = BitConverter.ToUInt32(canData, 2);
-                        
-                        // Update current ADC mode for mode-dependent parsing
-                        _currentADCMode = adcMode;
-                        
-                        SystemStatusReceived?.Invoke(this, new SystemStatusEventArgs
-                        {
-                            SystemStatus = systemStatus,
-                            ErrorFlags = errorFlags,
-                            ADCMode = adcMode,
-                            RelayState = relayState,
-                            UptimeSeconds = uptime,
-                            Timestamp = DateTime.Now
-                        });
-                        ProductionLogger.Instance.LogInfo($"SystemStatus event fired: Status={systemStatus}, ADC={adcMode}, Relay={relayState}, Uptime={uptime}", "CANService");
-                    }
-                    else
-                    {
-                        ProductionLogger.Instance.LogWarning($"SystemStatus message invalid: Data length={canData?.Length ?? 0}", "CANService");
-                    }
-                    break;
-                case CAN_MSG_ID_SYS_PERF: // 0x302 - Performance metrics
-                    if (canData != null && canData.Length >= 4)
-                    {
-                        ushort canHz = BitConverter.ToUInt16(canData, 0);
-                        ushort adcHz = BitConverter.ToUInt16(canData, 2);
-                        
-                        PerformanceMetricsReceived?.Invoke(this, new PerformanceMetricsEventArgs
-                        {
-                            CanTxHz = canHz,
-                            AdcSampleHz = adcHz,
-                            Timestamp = DateTime.Now
-                        });
-                        ProductionLogger.Instance.LogInfo($"PerformanceMetrics event fired: CAN={canHz}Hz, ADC={adcHz}Hz", "CANService");
-                    }
-                    break;
-
-                case CAN_MSG_ID_VERSION_RESPONSE: // 0x301 - Firmware version response
-                    if (canData != null && canData.Length >= 4)
-                    {
-                        FirmwareVersionReceived?.Invoke(this, new FirmwareVersionEventArgs
-                        {
-                            Major = canData[0],
-                            Minor = canData[1],
-                            Patch = canData[2],
-                            Build = canData[3],
-                            Timestamp = DateTime.Now
-                        });
-                        ProductionLogger.Instance.LogInfo($"FirmwareVersion event fired: {canData[0]}.{canData[1]}.{canData[2]}.{canData[3]}", "CANService");
-                    }
-                    else
-                    {
-                        ProductionLogger.Instance.LogWarning($"FirmwareVersion message invalid: Data length={canData?.Length ?? 0}", "CANService");
-                    }
-                    break;
-                case CAN_MSG_ID_BOOT_PING_RESPONSE:
-                    BootPingResponseReceived?.Invoke(this, new BootPingResponseEventArgs { Timestamp = DateTime.Now });
-                    break;
-                case CAN_MSG_ID_BOOT_BEGIN_RESPONSE:
-                    if (canData != null && canData.Length >= 1)
-                        BootBeginResponseReceived?.Invoke(this, new BootBeginResponseEventArgs 
-                        { 
-                            Status = (BootloaderStatus)canData[0],
-                            Timestamp = DateTime.Now 
-                        });
-                    break;
-                case CAN_MSG_ID_BOOT_PROGRESS:
-                    if (canData != null && canData.Length >= 5)
-                        BootProgressReceived?.Invoke(this, new BootProgressEventArgs
-                        {
-                            Percent = canData[0],
-                            BytesReceived = BitConverter.ToUInt32(canData, 1),
-                            Timestamp = DateTime.Now
-                        });
-                    break;
-                case CAN_MSG_ID_BOOT_END_RESPONSE:
-                    if (canData != null && canData.Length >= 1)
-                        BootEndResponseReceived?.Invoke(this, new BootEndResponseEventArgs
-                        {
-                            Status = (BootloaderStatus)canData[0],
-                            Timestamp = DateTime.Now
-                        });
-                    break;
-                case BootloaderProtocol.CanIdBootError:
-                case BootloaderProtocol.CanIdErrSize:
-                case BootloaderProtocol.CanIdErrWrite:
-                case BootloaderProtocol.CanIdErrValidation:
-                case BootloaderProtocol.CanIdErrBuffer:
-                    if (canData != null)
-                        BootErrorReceived?.Invoke(this, new BootErrorEventArgs
-                        {
-                            CanId = canId,
-                            RawData = canData,
-                            Timestamp = DateTime.Now
-                        });
-                    break;
-                case CAN_MSG_ID_BOOT_QUERY_RESPONSE:
-                    if (canData != null && canData.Length >= 4)
-                    {
-                        var args = new BootQueryResponseEventArgs
-                        {
-                            Present = canData[0] == 0x01,
-                            Major = canData[1],
-                            Minor = canData[2],
-                            Patch = canData[3],
-                            Timestamp = DateTime.Now
-                        };
-                        
-                        // Extended format (8 bytes): includes bank information
-                        if (canData.Length >= 8)
-                        {
-                            args.ActiveBank = canData[4];
-                            args.BankAValid = canData[5];
-                            args.BankBValid = canData[6];
-                            // Byte 7 is reserved, ignore
-                        }
-                        else
-                        {
-                            // Backward compatibility: old 4-byte format
-                            // Default to Bank A active, both invalid
-                            args.ActiveBank = 0;
-                            args.BankAValid = 0x00;
-                            args.BankBValid = 0x00;
-                        }
-                        
-                        BootQueryResponseReceived?.Invoke(this, args);
-                    }
-                    break;
-            }
-        }
-        #endregion
 
 
         /// <summary>

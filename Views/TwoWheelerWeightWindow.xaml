@@ -1,6 +1,12 @@
 <Window x:Class="ATS_TwoWheeler_WPF.Views.TwoWheelerWeightWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:vm="clr-namespace:ATS_TwoWheeler_WPF.ViewModels"
+        d:DataContext="{d:DesignInstance Type=vm:TwoWheelerWeightViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
         Title="Two Wheeler Weight Test" Height="800" Width="1400"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
         Background="#FFF5F5F5" Icon="pack://application:,,,/Assets/AVL_Icon.ico"
@@ -29,11 +35,11 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Ellipse x:Name="ConnectionIndicator" Width="12" Height="12" 
-                             Fill="#FFDC3545" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="ConnectionStatusText" Text="Disconnected" 
+                    <Ellipse Width="12" Height="12" 
+                              Fill="{Binding ConnectionColor}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding ConnectionStatus}" 
                                Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock x:Name="DataRateText" Text="Rate: --" 
+                    <TextBlock Text="{Binding DataRateText}" 
                                Foreground="White" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -42,8 +48,7 @@
         <!-- Status Message -->
         <Border Grid.Row="1" Background="#FFE8F5E9" BorderBrush="#FF4CAF50" 
                 BorderThickness="0,0,0,2" Padding="10,8">
-            <TextBlock x:Name="StatusMessageText" 
-                       Text="Ready to start axle weight test" 
+            <TextBlock Text="{Binding StatusDescription}" 
                        FontSize="18" FontWeight="Bold"
                        Foreground="#FF2E7D32"
                        HorizontalAlignment="Center"/>
@@ -66,25 +71,24 @@
                                HorizontalAlignment="Center" Margin="0,10"/>
                     
                     <!-- Validation Indicator Rectangle -->
-                    <Border Grid.Row="1" x:Name="ValidationIndicatorRect" 
-                            Width="60" Height="300" 
+                    <Border Grid.Row="1" 
+                            Width="60" Height="250" 
                             HorizontalAlignment="Center" 
                             VerticalAlignment="Center"
-                            Background="#FFDC3545" 
+                            Background="{Binding ValidationColor}" 
                             BorderBrush="#FF000000" 
                             BorderThickness="2" 
                             Margin="0,10"/>
                     
                     <!-- Weight Display Box -->
-                    <Border Grid.Row="2" x:Name="MainWeightBox" 
+                    <Border Grid.Row="2" 
                             Background="#FFFF9800" 
                             BorderBrush="#FFE65100" 
                             BorderThickness="2" 
                             CornerRadius="3" 
                             Margin="20,10" 
                             Padding="10,15">
-                        <TextBlock x:Name="MainWeightText" 
-                                   Text="-- kg" 
+                        <TextBlock Text="{Binding MainWeightText}" 
                                    FontSize="48" 
                                    FontWeight="Bold" 
                                    HorizontalAlignment="Center" 
@@ -106,69 +110,67 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
                     <!-- Total Weight -->
                     <TextBlock Text="Total:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="TotalWeightText" Text="-- kg" Margin="0,0,20,0" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding TotalWeightText}" Margin="0,0,20,0" FontWeight="Bold"/>
                     
                     
                     <!-- Min Weight -->
                     <TextBlock Text="Min:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="MinWeightText" Text="-- kg" Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding MinWeightText}" Margin="0,0,20,0"/>
                     
                     <!-- Max Weight -->
                     <TextBlock Text="Max:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="MaxWeightText" Text="-- kg" Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding MaxWeightText}" Margin="0,0,20,0"/>
                     
                     <!-- Samples -->
                     <TextBlock Text="Samples:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                    <TextBlock x:Name="SampleCountText" Text="0"/>
+                    <TextBlock Text="{Binding SampleCount}"/>
                 </StackPanel>
                 
             </Grid>
         </Border>
 
         <!-- Graph Area -->
-        <Grid x:Name="chartContainer" Grid.Row="4" Margin="10"/>
+        <Grid Grid.Row="4" Margin="10">
+            <lvc:CartesianChart Series="{Binding Series}" 
+                               XAxes="{Binding XAxes}" 
+                               YAxes="{Binding YAxes}" />
+        </Grid>
 
         <!-- Control Panel -->
         <Border Grid.Row="5" Background="#FFF0F0F0" BorderBrush="#FFCCCCCC" 
                 BorderThickness="0,1,0,0" Padding="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button x:Name="StartBtn" Content="F1 - Start" 
+                <Button Content="F1 - Start" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FF28A745" Click="StartBtn_Click" 
+                        Background="#FF28A745" Command="{Binding StartTestCommand}" 
                         Width="120" Height="40" Margin="5,0" FontSize="16" FontWeight="Bold"/>
-                <Button x:Name="StopBtn" Content="F2 - Stop" 
+                <Button Content="F2 - Stop" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FFDC3545" Click="StopBtn_Click" 
-                        Width="120" Height="40" Margin="5,0" FontSize="16" FontWeight="Bold"
-                        IsEnabled="False"/>
-                <Button x:Name="SaveBtn" Content="F3 - Save" 
+                        Background="#FFDC3545" Command="{Binding StopTestCommand}" 
+                        Width="120" Height="40" Margin="5,0" FontSize="16" FontWeight="Bold"/>
+                <Button Content="F3 - Save" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FF17A2B8" Click="SaveBtn_Click" 
-                        Width="120" Height="40" Margin="5,0" FontSize="16" FontWeight="Bold"
-                        IsEnabled="False"/>
-                <Button x:Name="PauseBtn" Content="⏸ Pause" 
+                        Background="#FF17A2B8" Command="{Binding SaveTestCommand}" 
+                        Width="120" Height="40" Margin="5,0" FontSize="16" FontWeight="Bold"/>
+                <Button Content="⏸ Pause" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FF6C757D" Click="PauseBtn_Click" 
-                        Width="100" Height="32" Margin="5,0" IsEnabled="False"/>
-                <Button x:Name="ResumeBtn" Content="▶ Resume" 
-                        Style="{StaticResource ModernButton}" 
-                        Background="#FF28A745" Click="ResumeBtn_Click" 
-                        Width="100" Height="32" Margin="5,0" IsEnabled="False"/>
-                <Button x:Name="ClearBtn" Content="🗑 Clear" 
-                        Style="{StaticResource ModernButton}" 
-                        Background="#FF95A5A6" Click="ClearBtn_Click" 
+                        Background="#FF6C757D" Command="{Binding PauseTestCommand}" 
                         Width="100" Height="32" Margin="5,0"/>
-                <Button x:Name="ExportBtn" Content="💾 Export CSV" 
+                <Button Content="🗑 Clear" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FF6F42C1" Click="ExportBtn_Click" 
+                        Background="#FF95A5A6" Command="{Binding ClearDataCommand}" 
+                        Width="100" Height="32" Margin="5,0"/>
+                <Button Content="💾 Export CSV" 
+                        Style="{StaticResource ModernButton}" 
+                        Background="#FF6F42C1" Command="{Binding ExportCommand}" 
                         Width="120" Height="32" Margin="5,0"/>
-                <ToggleButton x:Name="BrakeModeToggle" Content="🛑 Brake Mode"
+                <ToggleButton Content="🛑 Brake Mode"
                         Style="{StaticResource ModernToggleButton}"
-                        Background="#FF6C757D" Click="BrakeModeToggle_Click"
+                        Background="#FF6C757D" Command="{Binding SwitchSystemModeCommand}"
                         Width="120" Height="32" Margin="5,0"/>
-                <Button x:Name="CalibrateBtn" Content="⚖ Calibrate" 
+                <Button Content="⚖ Calibrate" 
                         Style="{StaticResource ModernButton}" 
-                        Background="#FF17A2B8" Click="CalibrateBtn_Click" 
+                        Background="#FF17A2B8" 
                         Width="120" Height="32" Margin="5,0"/>
             </StackPanel>
         </Border>

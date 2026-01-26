@@ -3,12 +3,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ATS_TwoWheeler_WPF.Models;
+using ATS_TwoWheeler_WPF.Adapters;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Core.Exceptions;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
+using ATS_TwoWheeler_WPF.Services.FirmwareUpdate;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
-    public sealed class FirmwareUpdateService
+    public sealed class FirmwareUpdateService : IFirmwareUpdateService
     {
         private const int MaxChunkSize = 7;  // Reduced from 8: Byte 0 = sequence number, Bytes 1-7 = data
         private const uint DataId = BootloaderProtocol.CanIdBootData;
@@ -24,9 +27,13 @@ namespace ATS_TwoWheeler_WPF.Services
         private const int MAX_FIRMWARE_SIZE = 0x1E000;  // 120KB (Bank A limit)
         private const int SEQUENCE_WRAP_SIZE = 256 * 7;  // 18,176 bytes per wrap (sequence wraps at 256)
 
-        private readonly CANService _canService;
+        private readonly ICANService _canService;
+        private readonly CANBootloaderService _bootloaderService;
         private readonly ProductionLogger _logger = ProductionLogger.Instance;
         private BootloaderDiagnosticsService? _diagnosticsService;
+        
+        private readonly FirmwareProtocolHandler _protocolHandler;
+        private readonly FirmwareFlashState _flashState;
         
         // Update phase tracking
         private enum UpdatePhase { None, Ping, Begin, Transfer, End }
@@ -38,16 +45,8 @@ namespace ATS_TwoWheeler_WPF.Services
         // Retry logic tracking
         private byte? _retryRequestedSequence = null;
         
-        // Firmware info for progress tracking
+        // Firmware info for progress tracking  
         private int _firmwareLength = 0;
-        
-        // Status response waiting mechanism
-        private TaskCompletionSource<bool>? _pingWaitSource;
-        private TaskCompletionSource<BootloaderStatus>? _beginWaitSource;
-        private TaskCompletionSource<BootloaderStatus>? _endWaitSource;
-        
-        // Queue for collecting multiple Begin responses (InProgress + Success)
-        private System.Collections.Concurrent.ConcurrentQueue<BootloaderStatus>? _beginResponseQueue;
         
         // Event handlers
         private EventHandler<BootPingResponseEventArgs>? _pingHandler;
@@ -56,9 +55,12 @@ namespace ATS_TwoWheeler_WPF.Services
         private EventHandler<BootErrorEventArgs>? _errorHandler;
         private EventHandler<BootProgressEventArgs>? _progressHandler;
 
-        public FirmwareUpdateService(CANService canService)
+        public FirmwareUpdateService(ICANService canService)
         {
             _canService = canService;
+            _bootloaderService = new CANBootloaderService(canService);
+            _protocolHandler = new FirmwareProtocolHandler(canService, _bootloaderService);
+            _flashState = new FirmwareFlashState();
         }
 
         /// <summary>
@@ -72,7 +74,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public async Task<bool> UpdateFirmwareAsync(string binPath, IProgress<FirmwareProgress>? progress = null, CancellationToken cancellationToken = default)
         {
             if (!File.Exists(binPath))
-                throw new FileNotFoundException("Firmware binary not found", binPath);
+                throw new FirmwareValidationException(binPath, "File not found");
 
             byte[] fullFirmware = await File.ReadAllBytesAsync(binPath, cancellationToken).ConfigureAwait(false);
             
@@ -85,7 +87,7 @@ namespace ATS_TwoWheeler_WPF.Services
             if (firmware.Length > MAX_FIRMWARE_SIZE)
             {
                 _logger.LogError($"Firmware too large: {firmware.Length} bytes (max {MAX_FIRMWARE_SIZE} bytes)", "FWUpdater");
-                return false;
+                throw new FirmwareSizeException(firmware.Length, MAX_FIRMWARE_SIZE);
             }
             
             // Warn if firmware will cause sequence number wrap-around
@@ -100,24 +102,30 @@ namespace ATS_TwoWheeler_WPF.Services
 
             _logger.LogInfo($"Firmware update start. Full size={fullFirmware.Length} bytes, Application size={firmware.Length} bytes, Chunks={totalChunks}", "FWUpdater");
             
-            // Subscribe to bootloader response events for response waiting
-            _pingHandler = (sender, e) => OnPingResponseReceived();
-            _beginHandler = (sender, e) => OnBeginResponseReceived(e);
-            _endHandler = (sender, e) => OnEndResponseReceived(e);
+            // Initialize flash state
+            _flashState.Reset();
+            _flashState.TotalBytes = firmware.Length;
+            _flashState.TotalChunks = totalChunks;
+            _flashState.StartTime = DateTime.Now;
+            
+            // Subscribe to bootloader response events
+            _pingHandler = (sender, e) => _protocolHandler.OnPingResponse();
+            _beginHandler = (sender, e) => _protocolHandler.OnBeginResponse(e.Status);
+            _endHandler = (sender, e) => _protocolHandler.OnEndResponse(e.Status);
             _errorHandler = (sender, e) => OnErrorReceived(e);
             _progressHandler = (sender, e) => OnProgressReceived(e, progress);
             
-            _canService.BootPingResponseReceived += _pingHandler;
-            _canService.BootBeginResponseReceived += _beginHandler;
-            _canService.BootEndResponseReceived += _endHandler;
-            _canService.BootErrorReceived += _errorHandler;
-            _canService.BootProgressReceived += _progressHandler;
+            _bootloaderService.BootPingResponseReceived += _pingHandler;
+            _bootloaderService.BootBeginResponseReceived += _beginHandler;
+            _bootloaderService.BootEndResponseReceived += _endHandler;
+            _bootloaderService.BootErrorReceived += _errorHandler;
+            _bootloaderService.BootProgressReceived += _progressHandler;
             
             try
             {
 
                 // Enter bootloader (no data bytes needed)
-                if (!_canService.RequestEnterBootloader())
+                if (!_bootloaderService.RequestEnterBootloader())
                 {
                     _logger.LogError("Failed to request bootloader entry", "FWUpdater");
                     return false;
@@ -132,52 +140,12 @@ namespace ATS_TwoWheeler_WPF.Services
                 await Task.Delay(500, cancellationToken).ConfigureAwait(false);
 
                 // Send ping and wait for READY response with retry mechanism
-                // Retry up to 3 times in case STM32 boots quickly and we miss the initial response
                 _currentPhase = UpdatePhase.Ping;
                 const int PING_RETRY_ATTEMPTS = 3;
                 const int PING_RETRY_DELAY_MS = 500;
-                bool pingSuccess = false;
                 
-                for (int pingAttempt = 0; pingAttempt < PING_RETRY_ATTEMPTS; pingAttempt++)
-                {
-                    if (pingAttempt > 0)
-                    {
-                        _logger.LogInfo($"Retrying ping (attempt {pingAttempt + 1}/{PING_RETRY_ATTEMPTS})...", "FWUpdater");
-                        await Task.Delay(PING_RETRY_DELAY_MS, cancellationToken).ConfigureAwait(false);
-                    }
-                    
-                    // Create new wait source for this attempt
-                    _pingWaitSource = new TaskCompletionSource<bool>();
-                    
-                    // Send ping
-                    if (!SendPing())
-                    {
-                        _logger.LogError("Failed to send ping command", "FWUpdater");
-                        _pingWaitSource = null;
-                        continue; // Try next attempt
-                    }
-                    
-                    // Wait for response with timeout
-                    using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-                    {
-                        timeoutCts.CancelAfter(PING_TIMEOUT_MS);
-                        
-                        try
-                        {
-                            await _pingWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                            pingSuccess = true;
-                            _logger.LogInfo("Ping response received successfully", "FWUpdater");
-                            break;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            _logger.LogWarning($"Ping timeout on attempt {pingAttempt + 1}/{PING_RETRY_ATTEMPTS} (timeout: {PING_TIMEOUT_MS}ms)", "FWUpdater");
-                            // Clear wait source so old responses don't interfere
-                            _pingWaitSource = null;
-                            // Continue to next retry attempt
-                        }
-                    }
-                }
+                bool pingSuccess = await _protocolHandler.PingWithRetryAsync(
+                    PING_RETRY_ATTEMPTS, PING_RETRY_DELAY_MS, cancellationToken);
                 
                 if (!pingSuccess)
                 {
@@ -185,9 +153,9 @@ namespace ATS_TwoWheeler_WPF.Services
                     return false;
                 }
 
-                // Send application size (not full file size) and wait for IN_PROGRESS response
+                // Send application size and wait for IN_PROGRESS then SUCCESS response
                 _currentPhase = UpdatePhase.Begin;
-                if (!await SendBeginCommandWithResponse(firmware.Length, BEGIN_TIMEOUT_MS, cancellationToken))
+                if (!await _protocolHandler.BeginAsync(firmware.Length, cancellationToken))
                 {
                     _logger.LogError("Bootloader begin command failed or timeout", "FWUpdater");
                     return false;
@@ -294,7 +262,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 
                 // Send END command and wait for SUCCESS response
                 _currentPhase = UpdatePhase.End;
-                if (!await SendEndCommandWithResponse(finalCrc, END_TIMEOUT_MS, cancellationToken))
+                if (!await _protocolHandler.EndAsync(finalCrc, cancellationToken))
                 {
                     _logger.LogError("Bootloader end command failed or timeout", "FWUpdater");
                     return false;
@@ -303,7 +271,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 _logger.LogInfo("Firmware update completed successfully. Sending reset command...", "FWUpdater");
                 
                 // Send reset command to boot new firmware
-                if (!_canService.RequestReset())
+                if (!_bootloaderService.RequestReset())
                 {
                     _logger.LogWarning("Failed to send reset command, but update was successful", "FWUpdater");
                     // Don't fail the update if reset command fails - update was successful
@@ -324,76 +292,37 @@ namespace ATS_TwoWheeler_WPF.Services
                 // Unsubscribe from bootloader response events
                 if (_pingHandler != null)
                 {
-                    _canService.BootPingResponseReceived -= _pingHandler;
+                    _bootloaderService.BootPingResponseReceived -= _pingHandler;
                     _pingHandler = null;
                 }
                 if (_beginHandler != null)
                 {
-                    _canService.BootBeginResponseReceived -= _beginHandler;
+                    _bootloaderService.BootBeginResponseReceived -= _beginHandler;
                     _beginHandler = null;
                 }
                 if (_endHandler != null)
                 {
-                    _canService.BootEndResponseReceived -= _endHandler;
+                    _bootloaderService.BootEndResponseReceived -= _endHandler;
                     _endHandler = null;
                 }
                 if (_errorHandler != null)
                 {
-                    _canService.BootErrorReceived -= _errorHandler;
+                    _bootloaderService.BootErrorReceived -= _errorHandler;
                     _errorHandler = null;
                 }
                 if (_progressHandler != null)
                 {
-                    _canService.BootProgressReceived -= _progressHandler;
+                    _bootloaderService.BootProgressReceived -= _progressHandler;
                     _progressHandler = null;
                 }
-                _pingWaitSource = null;
-                _beginWaitSource = null;
-                _endWaitSource = null;
+                
+                // Clean up protocol handler
+                _protocolHandler.Cleanup();
                 _currentPhase = UpdatePhase.None;
                 _transferError = null;
                 _retryRequestedSequence = null;
                 _firmwareLength = 0;
             }
-        }
-        
-        /// <summary>
-        /// Handle ping response (READY)
-        /// </summary>
-        private void OnPingResponseReceived()
-        {
-            // Only set result if we're in ping phase and wait source exists
-            if (_currentPhase == UpdatePhase.Ping && _pingWaitSource != null)
-            {
-                _pingWaitSource.TrySetResult(true);
-            }
-        }
-        
-        /// <summary>
-        /// Handle begin response (IN_PROGRESS or SUCCESS or FAILED)
-        /// </summary>
-        private void OnBeginResponseReceived(BootBeginResponseEventArgs e)
-        {
-            // If we're using a queue (2-stage response), queue the response
-            if (_beginResponseQueue != null)
-            {
-                _beginResponseQueue.Enqueue(e.Status);
-                // Signal that a response arrived
-                _beginWaitSource?.TrySetResult(e.Status);
-            }
-            else
-            {
-                // Normal single-response mode
-                _beginWaitSource?.TrySetResult(e.Status);
-            }
-        }
-        
-        /// <summary>
-        /// Handle end response (SUCCESS or FAILED)
-        /// </summary>
-        private void OnEndResponseReceived(BootEndResponseEventArgs e)
-        {
-            _endWaitSource?.TrySetResult(e.Status);
         }
         
         /// <summary>
@@ -424,192 +353,26 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             _logger.LogError($"Bootloader error: {e.Message}", "FWUpdater");
 
-            // Route error to appropriate wait source based on current phase
-            switch (_currentPhase)
+            // Only handle transfer phase errors - protocol handler handles Begin/End errors
+            if (_currentPhase == UpdatePhase.Transfer)
             {
-                case UpdatePhase.Begin:
-                    _beginWaitSource?.TrySetResult(BootloaderStatus.FailedFlash); // Map any bootloader-sent error to failure
-                    break;
-                    
-                case UpdatePhase.End:
-                    _endWaitSource?.TrySetResult(BootloaderStatus.FailedFlash);
-                    break;
-                    
-                case UpdatePhase.Transfer:
-                    // Check for retry request: CanIdBootError is now used specifically for SEQ mismatch (0x51B)
-                    // New Payload format: [ExpectedSeq, ReceivedSeq]
-                    if (e.CanId == BootloaderProtocol.CanIdBootError && e.RawData != null && e.RawData.Length >= 2)
-                    {
-                        byte requestedSeq = e.RawData[0]; // Expected sequence
-                        _logger.LogWarning($"Bootloader requested retry from sequence {requestedSeq} due to mismatch", "FWUpdater");
-                        _retryRequestedSequence = requestedSeq;
-                        _transferError = null;
-                    }
-                    else
-                    {
-                        // Any other CAN ID (Size, Write, Validation, Buffer) is a fatal transfer error
-                        _transferError = BootloaderStatus.FailedFlash;
-                    }
-                    break;
-                    
-                default:
-                    _logger.LogWarning($"Error received in phase {_currentPhase}: {e.Message}", "FWUpdater");
-                    break;
+                // Check for retry request: CanIdBootError is now used specifically for SEQ mismatch (0x51B)
+                // New Payload format: [ExpectedSeq, ReceivedSeq]
+                if (e.CanId == BootloaderProtocol.CanIdBootError && e.RawData != null && e.RawData.Length >= 2)
+                {
+                    byte requestedSeq = e.RawData[0]; // Expected sequence
+                    _logger.LogWarning($"Bootloader requested retry from sequence {requestedSeq} due to mismatch", "FWUpdater");
+                    _retryRequestedSequence = requestedSeq;
+                    _transferError = null;
+                }
+                else
+                {
+                    // Any other CAN ID (Size, Write, Validation, Buffer) is a fatal transfer error
+                    _transferError = BootloaderStatus.FailedFlash;
+                }
             }
         }
 
-        
-        /// <summary>
-        /// Send ping and wait for READY response
-        /// </summary>
-        private async Task<bool> SendPingWithResponse(int timeoutMs, CancellationToken cancellationToken)
-        {
-            if (!SendPing())
-            {
-                return false;
-            }
-            
-            _pingWaitSource = new TaskCompletionSource<bool>();
-            
-            using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-            {
-                timeoutCts.CancelAfter(timeoutMs);
-                
-                try
-                {
-                    await _pingWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                    return true;
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogError($"Timeout waiting for ping response (timeout: {timeoutMs}ms)", "FWUpdater");
-                    return false;
-                }
-            }
-        }
-        
-        private const int ERASE_TIMEOUT_MS = 10000; // 10 seconds for flash erase (generous buffer)
-
-        /// <summary>
-        /// Send BEGIN command and wait for IN_PROGRESS then SUCCESS response
-        /// </summary>
-        private async Task<bool> SendBeginCommandWithResponse(int size, int responseTimeoutMs, CancellationToken cancellationToken)
-        {
-            _logger.LogInfo($"Sending Begin command with firmware size: {size} bytes", "FWUpdater");
-            
-            if (!SendBeginCommand(size))
-            {
-                _logger.LogError("Failed to send Begin command - CAN send failed", "FWUpdater");
-                return false;
-            }
-            
-            // Use a queue to collect responses safely
-            _beginResponseQueue = new System.Collections.Concurrent.ConcurrentQueue<BootloaderStatus>();
-            _beginWaitSource = new TaskCompletionSource<BootloaderStatus>();
-            
-            // Combined timeout for both responses (total time should accommodate erase)
-            using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-            {
-                timeoutCts.CancelAfter(ERASE_TIMEOUT_MS);
-                
-                try
-                {
-                    // Wait for FIRST response (should be InProgress)
-                    await _beginWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                    
-                    if (!_beginResponseQueue.TryDequeue(out var firstStatus))
-                    {
-                        _logger.LogError("Received Begin response signal but queue is empty", "FWUpdater");
-                        return false;
-                    }
-                    
-                    if (firstStatus != BootloaderStatus.InProgress)
-                    {
-                        _logger.LogError($"Begin command rejected with status: {BootloaderProtocol.DescribeStatus(firstStatus)}", "FWUpdater");
-                        return false;
-                    }
-                    
-                    _logger.LogInfo("Begin accepted. Erasing Flash - waiting for SUCCESS signal...", "FWUpdater");
-                    
-                    // Wait for SECOND response (should be Success)
-                    // Reset the wait source to signal when second response arrives
-                    _beginWaitSource = new TaskCompletionSource<BootloaderStatus>();
-                    
-                    // If the second response already arrived (queued), process it immediately
-                    if (_beginResponseQueue.IsEmpty)
-                    {
-                        // Wait for it
-                        await _beginWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                    }
-                    
-                    if (!_beginResponseQueue.TryDequeue(out var secondStatus))
-                    {
-                        _logger.LogError("Expected SUCCESS response but queue is empty", "FWUpdater");
-                        return false;
-                    }
-                    
-                    if (secondStatus == BootloaderStatus.Success)
-                    {
-                        _logger.LogInfo("Flash Erase Complete. Ready to stream data.", "FWUpdater");
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogError($"Flash Erase failed with status: {BootloaderProtocol.DescribeStatus(secondStatus)}", "FWUpdater");
-                        return false;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogError($"Timeout waiting for Begin responses (timeout: {ERASE_TIMEOUT_MS}ms)", "FWUpdater");
-                    return false;
-                }
-                finally
-                {
-                    // Clean up queue
-                    _beginResponseQueue = null;
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Send END command and wait for SUCCESS response
-        /// </summary>
-        private async Task<bool> SendEndCommandWithResponse(uint crc, int timeoutMs, CancellationToken cancellationToken)
-        {
-            if (!SendEndCommand(crc))
-            {
-                return false;
-            }
-            
-            _endWaitSource = new TaskCompletionSource<BootloaderStatus>();
-            
-            using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-            {
-                timeoutCts.CancelAfter(timeoutMs);
-                
-                try
-                {
-                    var receivedStatus = await _endWaitSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-                    
-                    if (receivedStatus == BootloaderStatus.Success)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogError($"Bootloader end command returned status: {BootloaderProtocol.DescribeStatus(receivedStatus)}", "FWUpdater");
-                        return false;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogError($"Timeout waiting for end response (timeout: {timeoutMs}ms)", "FWUpdater");
-                    return false;
-                }
-            }
-        }
-        
         /// <summary>
         /// Send CAN message with retry mechanism (exponential backoff)
         /// </summary>
@@ -649,7 +412,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private bool SendPing()
         {
             // Ping command: no data bytes needed
-            return _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
+            return _bootloaderService.SendPing();
         }
 
         private bool SendBeginCommand(int size)

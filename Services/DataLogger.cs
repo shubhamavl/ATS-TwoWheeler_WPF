@@ -3,13 +3,14 @@ using System.IO;
 using System.Text;
 using System.Globalization;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
     /// <summary>
     /// CSV data logger for two-wheeler system data
     /// </summary>
-    public class DataLogger
+    public class DataLogger : IDataLoggerService
     {
         private string _logFilePath;
         private bool _isLogging = false;
@@ -62,7 +63,10 @@ namespace ATS_TwoWheeler_WPF.Services
                     {
                         if (!Directory.Exists(baseDir)) Directory.CreateDirectory(baseDir);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error creating log directory: {ex.Message}");
+                    }
                     _logFilePath = Path.Combine(baseDir, $"two_wheeler_log_{timestamp}.csv");
                     
                     // Create CSV header with system status fields
@@ -204,8 +208,9 @@ namespace ATS_TwoWheeler_WPF.Services
                     return new FileInfo(_logFilePath).Length;
                 return 0;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error getting log file size: {ex.Message}");
                 return 0;
             }
         }
@@ -221,8 +226,9 @@ namespace ATS_TwoWheeler_WPF.Services
                     return File.ReadAllLines(_logFilePath).Length;
                 return 0;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error getting log line count: {ex.Message}");
                 return 0;
             }
         }

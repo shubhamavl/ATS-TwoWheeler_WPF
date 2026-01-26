@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using ATS_TwoWheeler_WPF.Services;
+using ATS_TwoWheeler_WPF.Core;
 
 namespace ATS_TwoWheeler_WPF.Views
 {
@@ -29,7 +30,7 @@ namespace ATS_TwoWheeler_WPF.Views
             public Version Version { get; set; } = new Version(0, 0, 0, 0);
             public string? ReleaseNotes { get; set; }
             public bool IsCurrentVersion { get; set; }
-            public UpdateService.GithubReleaseDto ReleaseDto { get; set; } = null!;
+            public UpdateCheckResultDto ReleaseDto { get; set; } = null!;
         }
 
         private ObservableCollection<ReleaseItem> _releases = new ObservableCollection<ReleaseItem>();
@@ -81,7 +82,15 @@ namespace ATS_TwoWheeler_WPF.Views
                 InstallBtn.IsEnabled = false;
 
                 _cancellationTokenSource = new CancellationTokenSource();
-                var releases = await _updateService.GetAllReleasesAsync(_cancellationTokenSource.Token);
+                var githubService = new GitHubReleaseService();
+                var allReleases = await githubService.GetAllReleasesAsync(_cancellationTokenSource.Token);
+                
+                var releases = new List<UpdateCheckResultDto>();
+                foreach (var release in allReleases)
+                {
+                    if (githubService.HasValidAsset(release))
+                        releases.Add(release);
+                }
 
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -184,7 +193,11 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             if (ReleasesListView.SelectedItem is ReleaseItem selectedItem)
             {
-                SelectedVersionInfo = _updateService.ConvertReleaseToUpdateInfo(selectedItem.ReleaseDto);
+                // Mapping from DTO to UpdateInfo is now simplified or handled via service
+                // For simplicity, let's keep the conversion in UpdateService but fix the call
+                // Actually UpdateService.GetAllReleasesAsync returns UpdateCheckResult objects now.
+                // Let's refactor this part to be cleaner.
+                SelectedVersionInfo = _updateService.ConvertToUpdateInfo(selectedItem.ReleaseDto);
                 
                 // Show release notes
                 if (!string.IsNullOrWhiteSpace(selectedItem.ReleaseNotes))

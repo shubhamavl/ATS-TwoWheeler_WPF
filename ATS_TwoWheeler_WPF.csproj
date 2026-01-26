@@ -23,6 +23,11 @@
     <AssemblyName>ATS_TwoWheeler_WPF</AssemblyName>
     <!-- Suppress NU1701 warnings for packages that target .NET Framework but work fine on .NET 8 -->
     <NoWarn>$(NoWarn);NU1701</NoWarn>
+    
+    <!-- Code Analysis Settings -->
+    <AnalysisMode>Default</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
   <ItemGroup>
@@ -51,6 +56,12 @@
     <Content Remove="ATS_TwoWheeler_Updater\**" />
     <EmbeddedResource Remove="ATS_TwoWheeler_Updater\**" />
     <None Remove="ATS_TwoWheeler_Updater\**" />
+    
+    <!-- Exclude Tests -->
+    <Compile Remove="ATS_TwoWheeler_WPF.Tests\**" />
+    <Content Remove="ATS_TwoWheeler_WPF.Tests\**" />
+    <EmbeddedResource Remove="ATS_TwoWheeler_WPF.Tests\**" />
+    <None Remove="ATS_TwoWheeler_WPF.Tests\**" />
   </ItemGroup>
 
 </Project>

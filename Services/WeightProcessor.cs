@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Services.Interfaces;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
@@ -24,7 +25,7 @@ namespace ATS_TwoWheeler_WPF.Services
     /// Runs on dedicated thread to handle 1kHz data rate
     /// Processes single total weight (all 4 channels summed)
     /// </summary>
-    public class WeightProcessor : IDisposable
+    public class WeightProcessor : IWeightProcessorService
     {
         // Input queue: Raw ADC data from CAN thread
         private readonly ConcurrentQueue<RawWeightData> _rawDataQueue = new();
@@ -111,11 +112,12 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Set calibration reference
         /// </summary>
-        public void SetCalibration(LinearCalibration? calibration)
+        public void SetCalibration(LinearCalibration? calibration, byte mode = 0)
         {
-            // Deprecated: use LoadCalibration internal logic instead
-            // _totalCalibration = calibration;
-            // ProductionLogger.Instance.LogInfo($"Calibration set - Total: {calibration?.IsValid}", "WeightProcessor");
+            if (mode == 0) _internalCalibration = calibration;
+            else _ads1115Calibration = calibration;
+            
+            ProductionLogger.Instance.LogInfo($"Calibration set manually (Mode {mode}) - Valid: {calibration?.IsValid}", "WeightProcessor");
         }
         
         /// <summary>
@@ -281,7 +283,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Apply filter based on configured filter type
         /// </summary>
-        private double ApplyFilter(double value, bool isCalibrated)
+        internal double ApplyFilter(double value, bool isCalibrated)
         {
             switch (_filterType)
             {
