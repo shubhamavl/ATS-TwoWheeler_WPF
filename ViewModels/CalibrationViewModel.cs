@@ -4,6 +4,7 @@ using System.Windows;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -42,6 +43,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _adcModeText, value);
         }
 
+        private bool _isBrakeMode;
+        public bool IsBrakeMode
+        {
+            get => _isBrakeMode;
+            set => SetProperty(ref _isBrakeMode, value);
+        }
+
         public ICommand TareCommand { get; }
         public ICommand CalibrateCommand { get; }
         public ICommand ResetCalibrationCommand { get; }
@@ -74,7 +82,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnTare(object? parameter)
         {
-             // ...
+            _weightProcessor.Tare();
         }
 
         private void OnCalibrate(object? parameter)
@@ -84,22 +92,33 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnResetCalibration(object? parameter)
         {
-            // ...
+            if (MessageBox.Show("Are you sure you want to reset calibration? This will delete the current calibration file.", 
+                "Reset Calibration", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            {
+                LinearCalibration.DeleteCalibration(_canService.CurrentADCMode, SystemModeText == "Brake" ? SystemMode.Brake : SystemMode.Weight);
+                _weightProcessor.LoadCalibration();
+            }
         }
 
         private void OnResetTare(object? parameter)
         {
-             // ...
+            _weightProcessor.ResetTare();
         }
 
         private void OnSwitchSystemMode(object? parameter)
         {
-             // ...
+            // Toggle system mode (Weight vs Brake)
+            // SystemStatusPanelViewModel usually updates UI based on CAN response
+            bool targetBrakeMode = SystemModeText == "Weight"; // If current is Weight, switch to Brake
+            _canService.SwitchSystemMode(targetBrakeMode ? SystemMode.Brake : SystemMode.Weight);
         }
 
         private void OnSwitchAdcMode(object? parameter)
         {
-            // ...
+            if (_canService.CurrentADCMode == AdcMode.InternalWeight)
+                _canService.SwitchToADS1115();
+            else
+                _canService.SwitchToInternalADC();
         }
 
         private void OnOpenTwoWheeler(object? parameter)
@@ -120,6 +139,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnOpenLogs(object? parameter)
         {
             _navigationService.ShowLogsWindow();
+        }
+
+        public void UpdateSystemStatus(AdcMode adcMode, SystemMode systemMode)
+        {
+            AdcModeText = adcMode == AdcMode.Ads1115 ? "ADS1115" : "Internal";
+            IsBrakeMode = systemMode == SystemMode.Brake;
+            SystemModeText = IsBrakeMode ? "Brake" : "Weight";
         }
     }
 }

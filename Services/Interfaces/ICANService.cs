@@ -8,7 +8,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     {
         bool IsConnected { get; }
         bool IsStreaming { get; }
-        byte CurrentADCMode { get; }
+        AdcMode CurrentADCMode { get; }
         long TxMessageCount { get; }
         long RxMessageCount { get; }
         event Action<CANMessage>? MessageReceived;
@@ -21,11 +21,11 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         bool Connect(CanAdapterConfig config, out string errorMessage);
         void Disconnect();
         bool SendMessage(uint id, byte[] data);
-        bool StartStream(byte rate);
+        bool StartStream(TransmissionRate rate);
         bool StopAllStreams();
         bool SwitchToInternalADC();
         bool SwitchToADS1115();
-        bool SwitchSystemMode(bool isBrakeMode);
+        bool SwitchSystemMode(SystemMode mode);
         bool RequestSystemStatus();
         bool RequestFirmwareVersion();
         void SetTimeout(TimeSpan timeout);

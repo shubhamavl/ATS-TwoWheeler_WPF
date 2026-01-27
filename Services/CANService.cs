@@ -87,13 +87,12 @@ namespace ATS_TwoWheeler_WPF.Services
 
 
         public bool IsConnected => _connected;
-        public bool IsStreaming => _isStreaming;
-        public byte CurrentADCMode => _eventDispatcher.CurrentADCMode;
-        
-        public void SetADCMode(byte mode)
-        {
-            _eventDispatcher.CurrentADCMode = mode;
+        public bool IsStreaming 
+        { 
+            get => _isStreaming;
+            private set => _isStreaming = value;
         }
+        public AdcMode CurrentADCMode => _eventDispatcher.CurrentADCMode;
         
         private ICanAdapter? _adapter;
         private readonly CANEventDispatcher _eventDispatcher;
@@ -157,7 +156,6 @@ namespace ATS_TwoWheeler_WPF.Services
             return result;
         }
 
-        #region Adapter Event Handlers
         private void OnAdapterMessageReceived(CANMessage message)
         {
             if (message.Direction == "TX") TxMessageCount++;
@@ -182,7 +180,6 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             _connected = connected;
         }
-        #endregion
 
         public bool Connect(string portName, out string message, int baudRate = 2000000)
         {
@@ -416,10 +413,10 @@ namespace ATS_TwoWheeler_WPF.Services
         }
 
         // v0.1 Stream Control Methods - Semantic IDs
-        public bool StartStream(byte rate)
+        public bool StartStream(TransmissionRate rate)
         {
             byte[] data = new byte[1];
-            data[0] = rate;  // Rate selection
+            data[0] = (byte)rate;  // Rate selection
             
             bool success = SendMessage(CAN_MSG_ID_START_STREAM, data);
             if (success) _isStreaming = true;
@@ -440,7 +437,7 @@ namespace ATS_TwoWheeler_WPF.Services
             bool success = SendMessage(CAN_MSG_ID_MODE_INTERNAL, new byte[0]);
             if (success)
             {
-                _eventDispatcher.CurrentADCMode = 0; // Update mode immediately for correct parsing
+                _eventDispatcher.CurrentADCMode = AdcMode.InternalWeight; // Update mode immediately for correct parsing
             }
             return success;
         }
@@ -451,7 +448,7 @@ namespace ATS_TwoWheeler_WPF.Services
             bool success = SendMessage(CAN_MSG_ID_MODE_ADS1115, new byte[0]);
             if (success)
             {
-                _eventDispatcher.CurrentADCMode = 1; // Update mode immediately for correct parsing
+                _eventDispatcher.CurrentADCMode = AdcMode.Ads1115; // Update mode immediately for correct parsing
             }
             return success;
         }
@@ -459,10 +456,10 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Switch system mode (Weight vs Brake)
         /// </summary>
-        /// <param name="isBrakeMode">True combined with System Mode 1 for Brake, 0 for Weight</param>
-        public bool SwitchSystemMode(bool isBrakeMode)
+        /// <param name="mode">SystemMode enum value</param>
+        public bool SwitchSystemMode(SystemMode mode)
         {
-            byte[] data = new byte[] { isBrakeMode ? (byte)1 : (byte)0 };
+            byte[] data = new byte[] { (byte)mode };
             // Set System Mode (0x050)
             return SendMessage(CAN_MSG_ID_SET_SYSTEM_MODE, data);
         }
@@ -524,10 +521,10 @@ namespace ATS_TwoWheeler_WPF.Services
 
     public class SystemStatusEventArgs : EventArgs
     {
-        public byte SystemStatus { get; set; }      // 0=OK, 1=Warning, 2=Error
+        public SystemStatus SystemStatus { get; set; }      // 0=OK, 1=Warning, 2=Error
         public byte ErrorFlags { get; set; }        // Error flags
-        public byte ADCMode { get; set; }           // Current ADC mode (0=Internal, 1=ADS1115)
-        public byte RelayState { get; set; }        // Current relay state (0=Weight, 1=Brake)
+        public AdcMode ADCMode { get; set; }        // Current ADC mode
+        public SystemMode RelayState { get; set; }        // Current relay state (0=Weight, 1=Brake)
         public uint UptimeSeconds { get; set; }     // System uptime in seconds
         public DateTime Timestamp { get; set; }     // PC3 reception timestamp
     }

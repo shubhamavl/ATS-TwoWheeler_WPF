@@ -29,8 +29,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings());
             OpenDataDirectoryCommand = new RelayCommand(_ => OpenDataDirectory());
             OpenSettingsFileCommand = new RelayCommand(_ => OpenSettingsFile());
-            ResetCalibrationInternalCommand = new RelayCommand(_ => ResetCalibration(0, "Internal ADC"));
-            ResetCalibrationADS1115Command = new RelayCommand(_ => ResetCalibration(1, "ADS1115"));
+            ResetCalibrationInternalCommand = new RelayCommand(_ => ResetCalibration(AdcMode.InternalWeight, "Internal ADC"));
+            ResetCalibrationADS1115Command = new RelayCommand(_ => ResetCalibration(AdcMode.Ads1115, "ADS1115"));
             ShowHelpCommand = new RelayCommand(p => OnShowHelp(p?.ToString()));
             
             RefreshCalibrationData();
@@ -46,12 +46,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         // Weight Filtering
         public string FilterType
         {
-            get => _settingsManager.Settings.FilterType;
+            get => _settingsManager.Settings.FilterType.ToString();
             set
             {
-                if (_settingsManager.Settings.FilterType != value)
+                if (Enum.TryParse(value, out FilterType newType) && _settingsManager.Settings.FilterType != newType)
                 {
-                    _settingsManager.Settings.FilterType = value;
+                    _settingsManager.Settings.FilterType = newType;
                     OnPropertyChanged();
                     SaveFilterSettings();
                 }
@@ -189,12 +189,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         // Advanced Settings
         public string LogFileFormat
         {
-            get => _settingsManager.Settings.LogFileFormat;
+            get => _settingsManager.Settings.LogFileFormat.ToString();
             set
             {
-                if (_settingsManager.Settings.LogFileFormat != value)
+                if (Enum.TryParse(value, out LogFormat format) && _settingsManager.Settings.LogFileFormat != format)
                 {
-                    _settingsManager.Settings.LogFileFormat = value;
+                    _settingsManager.Settings.LogFileFormat = format;
                     OnPropertyChanged();
                     SaveAdvancedSettings();
                 }
@@ -246,12 +246,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         // Calibration Mode Settings
         public string CalibrationMode
         {
-            get => _settingsManager.Settings.CalibrationMode;
+            get => _settingsManager.Settings.CalibrationMode.ToString();
             set
             {
-                if (_settingsManager.Settings.CalibrationMode != value)
+                if (Enum.TryParse(value, out CalibrationMode mode) && _settingsManager.Settings.CalibrationMode != mode)
                 {
-                    _settingsManager.Settings.CalibrationMode = value;
+                    _settingsManager.Settings.CalibrationMode = mode;
                     OnPropertyChanged();
                     SaveCalibrationMode();
                 }
@@ -459,7 +459,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
-        private void ResetCalibration(byte mode, string text)
+        private void ResetCalibration(AdcMode mode, string text)
         {
             var result = MessageBox.Show(
                 $"Are you sure you want to delete the calibration for {text}?",
@@ -469,7 +469,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             if (result == MessageBoxResult.Yes)
             {
-                LinearCalibration.DeleteCalibration(mode);
+                LinearCalibration.DeleteCalibration(mode, SystemMode.Weight);
                 RefreshCalibrationData(); // Reload data
                 MessageBox.Show("Calibration deleted.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -477,8 +477,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void RefreshCalibrationData()
         {
-             _internalCal = LinearCalibration.LoadFromFile(0);
-             _adsCal = LinearCalibration.LoadFromFile(1);
+             _internalCal = LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Weight);
+             _adsCal = LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Weight);
              OnPropertyChanged(nameof(InternalCalStatus));
              OnPropertyChanged(nameof(InternalCalSlope));
              OnPropertyChanged(nameof(InternalCalIntercept));

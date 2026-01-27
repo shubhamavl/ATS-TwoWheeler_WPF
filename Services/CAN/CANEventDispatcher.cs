@@ -15,9 +15,9 @@ namespace ATS_TwoWheeler_WPF.Services.CAN
         public event EventHandler<PerformanceMetricsEventArgs>? PerformanceMetricsReceived;
         public event EventHandler<string>? DataTimeout;
 
-        private byte _currentADCMode = 0; // Track current ADC mode (0=Internal, 1=ADS1115)
+        private AdcMode _currentADCMode = AdcMode.InternalWeight; // Track current ADC mode
 
-        public byte CurrentADCMode
+        public AdcMode CurrentADCMode
         {
             get => _currentADCMode;
             set => _currentADCMode = value;
@@ -58,7 +58,7 @@ namespace ATS_TwoWheeler_WPF.Services.CAN
 
         private void HandleRawData(byte[] canData)
         {
-            if (_currentADCMode == 0) // Internal ADC
+            if (_currentADCMode == AdcMode.InternalWeight) // Internal ADC
             {
                 if (canData.Length >= 2)
                 {
@@ -90,7 +90,7 @@ namespace ATS_TwoWheeler_WPF.Services.CAN
             {
                 byte packed = canData[0];
                 byte systemStatus = (byte)(packed & 0x03);
-                byte adcMode = (byte)((packed >> 2) & 0x01);
+                AdcMode adcMode = (AdcMode)((packed >> 2) & 0x01);
                 byte relayState = (byte)((packed >> 3) & 0x01);
                 byte errorFlags = canData[1];
 
@@ -104,10 +104,10 @@ namespace ATS_TwoWheeler_WPF.Services.CAN
 
                 SystemStatusReceived?.Invoke(this, new SystemStatusEventArgs
                 {
-                    SystemStatus = systemStatus,
+                    SystemStatus = (SystemStatus)systemStatus,
                     ErrorFlags = errorFlags,
                     ADCMode = adcMode,
-                    RelayState = relayState,
+                    RelayState = (SystemMode)relayState,
                     UptimeSeconds = uptime,
                     Timestamp = DateTime.Now
                 });

@@ -8,7 +8,7 @@ using System.Windows.Media;
 using ATS_TwoWheeler_WPF.Adapters;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
-using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -244,7 +244,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnStartStream(object? parameter)
         {
-            byte rate = GetStreamingRateValue(SelectedStreamingRate);
+            TransmissionRate rate = GetStreamingRateValue(SelectedStreamingRate);
             if (_canService.StartStream(rate)) 
             {
                 IsStreaming = true;
@@ -253,15 +253,15 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
-        private byte GetStreamingRateValue(string rateString)
+        private TransmissionRate GetStreamingRateValue(string rateString)
         {
              return rateString switch
              {
-                 "1 Hz" => 0x05,
-                 "100 Hz" => 0x01,
-                 "500 Hz" => 0x02,
-                 "1 kHz" => 0x03,
-                 _ => 0x03
+                 "1 Hz" => TransmissionRate.Hz1,
+                 "100 Hz" => TransmissionRate.Hz100,
+                 "500 Hz" => TransmissionRate.Hz500,
+                 "1 kHz" => TransmissionRate.Hz1000,
+                 _ => TransmissionRate.Hz1000
              };
         }
 
@@ -282,26 +282,26 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                  _ => 250
              };
         }
-        private string GetBaudRateString(byte rate)
+        private string GetBaudRateString(CanBaudRate rate)
         {
              return rate switch
              {
-                 0x00 => "125 kbps",
-                 0x01 => "250 kbps",
-                 0x02 => "500 kbps",
-                 0x03 => "1 Mbps",
+                 CanBaudRate.Bps125k => "125 kbps",
+                 CanBaudRate.Bps250k => "250 kbps",
+                 CanBaudRate.Bps500k => "500 kbps",
+                 CanBaudRate.Bps1M => "1 Mbps",
                  _ => "250 kbps"
              };
         }
 
-        private string GetStreamingRateString(byte rate)
+        private string GetStreamingRateString(TransmissionRate rate)
         {
              return rate switch
              {
-                 0x05 => "1 Hz",
-                 0x01 => "100 Hz",
-                 0x02 => "500 Hz",
-                 0x03 => "1 kHz",
+                 TransmissionRate.Hz1 => "1 Hz",
+                 TransmissionRate.Hz100 => "100 Hz",
+                 TransmissionRate.Hz500 => "500 Hz",
+                 TransmissionRate.Hz1000 => "1 kHz",
                  _ => "1 kHz"
              };
         }

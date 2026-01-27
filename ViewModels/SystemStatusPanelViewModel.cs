@@ -4,6 +4,7 @@ using System.Windows.Media;
 using ATS_TwoWheeler_WPF.Services;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -115,25 +116,25 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 // Status Color & Text
                 StatusColor = e.SystemStatus switch
                 {
-                    0 => new SolidColorBrush(Color.FromRgb(39, 174, 96)),   // Green - OK
-                    1 => new SolidColorBrush(Color.FromRgb(255, 193, 7)),   // Yellow - Warning
-                    2 => new SolidColorBrush(Color.FromRgb(220, 53, 69)),   // Red - Error
+                    SystemStatus.Ok => new SolidColorBrush(Color.FromRgb(39, 174, 96)),   // Green - OK
+                    SystemStatus.Warning => new SolidColorBrush(Color.FromRgb(255, 193, 7)),   // Yellow - Warning
+                    SystemStatus.Error => new SolidColorBrush(Color.FromRgb(220, 53, 69)),   // Red - Error
                     _ => new SolidColorBrush(Color.FromRgb(128, 128, 128)) // Gray - Unknown
                 };
                 
                 string status = e.SystemStatus switch
                 {
-                    0 => "OK",
-                    1 => "Warn",
-                    2 => "ERROR",
+                    SystemStatus.Ok => "OK",
+                    SystemStatus.Warning => "Warn",
+                    SystemStatus.Error => "ERROR",
                     _ => "???"
                 };
                 if (e.ErrorFlags != 0) status += $" (0x{e.ErrorFlags:X2})";
                 StatusText = status;
                 
                 // Relay State
-                RelayStateText = e.RelayState == 0 ? "Weight" : "Brake";
-                RelayStateColor = e.RelayState == 0 ? Brushes.Blue : Brushes.Red;
+                RelayStateText = e.RelayState == SystemMode.Weight ? "Weight" : "Brake";
+                RelayStateColor = e.RelayState == SystemMode.Weight ? Brushes.Blue : Brushes.Red;
                 
                 // Uptime
                 TimeSpan t = TimeSpan.FromSeconds(e.UptimeSeconds);

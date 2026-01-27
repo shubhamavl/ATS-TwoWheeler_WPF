@@ -103,15 +103,15 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void SetCanBaudRate(string baudRate)
         {
-            byte rate = 0x01; // Default 250k
+            CanBaudRate rate = CanBaudRate.Bps250k; // Default 250k
             int index = 1;
             
             switch (baudRate)
             {
-                case "125 kbps": rate = 0x00; index = 0; break;
-                case "250 kbps": rate = 0x01; index = 1; break;
-                case "500 kbps": rate = 0x02; index = 2; break;
-                case "1 Mbps":   rate = 0x03; index = 3; break;
+                case "125 kbps": rate = CanBaudRate.Bps125k; index = 0; break;
+                case "250 kbps": rate = CanBaudRate.Bps250k; index = 1; break;
+                case "500 kbps": rate = CanBaudRate.Bps500k; index = 2; break;
+                case "1 Mbps":   rate = CanBaudRate.Bps1M; index = 3; break;
             }
             
             try
@@ -128,20 +128,20 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void SetTransmissionRate(string samplingRate)
         {
-            byte rate = 0x03; // Default 1kHz
+            TransmissionRate rate = TransmissionRate.Hz1000; // Default 1kHz
             int index = 3;
             
             switch (samplingRate)
             {
-                case "1 Hz":   rate = 0x05; index = 0; break;
-                case "100 Hz": rate = 0x01; index = 1; break;
-                case "500 Hz": rate = 0x02; index = 2; break;
-                case "1 kHz":  rate = 0x03; index = 3; break;
+                case "1 Hz":   rate = TransmissionRate.Hz1; index = 0; break;
+                case "100 Hz": rate = TransmissionRate.Hz100; index = 1; break;
+                case "500 Hz": rate = TransmissionRate.Hz500; index = 2; break;
+                case "1 kHz":  rate = TransmissionRate.Hz1000; index = 3; break;
             }
             SetTransmissionRate(rate, index);
         }
 
-        public void SetTransmissionRate(byte rate, int index)
+        public void SetTransmissionRate(TransmissionRate rate, int index)
         {
             try
             {
@@ -174,10 +174,10 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Update system status in settings
         /// </summary>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        /// <param name="systemStatus">System status (0=OK, 1=Warning, 2=Error)</param>
+        /// <param name="adcMode">ADC mode enum</param>
+        /// <param name="systemStatus">System status enum</param>
         /// <param name="errorFlags">Error flags</param>
-        public void UpdateSystemStatus(byte adcMode, byte systemStatus, byte errorFlags)
+        public void UpdateSystemStatus(AdcMode adcMode, SystemStatus systemStatus, byte errorFlags)
         {
             try
             {
@@ -197,7 +197,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Get last known ADC mode
         /// </summary>
         /// <returns>ADC mode (0=Internal, 1=ADS1115)</returns>
-        public byte GetLastKnownADCMode()
+        public AdcMode GetLastKnownADCMode()
         {
             return _settings.LastKnownADCMode;
         }
@@ -206,7 +206,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Get last known system status
         /// </summary>
         /// <returns>System status info</returns>
-        public (byte adcMode, byte systemStatus, byte errorFlags, DateTime lastUpdate) GetLastKnownSystemStatus()
+        public (AdcMode adcMode, SystemStatus systemStatus, byte errorFlags, DateTime lastUpdate) GetLastKnownSystemStatus()
         {
             return (_settings.LastKnownADCMode, _settings.LastKnownSystemStatus, 
                    _settings.LastKnownErrorFlags, _settings.LastStatusUpdate);
@@ -219,7 +219,14 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             try
             {
-                _settings.FilterType = filterType;
+                if (Enum.TryParse(filterType, out FilterType fType))
+                {
+                    _settings.FilterType = fType;
+                }
+                else
+                {
+                    _settings.FilterType = FilterType.EMA;
+                }
                 _settings.FilterAlpha = filterAlpha;
                 _settings.FilterWindowSize = filterWindowSize;
                 _settings.FilterEnabled = filterEnabled;
@@ -278,7 +285,14 @@ namespace ATS_TwoWheeler_WPF.Services
             try
             {
                 _settings.TXIndicatorFlashMs = txFlashMs;
-                _settings.LogFileFormat = logFormat;
+                if (Enum.TryParse(logFormat, out LogFormat lFormat))
+                {
+                    _settings.LogFileFormat = lFormat;
+                }
+                else
+                {
+                    _settings.LogFileFormat = LogFormat.CSV;
+                }
                 _settings.BatchProcessingSize = batchSize;
                 _settings.ClockUpdateIntervalMs = clockInterval;
                 _settings.CalibrationCaptureDelayMs = calibrationDelay;
@@ -314,7 +328,14 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             try
             {
-                _settings.CalibrationMode = mode;
+                if (Enum.TryParse(mode, out CalibrationMode calMode))
+                {
+                    _settings.CalibrationMode = calMode;
+                }
+                else
+                {
+                    _settings.CalibrationMode = CalibrationMode.Regression;
+                }
                 ProductionLogger.Instance.LogInfo($"Calibration mode set to: {mode}", "Settings");
             }
             catch (Exception ex)
@@ -351,12 +372,12 @@ namespace ATS_TwoWheeler_WPF.Services
         // Suspension-specific methods removed for ATS Two-Wheeler system
 
         // Implementation of added ISettingsService members
-        public LinearCalibration CalibrationDataInternal => LinearCalibration.LoadFromFile(0, false) ?? new LinearCalibration { IsValid = false };
-        public LinearCalibration CalibrationDataADS1115 => LinearCalibration.LoadFromFile(1, false) ?? new LinearCalibration { IsValid = false };
+        public LinearCalibration CalibrationDataInternal => LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Weight) ?? new LinearCalibration { IsValid = false };
+        public LinearCalibration CalibrationDataADS1115 => LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Weight) ?? new LinearCalibration { IsValid = false };
 
         public string GetCalibrationFilePath(bool adcMode)
         {
-            return PathHelper.GetCalibrationPath((byte)(adcMode ? 1 : 0), false);
+            return PathHelper.GetCalibrationPath(adcMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Weight);
         }
 
         public string GetTareFilePath()
@@ -366,7 +387,7 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void ResetCalibration(bool adsMode)
         {
-            LinearCalibration.DeleteCalibration((byte)(adsMode ? 1 : 0), false);
+            LinearCalibration.DeleteCalibration(adsMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Weight);
         }
 
         public double TareValue

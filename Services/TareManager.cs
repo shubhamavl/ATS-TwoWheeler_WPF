@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
@@ -27,8 +28,8 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Tare stores the absolute value (e.g., +23 kg) to compensate all future readings.
         /// </summary>
         /// <param name="currentCalibratedKg">Current calibrated weight in kg (must be negative)</param>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public void TareTotal(double currentCalibratedKg, byte adcMode)
+        /// <param name="adcMode">ADC mode enum</param>
+        public void TareTotal(double currentCalibratedKg, AdcMode adcMode)
         {
             // Validate offset value
             if (double.IsNaN(currentCalibratedKg) || double.IsInfinity(currentCalibratedKg))
@@ -45,7 +46,7 @@ namespace ATS_TwoWheeler_WPF.Services
             // Store the absolute value (positive) as offset for compensation
             double offset = Math.Abs(currentCalibratedKg);
             
-            if (adcMode == 0) // Internal
+            if (adcMode == AdcMode.InternalWeight) // Internal
             {
                 TotalOffsetKgInternal = offset; // Store positive offset
                 TotalIsTaredInternal = true;
@@ -65,9 +66,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Reset total tare for specific ADC mode
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public void ResetTotal(byte adcMode)
+        public void ResetTotal(AdcMode adcMode)
         {
-            if (adcMode == 0) // Internal
+            if (adcMode == AdcMode.InternalWeight) // Internal
             {
                 TotalIsTaredInternal = false;
                 TotalOffsetKgInternal = 0;
@@ -84,8 +85,8 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public void ResetAll()
         {
-            ResetTotal(0);
-            ResetTotal(1);
+            ResetTotal(AdcMode.InternalWeight);
+            ResetTotal(AdcMode.Ads1115);
         }
         
         /// <summary>
@@ -96,12 +97,12 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <param name="calibratedKg">Current calibrated weight in kg</param>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>Compensated weight (calibrated + offset, where offset is positive)</returns>
-        public double ApplyTare(double calibratedKg, byte adcMode)
+        public double ApplyTare(double calibratedKg, AdcMode adcMode)
         {
             double offset = 0;
             bool isTared = false;
             
-            if (adcMode == 0) // Internal
+            if (adcMode == AdcMode.InternalWeight) // Internal
             {
                 offset = TotalOffsetKgInternal;
                 isTared = TotalIsTaredInternal;
@@ -131,9 +132,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>True if tared</returns>
-        public bool IsTared(byte adcMode)
+        public bool IsTared(AdcMode adcMode)
         {
-            return adcMode == 0 ? TotalIsTaredInternal : TotalIsTaredADS1115;
+            return adcMode == AdcMode.InternalWeight ? TotalIsTaredInternal : TotalIsTaredADS1115;
         }
         
         /// <summary>
@@ -141,9 +142,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>Offset weight in kg (positive value, stored as absolute of negative weight)</returns>
-        public double GetOffsetKg(byte adcMode)
+        public double GetOffsetKg(AdcMode adcMode)
         {
-            return adcMode == 0 ? TotalOffsetKgInternal : TotalOffsetKgADS1115;
+            return adcMode == AdcMode.InternalWeight ? TotalOffsetKgInternal : TotalOffsetKgADS1115;
         }
         
         /// <summary>
@@ -151,9 +152,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>Tare time or DateTime.MinValue if not tared</returns>
-        public DateTime GetTareTime(byte adcMode)
+        public DateTime GetTareTime(AdcMode adcMode)
         {
-            return adcMode == 0 ? TotalTareTimeInternal : TotalTareTimeADS1115;
+            return adcMode == AdcMode.InternalWeight ? TotalTareTimeInternal : TotalTareTimeADS1115;
         }
         
         /// <summary>
@@ -161,7 +162,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>Status text</returns>
-        public string GetTareStatusText(byte adcMode)
+        public string GetTareStatusText(AdcMode adcMode)
         {
             bool isTared = IsTared(adcMode);
             if (isTared)
@@ -180,7 +181,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         /// <returns>Tare time or empty string if not tared</returns>
-        public string GetTareTimeText(byte adcMode)
+        public string GetTareTimeText(AdcMode adcMode)
         {
             if (IsTared(adcMode))
             {

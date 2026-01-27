@@ -3,6 +3,7 @@ using System.Windows.Media;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -137,11 +138,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             if (_weightProcessor.Ads1115Calibration?.IsValid == true) CalStatusText = "Calibrated (ADS)";
         }
         
-        public void UpdateSystemStatus(byte adcMode, byte relayState)
+        public void UpdateSystemStatus(AdcMode adcMode, SystemMode relayState)
         {
-             AdcModeText = adcMode == 1 ? "ADS1115 16-bit" : "Internal 12-bit";
-             SystemModeText = relayState == 0 ? "Weight" : "Brake";
-             IsBrakeMode = relayState != 0;
+             AdcModeText = adcMode == AdcMode.Ads1115 ? "ADS1115 16-bit" : "Internal 12-bit";
+             IsBrakeMode = relayState == SystemMode.Brake;
+             SystemModeText = IsBrakeMode ? "Brake" : "Weight";
         }
     }
 }

@@ -64,6 +64,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             StatusBar = new AppStatusBarViewModel(_canService, updateService, dialogService);
             Settings = new SettingsViewModel(_settings);
             
+            // Wire up CAN Service to Weight Processor and UI
+            _canService.RawDataReceived += OnRawDataReceived;
+            _canService.SystemStatusReceived += OnSystemStatusReceived;
+            
             // Commands
             OpenSettingsCommand = new RelayCommand(_ => OnOpenSettings());
             OpenConfigViewerCommand = new RelayCommand(_ => OpenConfigViewerRequested?.Invoke());
@@ -103,8 +107,28 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             OpenSettingsRequested?.Invoke();
         }
 
+        private void OnRawDataReceived(object? sender, RawDataEventArgs e)
+        {
+            _weightProcessor.EnqueueRawData(e.RawADCSum);
+        }
+
+        private void OnSystemStatusReceived(object? sender, SystemStatusEventArgs e)
+        {
+            // Sync Dashboard state
+            Dashboard.UpdateSystemStatus(e.ADCMode, e.RelayState);
+            
+            // Sync Calibration state
+            Calibration.UpdateSystemStatus(e.ADCMode, e.RelayState);
+            
+            // Sync WeightProcessor mode
+            _weightProcessor.SetADCMode(e.ADCMode);
+            _weightProcessor.SetBrakeMode(e.RelayState != 0);
+        }
+
         public void Cleanup()
         {
+            _canService.RawDataReceived -= OnRawDataReceived;
+            _canService.SystemStatusReceived -= OnSystemStatusReceived;
             _uiTimer.Stop();
             _weightProcessor.Stop();
             _canService.Disconnect();

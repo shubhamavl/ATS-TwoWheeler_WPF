@@ -46,6 +46,10 @@ namespace ATS_TwoWheeler_WPF.Core
             
             // Weight Processor
             var weightProcessor = new WeightProcessor();
+            var tareManager = new TareManager();
+            tareManager.LoadFromFile();
+            weightProcessor.SetTareManager(tareManager);
+            
             Register<IWeightProcessorService>(weightProcessor);
             
             // Data Logger

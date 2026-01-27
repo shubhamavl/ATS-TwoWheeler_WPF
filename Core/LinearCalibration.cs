@@ -3,18 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.Core
 {
-    /// <summary>
-    /// Calibration mode enumeration
-    /// </summary>
-    public enum CalibrationMode
-    {
-        Regression,  // Global linear regression (default, backward compatible)
-        Piecewise    // Piecewise linear interpolation between adjacent points
-    }
-    
     /// <summary>
     /// Represents a single segment in piecewise linear calibration
     /// </summary>
@@ -38,8 +30,8 @@ namespace ATS_TwoWheeler_WPF.Core
         public DateTime CalibrationDate { get; set; }
         public bool IsValid { get; set; }
         public string Side { get; set; } = "";     // "Left" or "Right"
-        public byte ADCMode { get; set; } = 0;    // 0=Internal, 1=ADS1115
-        public bool IsBrakeMode { get; set; } = false; // True=Brake Force, False=Total Weight
+        public AdcMode ADCMode { get; set; } = AdcMode.InternalWeight;
+        public SystemMode SystemMode { get; set; } = SystemMode.Weight;
         
         // Calibration mode: Regression (default) or Piecewise
         public CalibrationMode Mode { get; set; } = CalibrationMode.Regression;
@@ -93,7 +85,7 @@ namespace ATS_TwoWheeler_WPF.Core
                     Points = new List<CalibrationPoint>(points),
                     R2 = 1.0, // Perfect fit for single point
                     MaxErrorPercent = 0.0,
-                    ADCMode = 0 // Default to Internal, should be set by caller
+                    ADCMode = AdcMode.InternalWeight // Default to Internal, should be set by caller
                 };
             }
             
@@ -165,7 +157,7 @@ namespace ATS_TwoWheeler_WPF.Core
                 Points = new List<CalibrationPoint>(points),
                 R2 = r2,
                 MaxErrorPercent = maxErrorPercent,
-                ADCMode = 0 // Default to Internal, should be set by caller
+                ADCMode = AdcMode.InternalWeight // Default to Internal, should be set by caller
             };
         }
         
@@ -341,15 +333,15 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <summary>
         /// Save calibration to JSON file
         /// </summary>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115). If not provided, uses current ADCMode property.</param>
-        public void SaveToFile(byte? adcMode = null)
+        /// <param name="adcMode">ADC mode enum. If not provided, uses current ADCMode property.</param>
+        public void SaveToFile(AdcMode? adcMode = null)
         {
-            Side = IsBrakeMode ? "Brake" : "Total";
+            Side = SystemMode == SystemMode.Brake ? "Brake" : "Total";
             if (adcMode.HasValue)
             {
                 ADCMode = adcMode.Value;
             }
-            string filename = PathHelper.GetCalibrationPath(ADCMode, IsBrakeMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(ADCMode, SystemMode); // Portable: in Data directory
             string jsonString = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filename, jsonString);
         }
@@ -357,12 +349,12 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <summary>
         /// Load calibration from JSON file
         /// </summary>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        /// <param name="isBrakeMode">True for brake calibration</param>
+        /// <param name="adcMode">ADC mode enum</param>
+        /// <param name="systemMode">System mode enum</param>
         /// <returns>Loaded calibration or null if file doesn't exist</returns>
-        public static LinearCalibration? LoadFromFile(byte adcMode, bool isBrakeMode = false)
+        public static LinearCalibration? LoadFromFile(AdcMode adcMode, SystemMode systemMode = SystemMode.Weight)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, systemMode); // Portable: in Data directory
             if (!File.Exists(filename))
                 return null;
                 
@@ -397,29 +389,23 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <summary>
         /// Check if calibration file exists for ADC mode
         /// </summary>
-        /// <summary>
-        /// Check if calibration file exists for ADC mode
-        /// </summary>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        /// <param name="isBrakeMode">True for brake calibration</param>
+        /// <param name="adcMode">ADC mode enum</param>
+        /// <param name="systemMode">System mode enum</param>
         /// <returns>True if calibration file exists</returns>
-        public static bool CalibrationExists(byte adcMode, bool isBrakeMode = false)
+        public static bool CalibrationExists(AdcMode adcMode, SystemMode systemMode = SystemMode.Weight)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, systemMode); // Portable: in Data directory
             return File.Exists(filename);
         }
         
         /// <summary>
         /// Delete calibration file for ADC mode
         /// </summary>
-        /// <summary>
-        /// Delete calibration file for ADC mode
-        /// </summary>
-        /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        /// <param name="isBrakeMode">True for brake calibration</param>
-        public static void DeleteCalibration(byte adcMode, bool isBrakeMode = false)
+        /// <param name="adcMode">ADC mode enum</param>
+        /// <param name="systemMode">System mode enum</param>
+        public static void DeleteCalibration(AdcMode adcMode, SystemMode systemMode = SystemMode.Weight)
         {
-            string filename = PathHelper.GetCalibrationPath(adcMode, isBrakeMode); // Portable: in Data directory
+            string filename = PathHelper.GetCalibrationPath(adcMode, systemMode); // Portable: in Data directory
             if (File.Exists(filename))
             {
                 try

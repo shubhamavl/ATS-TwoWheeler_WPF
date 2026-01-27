@@ -161,7 +161,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             {
                 if (SetProperty(ref _isBrakeMode, value))
                 {
-                    _canService.SwitchSystemMode(_isBrakeMode);
+                    _canService.SwitchSystemMode(_isBrakeMode ? SystemMode.Brake : SystemMode.Weight);
                     UnitLabel = _isBrakeMode ? "N" : "kg";
                     OnPropertyChanged(nameof(MainWeightText));
                     OnPropertyChanged(nameof(TotalWeightText));

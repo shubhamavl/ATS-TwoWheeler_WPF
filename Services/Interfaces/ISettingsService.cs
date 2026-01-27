@@ -16,8 +16,8 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void SetTransmissionRate(string samplingRate);
         void SetSaveDirectory(string path);
         
-        void UpdateSystemStatus(byte adcMode, byte systemStatus, byte errorFlags);
-        byte GetLastKnownADCMode();
+        void UpdateSystemStatus(AdcMode adcMode, SystemStatus systemStatus, byte errorFlags);
+        AdcMode GetLastKnownADCMode();
         
         void SetFilterSettings(string type, double alpha, int windowSize, bool enabled);
         void SetDisplaySettings(int weightDecimals, int uiUpdateRate, int dataTimeoutSeconds);

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Globalization;
 using ATS_TwoWheeler_WPF.Core;
+using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 
 namespace ATS_TwoWheeler_WPF.Services
@@ -18,9 +19,9 @@ namespace ATS_TwoWheeler_WPF.Services
         
         // System status tracking
         // System status tracking
-        private byte _lastSystemStatus = 0;
+        private SystemStatus _lastSystemStatus = SystemStatus.Ok;
         private byte _lastErrorFlags = 0;
-        private byte _lastRelayState = 0;
+        private SystemMode _lastRelayState = SystemMode.Weight;
         private ushort _lastCanTxHz = 0;
         private ushort _lastAdcSampleHz = 0;
         private uint _lastUptimeSeconds = 0;
@@ -106,7 +107,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <summary>
         /// Update system status for logging
         /// </summary>
-        public void UpdateSystemStatus(byte systemStatus, byte errorFlags, byte relayState, 
+        public void UpdateSystemStatus(SystemStatus systemStatus, byte errorFlags, SystemMode relayState, 
                                      ushort canTxHz, ushort adcSampleHz, uint uptimeSeconds, string firmwareVersion)
         {
             lock (_logLock)
@@ -134,7 +135,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <param name="calIntercept">Calibration intercept</param>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
         public void LogDataPoint(string side, int rawADC, double calibratedKg, double taredKg, 
-                               double tareBaseline, double calSlope, double calIntercept, byte adcMode)
+                               double tareBaseline, double calSlope, double calIntercept, AdcMode adcMode)
         {
             // Early exit check (outside lock for performance)
             if (!_isLogging)
@@ -154,8 +155,8 @@ namespace ATS_TwoWheeler_WPF.Services
                         : "";
                     
                     string line = $"{timestamp},{side},{rawADC},{calibratedKg:F3},{taredKg:F3}," +
-                                 $"{tareBaseline:F3},{calSlope:F6},{calIntercept:F3},{adcMode}," +
-                                 $"{_lastSystemStatus},{_lastErrorFlags},{_lastRelayState},{_lastCanTxHz},{_lastAdcSampleHz},{_lastUptimeSeconds},{_lastFirmwareVersion},{statusTimestamp}";
+                                 $"{tareBaseline:F3},{calSlope:F6},{calIntercept:F3},{(byte)adcMode}," +
+                                 $"{(byte)_lastSystemStatus},{_lastErrorFlags},{(byte)_lastRelayState},{_lastCanTxHz},{_lastAdcSampleHz},{_lastUptimeSeconds},{_lastFirmwareVersion},{statusTimestamp}";
                     
                     File.AppendAllText(_logFilePath, line + Environment.NewLine);
                 }

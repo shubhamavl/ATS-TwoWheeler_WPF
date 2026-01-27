@@ -9,21 +9,21 @@ namespace ATS_TwoWheeler_WPF.Models
     public class AppSettings
     {
         public string ComPort { get; set; } = string.Empty;
-        public byte TransmissionRate { get; set; } = 0x03; // Default 1kHz sampling
-        public byte CanBaudRate { get; set; } = 0x01; // Default 250kbps CAN
+        public TransmissionRate TransmissionRate { get; set; } = TransmissionRate.Hz1000; // Default 1kHz sampling
+        public CanBaudRate CanBaudRate { get; set; } = CanBaudRate.Bps250k; // Default 250kbps CAN
         public int TransmissionRateIndex { get; set; } = 3; // Index for 1kHz in streaming rates
         public int CanBaudRateIndex { get; set; } = 1; // Index for 250kbps in baud rates
         public string SaveDirectory { get; set; } = PathHelper.GetDataDirectory(); // Portable: relative to executable
         public DateTime LastSaved { get; set; } = DateTime.Now;
         
         // System status persistence
-        public byte LastKnownADCMode { get; set; } = 0; // 0=Internal, 1=ADS1115
-        public byte LastKnownSystemStatus { get; set; } = 0; // 0=OK, 1=Warning, 2=Error
+        public AdcMode LastKnownADCMode { get; set; } = AdcMode.InternalWeight; // 0=Internal, 1=ADS1115
+        public SystemStatus LastKnownSystemStatus { get; set; } = SystemStatus.Ok; // 0=OK, 1=Warning, 2=Error
         public byte LastKnownErrorFlags { get; set; } = 0;
         public DateTime LastStatusUpdate { get; set; } = DateTime.MinValue;
         
         // Weight Filtering Settings
-        public string FilterType { get; set; } = "EMA"; // "EMA", "SMA", "None"
+        public FilterType FilterType { get; set; } = FilterType.EMA; // "EMA", "SMA", "None"
         public double FilterAlpha { get; set; } = 0.15; // EMA alpha (0.0-1.0)
         public int FilterWindowSize { get; set; } = 10; // SMA window size
         public bool FilterEnabled { get; set; } = true; // Enable/disable filtering
@@ -43,7 +43,7 @@ namespace ATS_TwoWheeler_WPF.Models
         
         // Advanced Settings (Low Priority)
         public int TXIndicatorFlashMs { get; set; } = 200; // TX indicator flash duration
-        public string LogFileFormat { get; set; } = "CSV"; // Log format: "CSV", "JSON", "TXT" (future)
+        public LogFormat LogFileFormat { get; set; } = LogFormat.CSV; // Log format: "CSV", "JSON", "TXT"
         public int BatchProcessingSize { get; set; } = 50; // Messages processed per batch
         public int ClockUpdateIntervalMs { get; set; } = 1000; // Clock refresh rate
         public int CalibrationCaptureDelayMs { get; set; } = 500; // Delay before capturing calibration point
@@ -59,7 +59,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public double CalibrationMaxStdDev { get; set; } = 10.0; // Maximum acceptable standard deviation (warning threshold)
         
         // Calibration Mode Settings
-        public string CalibrationMode { get; set; } = "Regression"; // "Regression" or "Piecewise" - global calibration mode
+        public CalibrationMode CalibrationMode { get; set; } = CalibrationMode.Regression; // "Regression" or "Piecewise"
         
         // Bootloader Settings
         public bool EnableBootloaderFeatures { get; set; } = true; // Enable/disable all bootloader functionality
