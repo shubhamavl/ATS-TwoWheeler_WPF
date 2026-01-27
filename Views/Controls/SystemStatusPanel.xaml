@@ -46,8 +46,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Row 0: Status & Relay -->
@@ -81,24 +79,8 @@
                     <TextBlock Text="{Binding FirmwareVersionText}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Row 3: Raw ADC -->
-                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="Raw ADC Sum:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding RawAdcText}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="#FF1B5E96"/>
-                </StackPanel>
-
-                <!-- Row 4: Frame Counts -->
-                <StackPanel Grid.Row="4" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="TX Frames:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TxFrames}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,10">
-                    <TextBlock Text="RX Frames:" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding RxFrames}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Row 5: Last Update -->
-                <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,5,0,10">
+                <!-- Row 3: Last Update -->
+                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,5,0,10">
                     <TextBlock Text="Last Data Received:" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#FF95A5A6" FontStyle="Italic"/>
                     <TextBlock Text="{Binding LastUpdateText}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF7F8C8D"/>
                 </StackPanel>
