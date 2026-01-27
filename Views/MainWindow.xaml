@@ -63,53 +63,46 @@
             </Border.Effect>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <!-- Logo/Title -->
-                    <ColumnDefinition Width="*"/>    <!-- Spacer -->
-                    <ColumnDefinition Width="Auto"/> <!-- Connection Controls -->
+                    <ColumnDefinition Width="Auto"/> <!-- Status Items Left (Logo, CAN Bitrate) -->
+                    <ColumnDefinition Width="*"/>    <!-- Center (Operation Buttons) -->
+                    <ColumnDefinition Width="Auto"/> <!-- Status Items Right (Status, ADC, Rate) -->
                 </Grid.ColumnDefinitions>
                 
+                <!-- Left Section: Logo and CAN Info -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="pack://application:,,,/Assets/AVL_Logo.jpg" Width="40" Height="40" Margin="0,0,15,0"/>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="ATS Two-Wheeler System" Foreground="White" 
-                                   FontSize="20" FontWeight="Bold"/>
-                        <TextBlock Text="Weight Measurement Monitor" Foreground="#FFBDC3C7" 
-                                   FontSize="12"/>
-                    </StackPanel>
+                    <Border Background="#FF34495E" CornerRadius="2" Padding="4" Margin="0,0,15,0">
+                        <TextBlock Text="AVL ⚙" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                    </Border>
+                    <TextBlock Text="{Binding Connection.SelectedBaudRate, StringFormat='CAN: {0}'}" 
+                               Foreground="White" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <!-- Connection Button -->
+                <!-- Center Section: Operation Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
                     <Button Content="{Binding Connection.ConnectionButtonText}" Command="{Binding Connection.ConnectCommand}" 
                             Style="{StaticResource HeaderButton}"
                             Background="{Binding Connection.ConnectionButtonColor}"
-                            Margin="0,0,5,0"/>
+                            Margin="0,0,8,0"/>
                     
-                    <!-- Start Stream Button -->
                     <Button Content="▶ Start Stream" Command="{Binding Connection.StartStreamCommand}"
                             Style="{StaticResource HeaderButton}"
                             Background="#FF28A745"
-                            Margin="0,0,5,0"/>
+                            Margin="0,0,8,0"/>
                     
-                    <!-- Stop All Button -->
                     <Button Content="⏹ Stop All" Command="{Binding StopAllCommand}"
                             Style="{StaticResource HeaderButton}"
                             Background="#FFDC3545"
-                            Margin="0,0,5,0"/>
+                            Margin="0,0,8,0"/>
                     
-                    
-                    <!-- Open Settings Button -->
                     <Button Content="⚙ Settings" Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource HeaderButton}"
-                            Background="#FF6F42C1"
-                            Margin="0,0,5,0"/>
+                            Background="#FF7F8C8D"
+                            Margin="0,0,8,0"/>
                     
-                    <!-- Tools Menu Button -->
                     <Button x:Name="ToolsButton" Content="🔧 Tools"
                             Click="ToolsButton_Click"
                             Style="{StaticResource HeaderButton}"
-                            Background="#FF17A2B8"
-                            Margin="0,0,5,0">
+                            Background="#FF7F8C8D">
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Configuration Viewer" Command="{Binding OpenConfigViewerCommand}"/>
@@ -120,19 +113,30 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
-                    
+                </StackPanel>
+
+                <!-- Right Section: Status and Rate Selector -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Connectivity:" Foreground="#FFBDC3C7" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                    <Ellipse Width="10" Height="10" Fill="{Binding Connection.StatusColor}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Connection.ConnectionStatusText}" Foreground="White" FontWeight="SemiBold" Margin="0,0,15,0" VerticalAlignment="Center"/>
+
+                    <TextBlock Text="Rate:" Foreground="#FFBDC3C7" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding Connection.StreamingRates}" 
+                              SelectedItem="{Binding Connection.SelectedStreamingRate}"
+                              Width="75" Height="24" Padding="5,0" VerticalContentAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Border>
         <!-- Main Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="20">
-                 <!-- Main Dashboard (Weight Display) -->
-                 <controls:DashboardPanel DataContext="{Binding Dashboard}" Margin="0,0,0,20"/>
-                 
-                 <!-- Calibration Actions -->
-                 <GroupBox Header="Calibration &amp; Controls" Margin="0,0,0,20" Padding="10">
-                    <controls:CalibrationPanel DataContext="{Binding Calibration}"/>
+                 <!-- Operational Area: Live Weight Data & Controls -->
+                 <GroupBox Header="Live Weight Data" Margin="0,0,0,20" Padding="10">
+                    <StackPanel>
+                        <controls:DashboardPanel DataContext="{Binding Dashboard}"/>
+                        <controls:CalibrationPanel DataContext="{Binding Calibration}" Margin="0,10,0,0"/>
+                    </StackPanel>
                  </GroupBox>
 
                  <Grid>

@@ -12,7 +12,8 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void SaveSettings();
         
         void SetComPort(string portName);
-        void SetTransmissionRate(string baudRate);
+        void SetCanBaudRate(string baudRate);
+        void SetTransmissionRate(string samplingRate);
         void SetSaveDirectory(string path);
         
         void UpdateSystemStatus(byte adcMode, byte systemStatus, byte errorFlags);

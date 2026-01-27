@@ -8,9 +8,11 @@ namespace ATS_TwoWheeler_WPF.Models
     /// </summary>
     public class AppSettings
     {
-        public string ComPort { get; set; } = "COM3";
-        public byte TransmissionRate { get; set; } = 0x03; // Default 1kHz
-        public int TransmissionRateIndex { get; set; } = 2; // ComboBox index
+        public string ComPort { get; set; } = string.Empty;
+        public byte TransmissionRate { get; set; } = 0x03; // Default 1kHz sampling
+        public byte CanBaudRate { get; set; } = 0x01; // Default 250kbps CAN
+        public int TransmissionRateIndex { get; set; } = 3; // Index for 1kHz in streaming rates
+        public int CanBaudRateIndex { get; set; } = 1; // Index for 250kbps in baud rates
         public string SaveDirectory { get; set; } = PathHelper.GetDataDirectory(); // Portable: relative to executable
         public DateTime LastSaved { get; set; } = DateTime.Now;
         

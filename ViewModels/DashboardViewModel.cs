@@ -28,6 +28,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         }
 
         // Indicators
+
         private string _streamStatusText = "Stopped";
         public string StreamStatusText
         {
@@ -118,8 +119,19 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
 
             // Sync with CAN state
-            StreamStatusText = _canService.IsConnected ? "Connected" : "Disconnected";
-            StreamIndicatorColor = _canService.IsConnected ? new SolidColorBrush(Color.FromRgb(39, 174, 96)) : new SolidColorBrush(Color.FromRgb(220, 53, 69));
+            if (_canService.IsStreaming)
+            {
+                StreamStatusText = "Streaming";
+                StreamIndicatorColor = new SolidColorBrush(Color.FromRgb(39, 174, 96)); // Green
+            }
+            else
+            {
+                StreamStatusText = "Stopped";
+                StreamIndicatorColor = new SolidColorBrush(Color.FromRgb(255, 193, 7)); // Amber/Yellow for stopped but connected? Or just Red/Grey?
+                // Using Red for Stopped to match original style, or Orange for 'Ready but stopped' if connected.
+                // Let's stick to Red for Stopped for now for clarity.
+                StreamIndicatorColor = new SolidColorBrush(Color.FromRgb(220, 53, 69));
+            }
             
             CalStatusText = (_weightProcessor.InternalCalibration?.IsValid == true) ? "Calibrated (Internal)" : "Uncalibrated";
             if (_weightProcessor.Ads1115Calibration?.IsValid == true) CalStatusText = "Calibrated (ADS)";

@@ -7,6 +7,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     public interface ICANService : IDisposable
     {
         bool IsConnected { get; }
+        bool IsStreaming { get; }
         byte CurrentADCMode { get; }
         long TxMessageCount { get; }
         long RxMessageCount { get; }

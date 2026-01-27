@@ -27,6 +27,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private SerialPort? _serialPort;
         private readonly ConcurrentQueue<byte> _frameBuffer = new();
         private volatile bool _connected;
+        private volatile bool _isStreaming;
         public long TxMessageCount { get; private set; }
         public long RxMessageCount { get; private set; }
         private CancellationTokenSource? _cancellationTokenSource;
@@ -86,6 +87,7 @@ namespace ATS_TwoWheeler_WPF.Services
 
 
         public bool IsConnected => _connected;
+        public bool IsStreaming => _isStreaming;
         public byte CurrentADCMode => _eventDispatcher.CurrentADCMode;
         
         public void SetADCMode(byte mode)
@@ -173,6 +175,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private void OnAdapterDataTimeout(object? sender, string timeoutMessage)
         {
             DataTimeout?.Invoke(this, timeoutMessage);
+            _isStreaming = false;
         }
 
         private void OnAdapterConnectionStatusChanged(object? sender, bool connected)
@@ -249,6 +252,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public void Disconnect()
         {
             _connected = false;
+            _isStreaming = false;
             _cancellationTokenSource?.Cancel();
             if (_serialPort?.IsOpen == true)
                 _serialPort.Close();
@@ -417,13 +421,17 @@ namespace ATS_TwoWheeler_WPF.Services
             byte[] data = new byte[1];
             data[0] = rate;  // Rate selection
             
-            return SendMessage(CAN_MSG_ID_START_STREAM, data);
+            bool success = SendMessage(CAN_MSG_ID_START_STREAM, data);
+            if (success) _isStreaming = true;
+            return success;
         }
 
         public bool StopAllStreams()
         {
             // Empty message (0 bytes) for stop all streams
-            return SendMessage(CAN_MSG_ID_STOP_ALL_STREAMS, new byte[0]);
+            bool success = SendMessage(CAN_MSG_ID_STOP_ALL_STREAMS, new byte[0]);
+            if (success) _isStreaming = false;
+            return success;
         }
 
         public bool SwitchToInternalADC()

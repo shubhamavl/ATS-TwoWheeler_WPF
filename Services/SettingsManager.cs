@@ -101,9 +101,8 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
 
-        public void SetTransmissionRate(string baudRate)
+        public void SetCanBaudRate(string baudRate)
         {
-            // Map string to byte/index (Quick mapping for refactor compatibility)
             byte rate = 0x01; // Default 250k
             int index = 1;
             
@@ -114,6 +113,31 @@ namespace ATS_TwoWheeler_WPF.Services
                 case "500 kbps": rate = 0x02; index = 2; break;
                 case "1 Mbps":   rate = 0x03; index = 3; break;
             }
+            
+            try
+            {
+                _settings.CanBaudRate = rate;
+                _settings.CanBaudRateIndex = index;
+                ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{rate:X2})", "Settings");
+            }
+            catch (Exception ex)
+            {
+                ProductionLogger.Instance.LogError($"Failed to set CAN baud rate: {ex.Message}", "Settings");
+            }
+        }
+
+        public void SetTransmissionRate(string samplingRate)
+        {
+            byte rate = 0x03; // Default 1kHz
+            int index = 3;
+            
+            switch (samplingRate)
+            {
+                case "1 Hz":   rate = 0x05; index = 0; break;
+                case "100 Hz": rate = 0x01; index = 1; break;
+                case "500 Hz": rate = 0x02; index = 2; break;
+                case "1 kHz":  rate = 0x03; index = 3; break;
+            }
             SetTransmissionRate(rate, index);
         }
 
@@ -123,11 +147,11 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _settings.TransmissionRate = rate;
                 _settings.TransmissionRateIndex = index;
-                ProductionLogger.Instance.LogInfo($"Transmission rate set to: 0x{rate:X2} (index: {index})", "Settings");
+                ProductionLogger.Instance.LogInfo($"Sampling rate set to: 0x{rate:X2} (index: {index})", "Settings");
             }
             catch (Exception ex)
             {
-                ProductionLogger.Instance.LogError($"Failed to set transmission rate: {ex.Message}", "Settings");
+                ProductionLogger.Instance.LogError($"Failed to set sampling rate: {ex.Message}", "Settings");
             }
         }
 
