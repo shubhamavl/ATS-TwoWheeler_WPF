@@ -99,9 +99,9 @@
                     
                     
                     <!-- Open Settings Button -->
-                    <Button Content="⚙ Config" Command="{Binding OpenSettingsCommand}"
+                    <Button Content="⚙ Settings" Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource HeaderButton}"
-                            Background="#FF7F8C8D"
+                            Background="#FF6F42C1"
                             Margin="0,0,5,0"/>
                     
                     <!-- Tools Menu Button -->
@@ -130,6 +130,11 @@
                  <!-- Main Dashboard (Weight Display) -->
                  <controls:DashboardPanel DataContext="{Binding Dashboard}" Margin="0,0,0,20"/>
                  
+                 <!-- Calibration Actions -->
+                 <GroupBox Header="Calibration &amp; Controls" Margin="0,0,0,20" Padding="10">
+                    <controls:CalibrationPanel DataContext="{Binding Calibration}"/>
+                 </GroupBox>
+
                  <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -142,11 +147,6 @@
                     <!-- Data Logging -->
                     <controls:LoggingPanel Grid.Column="1" DataContext="{Binding Logging}" Margin="10,0,0,0"/>
                  </Grid>
-                 
-                 <!-- Calibration Actions -->
-                 <GroupBox Header="Calibration &amp; Controls" Margin="0,20,0,0" Padding="10">
-                    <controls:CalibrationPanel DataContext="{Binding Calibration}"/>
-                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
         

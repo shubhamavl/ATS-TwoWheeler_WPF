@@ -75,15 +75,27 @@
                     </Border>
                 </UniformGrid>
 
-                <!-- Footer Summary -->
-                <Border Background="#FFF1F3F5" CornerRadius="4" Margin="0,20,0,0" Padding="10">
-                    <DockPanel>
-                        <TextBlock Text="{Binding TareStatusText}" FontWeight="SemiBold" Foreground="#FF34495E" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="Raw ADC:" Margin="0,0,10,0" Foreground="#FF7F8C8D" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding RawAdcText}" FontWeight="Bold" Foreground="#FF2980B9" VerticalAlignment="Center"/>
+                <Border Background="#FFF1F3F5" CornerRadius="4" Margin="0,20,0,0" Padding="15">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Stacked Information -->
+                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding TareStatusText}" 
+                                     FontSize="24" FontWeight="Bold" 
+                                     Foreground="#FF2C3E50" 
+                                     HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="Raw ADC: " FontSize="16" Foreground="#FF7F8C8D" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding RawAdcText}" FontSize="18" FontWeight="SemiBold" Foreground="#FF2980B9" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </StackPanel>
-                    </DockPanel>
+                    </Grid>
                 </Border>
             </StackPanel>
         </Border>

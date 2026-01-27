@@ -9,24 +9,20 @@
         WindowStartupLocation="CenterOwner" Background="#F5F5F5">
     
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-        <Grid Margin="20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <StackPanel Margin="20">
             
-            <!-- Left Column: Connection Settings -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,10,0">
+            <!-- Connection Settings -->
+            <Border Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,15">
                 <StackPanel>
                     <TextBlock Text="Connection Configuration" FontSize="18" FontWeight="Bold" Margin="0,0,0,15" Foreground="#FF2C3E50"/>
                     <controls:ConnectionConfigurationPanel DataContext="{Binding Connection}"/>
                 </StackPanel>
             </Border>
             
-            <!-- Right Column: Application Settings -->
-            <Border Grid.Column="1" Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15" Margin="10,0,0,0">
+            <!-- Application Settings -->
+            <Border Background="White" BorderBrush="#FFDDDDDD" BorderThickness="1" CornerRadius="4" Padding="15">
                 <controls:SettingsPanel DataContext="{Binding Settings}"/>
             </Border>
-        </Grid>
+        </StackPanel>
     </ScrollViewer>
 </Window>
