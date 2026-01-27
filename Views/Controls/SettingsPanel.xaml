@@ -91,8 +91,6 @@
                                     <TextBlock Text="Window Size:" Style="{StaticResource LabelStyle}"/>
                                     <TextBox Text="{Binding FilterWindowSize}" Width="60"/>
                                 </StackPanel>
-                                
-                                <CheckBox Content="Enable Filtering" IsChecked="{Binding FilterEnabled}" Margin="140,5,0,0"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
