@@ -296,9 +296,6 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 _lastRateCheck = now;
                 OnPropertyChanged(nameof(DataRateText));
                 OnPropertyChanged(nameof(DataPointsPerSec));
-                
-                // Auto-sync
-                _canService.RequestSystemStatus();
             }
             if (CurrentState == TestState.Running)
             {

@@ -419,7 +419,11 @@ namespace ATS_TwoWheeler_WPF.Services
             data[0] = (byte)rate;  // Rate selection
             
             bool success = SendMessage(CAN_MSG_ID_START_STREAM, data);
-            if (success) _isStreaming = true;
+            if (success) 
+            {
+                _isStreaming = true;
+                RequestSystemStatus(); // Update UI with latest status immediately
+            }
             return success;
         }
 
@@ -427,7 +431,11 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             // Empty message (0 bytes) for stop all streams
             bool success = SendMessage(CAN_MSG_ID_STOP_ALL_STREAMS, new byte[0]);
-            if (success) _isStreaming = false;
+            if (success) 
+            {
+                _isStreaming = false;
+                RequestSystemStatus(); // Update UI with latest status immediately
+            }
             return success;
         }
 
@@ -438,6 +446,7 @@ namespace ATS_TwoWheeler_WPF.Services
             if (success)
             {
                 _eventDispatcher.CurrentADCMode = AdcMode.InternalWeight; // Update mode immediately for correct parsing
+                RequestSystemStatus(); // Update UI with latest status immediately
             }
             return success;
         }
@@ -449,6 +458,7 @@ namespace ATS_TwoWheeler_WPF.Services
             if (success)
             {
                 _eventDispatcher.CurrentADCMode = AdcMode.Ads1115; // Update mode immediately for correct parsing
+                RequestSystemStatus(); // Update UI with latest status immediately
             }
             return success;
         }
@@ -461,7 +471,12 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             byte[] data = new byte[] { (byte)mode };
             // Set System Mode (0x050)
-            return SendMessage(CAN_MSG_ID_SET_SYSTEM_MODE, data);
+            bool success = SendMessage(CAN_MSG_ID_SET_SYSTEM_MODE, data);
+            if (success)
+            {
+                RequestSystemStatus(); // Update UI with latest status immediately
+            }
+            return success;
         }
 
         /// <summary>
