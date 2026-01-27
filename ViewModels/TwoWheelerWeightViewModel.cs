@@ -307,8 +307,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             var internalCal = _weightProcessor.InternalCalibration;
             var adsCal = _weightProcessor.Ads1115Calibration;
             
-            // This is a bit simplified; ideally WeightProcessor should expose a Single property for IsActiveCalibrated
-            // But checking if ANY valid calibration exists for the current mode is a good start
+            // TODO: Expose a single IsActiveCalibrated property in WeightProcessor to simplify this check
             IsCalibrated = (internalCal?.IsValid == true) || (adsCal?.IsValid == true);
 
             // Sync UnitLabel with settings
