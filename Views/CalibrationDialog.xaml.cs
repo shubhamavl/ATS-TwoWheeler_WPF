@@ -10,8 +10,21 @@ namespace ATS_TwoWheeler_WPF.Views
             InitializeComponent();
             DataContext = viewModel;
             
+            // Wire up ViewModel events
+            viewModel.RequestClose += (s, e) => Close();
+            viewModel.CalculationCompleted += OnCalculationCompleted;
+
             // Link close event to Dispose of VM
             Closed += (s, e) => viewModel.Dispose();
+        }
+
+        private void OnCalculationCompleted(object? sender, Models.CalibrationDialogResultsEventArgs e)
+        {
+            if (e.IsSuccessful)
+            {
+                PopupEquationTxt.Text = $"Internal: {e.InternalEquation}\nADS1115: {e.AdsEquation}";
+                ViewResultsBtn.IsEnabled = true;
+            }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)

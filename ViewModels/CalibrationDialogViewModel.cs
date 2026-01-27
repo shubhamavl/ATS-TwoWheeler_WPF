@@ -19,12 +19,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly ISettingsService _settings;
         private readonly IDialogService _dialogService;
         private readonly IProductionLoggerService _logger;
+        private readonly IWeightProcessorService _weightProcessor;
+        private LinearCalibration? _internalCalResult;
+        private LinearCalibration? _ads1115CalResult;
 
         private byte _adcMode;
         private bool _isBrakeMode;
         private int _calibrationDelayMs;
         private bool _isCapturingDualMode;
         private int _currentRawADC;
+
+        public event EventHandler? RequestClose;
+        public event EventHandler<CalibrationDialogResultsEventArgs>? CalculationCompleted;
 
         public ObservableCollection<CalibrationPointViewModel> Points { get; } = new();
 
@@ -50,6 +56,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public string InputUnitHeader => IsNewtonCalibration ? "Mass (kg):" : "Value (Units):";
 
+        public string DialogTitle => _isBrakeMode ? "Brake Force Calibration" : "Total Weight Calibration";
+        public string DialogSubtitle => _isBrakeMode ? "Brake Force Measurement System" : "Hardware Calibration Process";
+
         public ICommand AddPointCommand { get; }
         public ICommand RemovePointCommand { get; }
         public ICommand CapturePointCommand { get; }
@@ -59,12 +68,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand SavePointCommand { get; }
         public ICommand CancelPointCommand { get; }
 
-        public CalibrationDialogViewModel(ICANService canService, ISettingsService settings, IDialogService dialogService, IProductionLoggerService logger, byte adcMode = 0, int calibrationDelayMs = 500, bool isBrakeMode = false)
+        public CalibrationDialogViewModel(ICANService canService, ISettingsService settings, IDialogService dialogService, IProductionLoggerService logger, IWeightProcessorService weightProcessor, byte adcMode = 0, int calibrationDelayMs = 500, bool isBrakeMode = false)
         {
             _canService = canService;
             _settings = settings;
             _dialogService = dialogService;
             _logger = logger;
+            _weightProcessor = weightProcessor;
             _adcMode = adcMode;
             _calibrationDelayMs = calibrationDelayMs;
             _isBrakeMode = isBrakeMode;
@@ -184,24 +194,39 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private async Task CaptureDualMode(CalibrationPointViewModel point)
         {
-            // Simplified version of the complex dual-mode logic from the code-behind
-            // In a real refactor, this should use Task.Delay and CAN commands
-            
+            // Set weight for the point prior to capture if needed
+            double currentWeight = point.KnownWeight;
+            if (IsNewtonCalibration) currentWeight *= 9.80665; // Convert kg to Newtons if requested
+
+            // Statistics collection parameters
+            int samples = 20;
+            int timeout = 500;
+
             // Step 1: Capture current mode
-            int firstVal = _currentRawADC;
-            if (_adcMode == 0) point.InternalADC = (ushort)firstVal;
-            else point.ADS1115ADC = firstVal;
+            point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
+            var result1 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
+            
+            if (_adcMode == 0) point.InternalADC = (ushort)result1.AveragedValue;
+            else point.ADS1115ADC = result1.AveragedValue;
 
             // Step 2: Switch mode
+            point.StatusText = "Switching ADC Mode...";
             if (_adcMode == 0) { _canService.SwitchToADS1115(); _adcMode = 1; }
             else { _canService.SwitchToInternalADC(); _adcMode = 0; }
             
-            await Task.Delay(1000); // Wait for switch and data flow
+            await Task.Delay(1000); // Wait for switch and data stabilization
 
             // Step 3: Capture second mode
-            int secondVal = _currentRawADC;
-            if (_adcMode == 0) point.InternalADC = (ushort)secondVal;
-            else point.ADS1115ADC = secondVal;
+            point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
+            var result2 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
+
+            if (_adcMode == 0) point.InternalADC = (ushort)result2.AveragedValue;
+            else point.ADS1115ADC = result2.AveragedValue;
+
+            point.CaptureSampleCount = samples;
+            point.CaptureMean = result2.Mean;
+            point.CaptureStdDev = result2.StandardDeviation;
+            point.CaptureStabilityWarning = result2.IsStable ? "" : "UNSTABLE READING";
 
             point.BothModesCaptured = true;
             point.IsCaptured = true;
@@ -209,14 +234,70 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnCalculate()
         {
-            // Logic for calculation would go here, using LinearCalibration core
-            _dialogService.ShowMessage("Calculation logic would be executed here.", "Calculate");
+            try
+            {
+                double factor = IsNewtonCalibration ? 9.80665 : 1.0;
+                var internalPoints = Points.Select(p => {
+                    var cp = p.ToCalibrationPointInternal();
+                    cp.KnownWeight *= factor;
+                    return cp;
+                }).ToList();
+
+                var adsPoints = Points.Select(p => {
+                    var cp = p.ToCalibrationPointADS1115();
+                    cp.KnownWeight *= factor;
+                    return cp;
+                }).ToList();
+
+                _internalCalResult = LinearCalibration.FitMultiplePoints(internalPoints);
+                _ads1115CalResult = LinearCalibration.FitMultiplePoints(adsPoints);
+
+                _internalCalResult.ADCMode = AdcMode.InternalWeight;
+                _internalCalResult.SystemMode = _isBrakeMode ? SystemMode.Brake : SystemMode.Weight;
+                
+                _ads1115CalResult.ADCMode = AdcMode.Ads1115;
+                _ads1115CalResult.SystemMode = _isBrakeMode ? SystemMode.Brake : SystemMode.Weight;
+
+                string resultsMsg = $"Calculation Successful!\n\n" +
+                                   $"Internal: {_internalCalResult.GetEquationString()} (R²={_internalCalResult.R2:F4})\n" +
+                                   $"ADS1115: {_ads1115CalResult.GetEquationString()} (R²={_ads1115CalResult.R2:F4})";
+                
+                _dialogService.ShowMessage(resultsMsg, "Calibration Calculated");
+                
+                CalculationCompleted?.Invoke(this, new CalibrationDialogResultsEventArgs 
+                { 
+                    InternalEquation = _internalCalResult.GetEquationString(),
+                    AdsEquation = _ads1115CalResult.GetEquationString(),
+                    IsSuccessful = true 
+                });
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Calculation failed: {ex.Message}", "Error");
+            }
         }
 
         private void OnSave()
         {
-            // Logic for saving would go here
-            _dialogService.ShowMessage("Calibration saved.", "Save");
+            if (_internalCalResult == null || _ads1115CalResult == null)
+            {
+                _dialogService.ShowMessage("Please calculate before saving.", "Warning");
+                return;
+            }
+
+            try
+            {
+                _internalCalResult.SaveToFile();
+                _ads1115CalResult.SaveToFile();
+
+                _weightProcessor.LoadCalibration();
+                _dialogService.ShowMessage("Calibration saved and applied to system.", "Success");
+                RequestClose?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Failed to save calibration: {ex.Message}", "Error");
+            }
         }
 
         private void OnEditPoint(CalibrationPointViewModel? point)

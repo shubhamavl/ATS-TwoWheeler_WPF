@@ -6,7 +6,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     {
         void ShowBootloaderManager();
         void ShowTwoWheelerWindow();
-        void ShowCalibrationDialog();
+        void ShowCalibrationDialog(bool isBrakeMode = false);
         void ShowMonitorWindow();
         void ShowLogsWindow();
 

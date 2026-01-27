@@ -194,9 +194,9 @@
                         <Image Source="pack://application:,,,/Assets/AVL_Logo.jpg" Width="32" Height="32" Margin="0,0,15,0" 
                                VerticalAlignment="Center"/>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Total Weight Calibration" 
+                            <TextBlock Text="{Binding DialogTitle}" 
                                        FontSize="20" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="Hardware Calibration Process" 
+                            <TextBlock Text="{Binding DialogSubtitle}" 
                                        FontSize="12" Foreground="#FFE3F2FD"/>
                         </StackPanel>
                     </StackPanel>
@@ -293,7 +293,7 @@
                 <DropShadowEffect Color="#FF000000" Direction="270" ShadowDepth="3" Opacity="0.2" BlurRadius="8"/>
             </Border.Effect>
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl x:Name="PointsList">
+                <ItemsControl x:Name="PointsList" ItemsSource="{Binding Points}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="#FFF8F9FA" CornerRadius="6" BorderBrush="#FFDEE2E6" 
