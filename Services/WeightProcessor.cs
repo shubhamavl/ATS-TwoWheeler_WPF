@@ -72,6 +72,8 @@ namespace ATS_TwoWheeler_WPF.Services
         private readonly Queue<double> _totalSmaTared = new Queue<double>();
         
         public ProcessedWeightData LatestTotal => _latestTotal;
+        public LinearCalibration? InternalCalibration => _internalCalibration;
+        public LinearCalibration? Ads1115Calibration => _ads1115Calibration;
         public long ProcessedCount => _processedCount;
         public long DroppedCount => _droppedCount;
         public bool IsRunning => _isRunning;
@@ -264,6 +266,8 @@ namespace ATS_TwoWheeler_WPF.Services
                 }
                 
                 // Apply tare (mode-specific) - uses _totalADCMode which should match the calibration mode
+                double tareValue = _tareManager?.GetOffsetKg(_totalADCMode) ?? 0;
+                processed.TareValue = tareValue;
                 double taredWeight = _tareManager?.ApplyTare(processed.CalibratedWeight, _totalADCMode) ?? processed.CalibratedWeight;
                 
                 // Apply filtering to tared weight if enabled

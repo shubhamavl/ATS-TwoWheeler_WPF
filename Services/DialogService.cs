@@ -16,6 +16,11 @@ namespace ATS_TwoWheeler_WPF.Services
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
+        public void ShowWarning(string message, string title)
+        {
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
         public bool ShowConfirmation(string message, string title)
         {
             return MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;

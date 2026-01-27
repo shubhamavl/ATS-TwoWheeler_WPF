@@ -8,7 +8,7 @@ using ATS_TwoWheeler_WPF.Core;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
-    public sealed class UpdateService
+    public sealed class UpdateService : Interfaces.IUpdateService
     {
         private readonly GitHubReleaseService _githubService = new GitHubReleaseService();
         private readonly DownloadService _downloadService = new DownloadService();

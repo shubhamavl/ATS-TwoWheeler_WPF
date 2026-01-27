@@ -29,6 +29,12 @@ namespace ATS_TwoWheeler_WPF.Views
                 settingsWindow.Show(); 
             };
 
+            _viewModel.OpenConfigViewerRequested += () =>
+            {
+                var viewer = new ConfigurationViewer { Owner = this };
+                viewer.ShowDialog();
+            };
+
             this.Closing += MainWindow_Closing;
         }
 

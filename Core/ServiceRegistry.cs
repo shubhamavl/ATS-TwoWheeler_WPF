@@ -59,6 +59,9 @@ namespace ATS_TwoWheeler_WPF.Core
 
             // Dialog Service
             Register<IDialogService>(new DialogService());
+
+            // Update Service
+            Register<IUpdateService>(new UpdateService());
         }
         
         /// <summary>

@@ -12,54 +12,81 @@
         </Style>
     </UserControl.Resources>
 
-    <GroupBox Header="Live Weight Data">
-        <Border Style="{StaticResource DataCard}" 
-                BorderBrush="#FF27AE60" BorderThickness="2" 
-                HorizontalAlignment="Stretch">
-            <StackPanel>
-                <!-- Mode Indicator Header -->
-                <TextBlock Text="{Binding StreamStatusText}" 
-                           FontSize="16" FontWeight="Bold" 
-                           Foreground="{StaticResource PrimaryBlue}" 
-                           HorizontalAlignment="Center" Margin="0,10,0,10"/>
+    <GroupBox Header="Operational Dashboard">
+        <Border Background="White" CornerRadius="8" Margin="5">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" Opacity="0.1" BlurRadius="10"/>
+            </Border.Effect>
+            
+            <Border Padding="20">
+                <StackPanel>
+                    <!-- HERO: Display Weight/Force -->
+                    <Border CornerRadius="12" Padding="2" Margin="0,0,0,20">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FF27AE60" Offset="0"/>
+                                <GradientStop Color="#FF2ECC71" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border Background="#FFF9FBF9" CornerRadius="10" Padding="30">
+                            <StackPanel>
+                                <TextBlock Text="{Binding WeightText}" 
+                                           FontSize="84" FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           Foreground="#FF2C3E50">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="White" ShadowDepth="0" BlurRadius="5" Opacity="1"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <TextBlock Text="{Binding SystemModeText, StringFormat='Mode: {0}'}" 
+                                           FontSize="14" FontWeight="SemiBold" 
+                                           HorizontalAlignment="Center" Foreground="#FF7F8C8D"/>
+                            </StackPanel>
+                        </Border>
+                    </Border>
                 
-                <!-- HERO: Display Weight -->
-                <Border Background="#FFF9F9F9" BorderBrush="#FF27AE60" 
-                        BorderThickness="3" CornerRadius="8" 
-                        Padding="25,15" Margin="15,5,15,5">
-                    <TextBlock Text="{Binding WeightText}" 
-                               FontSize="72" FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               Foreground="{Binding WeightColor}"/>
+                <!-- Metrics Grid -->
+                <UniformGrid Columns="3" Margin="0,5,0,0">
+                    <!-- CAN Status -->
+                    <Border BorderBrush="#FFE0E0E0" BorderThickness="0,0,1,0" Padding="10">
+                        <StackPanel HorizontalAlignment="Center">
+                             <TextBlock Text="CONNECTIVITY" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                 <Ellipse Width="8" Height="8" Fill="{Binding StreamIndicatorColor}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                 <TextBlock Text="{Binding StreamStatusText}" FontSize="13" FontWeight="SemiBold"/>
+                             </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ADC Status -->
+                    <Border BorderBrush="#FFE0E0E0" BorderThickness="0,0,1,0" Padding="10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="SAMPLING" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding AdcModeText}" FontSize="13" FontWeight="SemiBold" Foreground="#FF2980B9" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Calibration Status -->
+                    <Border Padding="10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="INTEGRITY" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding CalStatusText}" FontSize="13" FontWeight="SemiBold" Foreground="#FF27AE60" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Footer Summary -->
+                <Border Background="#FFF1F3F5" CornerRadius="4" Margin="0,20,0,0" Padding="10">
+                    <DockPanel>
+                        <TextBlock Text="{Binding TareStatusText}" FontWeight="SemiBold" Foreground="#FF34495E" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="Raw ADC:" Margin="0,0,10,0" Foreground="#FF7F8C8D" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding RawAdcText}" FontWeight="Bold" Foreground="#FF2980B9" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
                 </Border>
-                
-                <!-- Row 1: Status & Info -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" 
-                            Margin="0,5,0,10">
-                    <Ellipse Width="12" Height="12" 
-                             Fill="{Binding StreamIndicatorColor}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StreamStatusText}" 
-                               FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    
-                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
-
-                    <TextBlock Text="Mode:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding SystemModeText}" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="Green" FontWeight="Bold"/>
-
-                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
-
-                    <TextBlock Text="ADC:" VerticalAlignment="Center" FontSize="12" Margin="0,0,5,0" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding AdcModeText}" VerticalAlignment="Center" FontSize="13" Margin="0,0,20,0" Foreground="#FF2196F3" FontWeight="Bold"/>
-
-                    <Rectangle Width="1" Fill="#FFDDDDDD" Margin="5,2,20,2" Height="16"/>
-
-                    <TextBlock Text="?" FontSize="13" Foreground="#FF27AE60" Margin="0,0,5,0" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding CalStatusText}" FontSize="13" Margin="0,0,20,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Raw:" FontSize="13" Margin="0,0,5,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding RawAdcText}" FontSize="13" Margin="0,0,20,0" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TareStatusText}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </StackPanel>
             </StackPanel>
         </Border>
-    </GroupBox>
+    </Border>
+</GroupBox>
 </UserControl>

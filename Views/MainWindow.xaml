@@ -93,6 +93,8 @@
                             Margin="0,0,5,0">
                         <Button.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="Configuration Viewer" Command="{Binding OpenConfigViewerCommand}"/>
+                                <Separator/>
                                 <MenuItem Header="Bootloader Manager" Command="{Binding Calibration.OpenBootloaderCommand}"/>
                                 <MenuItem Header="Monitor Window" Command="{Binding Calibration.OpenMonitorCommand}"/>
                                 <MenuItem Header="Logs Window" Command="{Binding Calibration.OpenLogsCommand}"/>

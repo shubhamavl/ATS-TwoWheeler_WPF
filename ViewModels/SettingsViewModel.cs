@@ -31,6 +31,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             OpenSettingsFileCommand = new RelayCommand(_ => OpenSettingsFile());
             ResetCalibrationInternalCommand = new RelayCommand(_ => ResetCalibration(0, "Internal ADC"));
             ResetCalibrationADS1115Command = new RelayCommand(_ => ResetCalibration(1, "ADS1115"));
+            ShowHelpCommand = new RelayCommand(p => OnShowHelp(p?.ToString()));
             
             RefreshCalibrationData();
         }
@@ -400,6 +401,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand OpenSettingsFileCommand { get; }
         public ICommand ResetCalibrationInternalCommand { get; }
         public ICommand ResetCalibrationADS1115Command { get; }
+        public ICommand ShowHelpCommand { get; }
+
+        public event Action<string, string>? HelpRequested;
 
         private void SaveSettings()
         {
@@ -483,6 +487,36 @@ namespace ATS_TwoWheeler_WPF.ViewModels
              OnPropertyChanged(nameof(AdsCalSlope));
              OnPropertyChanged(nameof(AdsCalIntercept));
              OnPropertyChanged(nameof(AdsCalDate));
+        }
+
+        private void OnShowHelp(string? key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+
+            string title = key switch
+            {
+                "Filter" => "Signal Filtering",
+                "Calibration" => "Calibration Parameters",
+                "General" => "General Settings",
+                _ => "Information"
+            };
+
+            string content = key switch
+            {
+                "Filter" => "Filtering helps smooth the weight data.\n\n" +
+                            "• EMA (Exponential Moving Average): Best for real-time responsiveness. Adjust Alpha (0.0 to 1.0) to control smoothing.\n" +
+                            "• SMA (Simple Moving Average): Best for stability. Adjust Window Size to control how many samples are averaged.",
+                "Calibration" => "Calibration constants define how raw ADC values are converted to weight.\n\n" +
+                                 "• Slope: The gain factor.\n" +
+                                 "• Intercept: The zero-load offset.\n" +
+                                 "• Outlier Threshold: Maximum deviation allowed before a sample is ignored during calibration processing.",
+                "General" => "Manage how data is displayed and stored.\n\n" +
+                             "• Update Rate: How often the UI refreshes (default 50ms).\n" +
+                             "• Data Timeout: Seconds of no data before connection is marked as lost.",
+                _ => "Detailed information for this setting is not available."
+            };
+
+            HelpRequested?.Invoke(title, content);
         }
     }
 }

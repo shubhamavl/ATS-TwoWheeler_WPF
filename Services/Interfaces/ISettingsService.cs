@@ -1,5 +1,6 @@
 using System;
 using ATS_TwoWheeler_WPF.Models;
+using ATS_TwoWheeler_WPF.Core;
 
 namespace ATS_TwoWheeler_WPF.Services.Interfaces
 {
@@ -24,5 +25,13 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void SetBootloaderFeaturesEnabled(bool enabled);
         void SetCalibrationMode(string mode);
         void SetCalibrationAveragingSettings(bool enabled, int sampleCount, int durationMs, bool useMedian, bool removeOutliers, double outlierThreshold, double maxStdDev);
+        
+        // Calibration and Tare accessors
+        LinearCalibration CalibrationDataInternal { get; }
+        LinearCalibration CalibrationDataADS1115 { get; }
+        string GetCalibrationFilePath(bool adcMode);
+        string GetTareFilePath();
+        void ResetCalibration(bool adsMode);
+        double TareValue { get; }
     }
 }

@@ -8,6 +8,8 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     public interface IWeightProcessorService : IDisposable
     {
         ProcessedWeightData LatestTotal { get; }
+        LinearCalibration? InternalCalibration { get; }
+        LinearCalibration? Ads1115Calibration { get; }
         
         void Start();
         void Stop();

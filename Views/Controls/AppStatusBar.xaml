@@ -6,6 +6,10 @@
              xmlns:local="clr-namespace:ATS_TwoWheeler_WPF.Views.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
     <StatusBar Background="{StaticResource PrimaryBlue}" Foreground="White">
         <StatusBarItem>
             <TextBlock Text="{Binding StatusText}" />
@@ -27,8 +31,40 @@
             <TextBlock Text="{Binding RxCount, StringFormat='RX: {0}'}" />
         </StatusBarItem>
         <Separator/>
+        <StatusBarItem>
+            <Button Content="Check for Updates"
+                    Command="{Binding CheckForUpdatesCommand}"
+                    Background="Transparent" BorderThickness="0" Foreground="White"
+                    FontSize="10" Padding="5,2" Cursor="Hand"
+                    ToolTip="Check for application updates">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" 
+                                            Padding="{TemplateBinding Padding}"
+                                            CornerRadius="2">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#33FFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StatusBarItem>
+        <Separator/>
         <StatusBarItem HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding DownloadStatus}" FontSize="10" Margin="0,0,10,0"
+                           Visibility="{Binding IsDownloadVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <TextBlock Text="{Binding TimestampText}" />
             </StackPanel>
         </StatusBarItem>

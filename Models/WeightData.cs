@@ -21,6 +21,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public int RawADC { get; set; }  // Changed from ushort to int for ADS1115 signed support
         public double CalibratedWeight { get; set; }
         public double TaredWeight { get; set; }
+        public double TareValue { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }

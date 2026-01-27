@@ -5,12 +5,17 @@
         xmlns:vm="clr-namespace:ATS_TwoWheeler_WPF.ViewModels"
         d:DataContext="{d:DesignInstance Type=vm:TwoWheelerWeightViewModel}"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:core="clr-namespace:ATS_TwoWheeler_WPF.Core"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Two Wheeler Weight Test" Height="800" Width="1400"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
         Background="#FFF5F5F5" Icon="pack://application:,,,/Assets/AVL_Icon.ico"
         KeyDown="Window_KeyDown">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <core:BooleanToTextConverter x:Key="BooleanToTextConverter"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -55,45 +60,62 @@
         </Border>
 
         <!-- Total Weight Display Panel with Validation Indicator -->
-        <Grid Grid.Row="2" Background="#FFF0F0F0" Margin="10,5">
-            <Border Margin="10" Background="#FFE3F2FD" 
-                    BorderBrush="#FF2196F3" BorderThickness="2" CornerRadius="5">
+        <Grid Grid.Row="2" Background="#FFF8F9FA" Margin="10,5">
+            <Border Margin="10" Background="White" 
+                    BorderBrush="#FF1B5E96" BorderThickness="0,0,0,4" CornerRadius="8">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" Opacity="0.1" BlurRadius="8"/>
+                </Border.Effect>
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="200"/>
+                    </Grid.ColumnDefinitions>
                     
-                    <TextBlock Grid.Row="0" Text="Total Weight" 
-                               FontSize="32" FontWeight="Bold" 
-                               Foreground="#FF1565C0" 
-                               HorizontalAlignment="Center" Margin="0,10"/>
-                    
-                    <!-- Validation Indicator Rectangle -->
-                    <Border Grid.Row="1" 
-                            Width="60" Height="250" 
-                            HorizontalAlignment="Center" 
-                            VerticalAlignment="Center"
-                            Background="{Binding ValidationColor}" 
-                            BorderBrush="#FF000000" 
-                            BorderThickness="2" 
-                            Margin="0,10"/>
-                    
-                    <!-- Weight Display Box -->
-                    <Border Grid.Row="2" 
-                            Background="#FFFF9800" 
-                            BorderBrush="#FFE65100" 
-                            BorderThickness="2" 
-                            CornerRadius="3" 
-                            Margin="20,10" 
-                            Padding="10,15">
-                        <TextBlock Text="{Binding MainWeightText}" 
-                                   FontSize="48" 
-                                   FontWeight="Bold" 
-                                   HorizontalAlignment="Center" 
-                                   Foreground="White"/>
-                    </Border>
+                    <!-- Left: Stability Side Bar -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="20">
+                        <TextBlock Text="STABILITY" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                        <Border Width="40" Height="100" CornerRadius="20" Background="#FFF1F3F5">
+                            <Border Width="30" Height="30" CornerRadius="15" 
+                                    Background="{Binding ValidationColor}" 
+                                    VerticalAlignment="Bottom" Margin="5">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="{Binding ValidationColor}" BlurRadius="10" ShadowDepth="0"/>
+                                </Border.Effect>
+                            </Border>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Center: Main Weight -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding IsBrakeMode, Converter={StaticResource BooleanToTextConverter}, ConverterParameter='BRAKE FORCE|TOTAL WEIGHT'}" 
+                                   FontSize="16" FontWeight="SemiBold" Foreground="#FF34495E" HorizontalAlignment="Center"/>
+                        
+                        <Viewbox MaxHeight="250">
+                            <TextBlock Text="{Binding MainWeightText}" 
+                                       FontSize="120" FontWeight="Bold" 
+                                       Foreground="#FF1B5E96" Margin="20,0"/>
+                        </Viewbox>
+                        
+                        <TextBlock Text="{Binding TimerText}" FontSize="24" FontWeight="Bold" Foreground="#FFDC3545" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Right: Quick Stats -->
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20">
+                        <Border Background="#FFF1F3F5" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="PEAK HOLD" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6"/>
+                                <TextBlock Text="{Binding MaxWeightText}" FontSize="24" FontWeight="Bold" Foreground="#FF2C3E50"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FFF1F3F5" CornerRadius="8" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="SAMPLE RATE" FontSize="10" FontWeight="Bold" Foreground="#FF95A5A6"/>
+                                <TextBlock Text="{Binding DataPointsPerSec, StringFormat='\{0\} Hz'}" FontSize="18" FontWeight="Bold" Foreground="#FF2C3E50"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>
@@ -155,7 +177,24 @@
                 <Button Content="⏸ Pause" 
                         Style="{StaticResource ModernButton}" 
                         Background="#FF6C757D" Command="{Binding PauseTestCommand}" 
-                        Width="100" Height="32" Margin="5,0"/>
+                        Width="100" Height="32" Margin="5,0"
+                        Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <Button Content="▶ Resume" 
+                        Background="#FF28A745" Command="{Binding ResumeTestCommand}" 
+                        Width="100" Height="32" Margin="5,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentState}" Value="Paused">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
                 <Button Content="🗑 Clear" 
                         Style="{StaticResource ModernButton}" 
                         Background="#FF95A5A6" Command="{Binding ClearDataCommand}" 
@@ -167,6 +206,7 @@
                 <ToggleButton Content="🛑 Brake Mode"
                         Style="{StaticResource ModernToggleButton}"
                         Background="#FF6C757D" Command="{Binding SwitchSystemModeCommand}"
+                        IsChecked="{Binding IsBrakeMode, Mode=OneWay}"
                         Width="120" Height="32" Margin="5,0"/>
                 <Button Content="⚖ Calibrate" 
                         Style="{StaticResource ModernButton}" 

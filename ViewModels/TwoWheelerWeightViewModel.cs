@@ -100,6 +100,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         }
 
         private int _dataPointsPerSec;
+        public int DataPointsPerSec
+        {
+            get => _dataPointsPerSec;
+            set => SetProperty(ref _dataPointsPerSec, value);
+        }
         private DateTime _lastRateCheck = DateTime.Now;
         private int _dataPointsCurrentSec;
 
@@ -131,6 +136,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _minWeight, value);
         }
 
+        private DateTime _lastTimerTick;
+        private TimeSpan _accumulatedTime = TimeSpan.Zero;
+        private DispatcherTimer? _testTimer;
         private int _sampleCount;
         public int SampleCount
         {
@@ -145,6 +153,27 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _unitLabel, value);
         }
 
+        private bool _isBrakeMode;
+        public bool IsBrakeMode
+        {
+            get => _isBrakeMode;
+            set 
+            {
+                if (SetProperty(ref _isBrakeMode, value))
+                {
+                    _canService.SwitchSystemMode(_isBrakeMode);
+                    UnitLabel = _isBrakeMode ? "N" : "kg";
+                    OnPropertyChanged(nameof(MainWeightText));
+                    OnPropertyChanged(nameof(TotalWeightText));
+                    OnPropertyChanged(nameof(MinWeightText));
+                    OnPropertyChanged(nameof(MaxWeightText));
+                }
+            }
+        }
+
+        private readonly ConcurrentQueue<double> _stabilityBuffer = new();
+        private const int StabilityBufferSize = 10;
+        
         // Commands
         public ICommand StartTestCommand { get; }
         public ICommand StopTestCommand { get; }
@@ -152,6 +181,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand SaveTestCommand { get; }
         public ICommand ClearDataCommand { get; }
         public ICommand ExportCommand { get; }
+        public ICommand SwitchSystemModeCommand { get; }
+        public ICommand ResumeTestCommand { get; }
 
         public TwoWheelerWeightViewModel(ICANService canService, IWeightProcessorService weightProcessor, IDataLoggerService dataLogger, ISettingsService settings, IDialogService dialogService)
         {
@@ -202,9 +233,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             StartTestCommand = new RelayCommand(_ => StartTest(), _ => CanStart);
             StopTestCommand = new RelayCommand(_ => StopTest(), _ => CanStop);
             PauseTestCommand = new RelayCommand(_ => PauseTest(), _ => IsRunning);
+            ResumeTestCommand = new RelayCommand(_ => ResumeTest(), _ => CurrentState == TestState.Paused);
             SaveTestCommand = new RelayCommand(_ => SaveTest());
             ClearDataCommand = new RelayCommand(_ => ClearData());
             ExportCommand = new RelayCommand(async _ => await ExportDataAsync());
+            SwitchSystemModeCommand = new RelayCommand(_ => IsBrakeMode = !IsBrakeMode);
+        }
+
+        private void ResumeTest()
+        {
+            CurrentState = TestState.Running;
+            _lastTimerTick = DateTime.Now;
         }
 
         private async Task ExportDataAsync()
@@ -242,22 +281,25 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             if (_weightProcessor == null) return;
 
             var latest = _weightProcessor.LatestTotal;
-            CurrentWeight = latest.TaredWeight;
+            double rawWeight = latest.TaredWeight;
+
+            // Apply Newton conversion if in Brake Mode
+            CurrentWeight = IsBrakeMode ? rawWeight * 9.80665 : rawWeight;
 
             // Rate calculation
             _dataPointsCurrentSec++;
             var now = DateTime.Now;
             if ((now - _lastRateCheck).TotalSeconds >= 1.0)
             {
-                _dataPointsPerSec = _dataPointsCurrentSec;
+                DataPointsPerSec = _dataPointsCurrentSec;
                 _dataPointsCurrentSec = 0;
                 _lastRateCheck = now;
                 OnPropertyChanged(nameof(DataRateText));
+                OnPropertyChanged(nameof(DataPointsPerSec));
                 
                 // Auto-sync
                 _canService.RequestSystemStatus();
             }
-
             if (CurrentState == TestState.Running)
             {
                 // Update Graph
@@ -270,7 +312,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 }
 
                 // Peak Hold
-                if (CurrentWeight > 0)
+                if (Math.Abs(CurrentWeight) > 0.1) // 100g or 0.1N noise threshold
                 {
                     if (MaxWeight == 0 || CurrentWeight > MaxWeight) MaxWeight = CurrentWeight;
                     if (MinWeight == 0 || CurrentWeight < MinWeight) MinWeight = CurrentWeight;
@@ -278,8 +320,37 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 }
             }
 
-            // Validation Logic (simplified example: weight > 10kg is valid)
-            ValidationColor = CurrentWeight > 10.0 ? "#FF28A745" : "#FFDC3545";
+            // Stability check for Validation Indicator
+            _stabilityBuffer.Enqueue(CurrentWeight);
+            if (_stabilityBuffer.Count > StabilityBufferSize) _stabilityBuffer.TryDequeue(out _);
+
+            bool isStable = false;
+            if (_stabilityBuffer.Count == StabilityBufferSize)
+            {
+                double sum = 0;
+                double min = double.MaxValue;
+                double max = double.MinValue;
+                foreach (var val in _stabilityBuffer)
+                {
+                    sum += val;
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                }
+                
+                double range = max - min;
+                double threshold = IsBrakeMode ? 5.0 : 0.5; // 5N or 0.5kg threshold
+                isStable = range < threshold;
+            }
+
+            // Validation Indicator Logic
+            // Green if stable and weight > threshold
+            double activeThreshold = IsBrakeMode ? 10.0 : 1.0; // 10N or 1kg
+            if (CurrentWeight > activeThreshold && isStable)
+                ValidationColor = "#FF28A745"; // Green
+            else if (CurrentWeight > activeThreshold)
+                ValidationColor = "#FFFFC107"; // Amber (Active but unstable)
+            else
+                ValidationColor = "#FFDC3545"; // Red (Idle or noise)
 
             // Notify UI of formatted strings
             OnPropertyChanged(nameof(MainWeightText));
@@ -298,18 +369,39 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             SampleCount = 0;
             _totalWeightValues.Clear();
             _dataLogger.StartLogging();
-            // _canService.StartStream(0x01); // Standard 250kbps rate for weight
+            
+            _accumulatedTime = TimeSpan.Zero;
+            _lastTimerTick = DateTime.Now;
+            
+            if (_testTimer == null)
+            {
+                _testTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+                _testTimer.Tick += (s, e) => 
+                {
+                    if (CurrentState == TestState.Running)
+                    {
+                        var now = DateTime.Now;
+                        _accumulatedTime += (now - _lastTimerTick);
+                        _lastTimerTick = now;
+                        TimerText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)_accumulatedTime.TotalHours, _accumulatedTime.Minutes, _accumulatedTime.Seconds);
+                    }
+                };
+            }
+            _testTimer.Start();
         }
 
         private void StopTest()
         {
             CurrentState = TestState.Idle;
             _dataLogger.StopLogging();
+            _testTimer?.Stop();
         }
 
         private void PauseTest()
         {
             CurrentState = TestState.Paused;
+            // Stop the timer to prevent drift (though Tick handler checks state, this is cleaner)
+            // But we need to update _lastTimerTick when resuming.
         }
 
         private void SaveTest()

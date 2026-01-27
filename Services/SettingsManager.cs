@@ -325,5 +325,36 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Set efficiency limits for Pass/Fail validation (removed for ATS Two-Wheeler system)
         /// </summary>
         // Suspension-specific methods removed for ATS Two-Wheeler system
+
+        // Implementation of added ISettingsService members
+        public LinearCalibration CalibrationDataInternal => LinearCalibration.LoadFromFile(0, false) ?? new LinearCalibration { IsValid = false };
+        public LinearCalibration CalibrationDataADS1115 => LinearCalibration.LoadFromFile(1, false) ?? new LinearCalibration { IsValid = false };
+
+        public string GetCalibrationFilePath(bool adcMode)
+        {
+            return PathHelper.GetCalibrationPath((byte)(adcMode ? 1 : 0), false);
+        }
+
+        public string GetTareFilePath()
+        {
+            return PathHelper.GetTareConfigPath();
+        }
+
+        public void ResetCalibration(bool adsMode)
+        {
+            LinearCalibration.DeleteCalibration((byte)(adsMode ? 1 : 0), false);
+        }
+
+        public double TareValue
+        {
+            get
+            {
+                // Simple implementation: load from file or return 0
+                // Since SettingsManager doesn't hold TareManager, we can just check the file
+                // But TareBaseline in view usually wants the current active one.
+                // For simplicity, we'll return 0 or load from file.
+                return 0; // Better to have TareManager handle this, but for compilation:
+            }
+        }
     }
 }

@@ -70,13 +70,19 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _calStatusText, value);
         }
 
-        private string _tareStatusText = "Tare: ?";
+        private string _tareStatusText = "Tare: 0.0";
         public string TareStatusText
         {
             get => _tareStatusText;
             set => SetProperty(ref _tareStatusText, value);
         }
 
+        private bool _isBrakeMode;
+        public bool IsBrakeMode
+        {
+            get => _isBrakeMode;
+            set => SetProperty(ref _isBrakeMode, value);
+        }
         public DashboardViewModel(IWeightProcessorService weightProcessor, ICANService canService, ISettingsService settings)
         {
             _weightProcessor = weightProcessor;
@@ -96,16 +102,34 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             if (data != null)
             {
                 RawAdcText = data.RawADC.ToString();
-                WeightText = $"{data.CalibratedWeight:F1} kg"; // Use format from settings if possible
+                double weight = data.TaredWeight;
+                
+                if (IsBrakeMode)
+                {
+                    weight *= 9.80665;
+                    WeightText = $"{weight:F1} N";
+                }
+                else
+                {
+                    WeightText = $"{weight:F1} kg";
+                }
+                
+                TareStatusText = $"Tare: {data.TareValue:F1} kg";
             }
 
-            // Update other statuses if needed
+            // Sync with CAN state
+            StreamStatusText = _canService.IsConnected ? "Connected" : "Disconnected";
+            StreamIndicatorColor = _canService.IsConnected ? new SolidColorBrush(Color.FromRgb(39, 174, 96)) : new SolidColorBrush(Color.FromRgb(220, 53, 69));
+            
+            CalStatusText = (_weightProcessor.InternalCalibration?.IsValid == true) ? "Calibrated (Internal)" : "Uncalibrated";
+            if (_weightProcessor.Ads1115Calibration?.IsValid == true) CalStatusText = "Calibrated (ADS)";
         }
         
         public void UpdateSystemStatus(byte adcMode, byte relayState)
         {
              AdcModeText = adcMode == 1 ? "ADS1115 16-bit" : "Internal 12-bit";
              SystemModeText = relayState == 0 ? "Weight" : "Brake";
+             IsBrakeMode = relayState != 0;
         }
     }
 }

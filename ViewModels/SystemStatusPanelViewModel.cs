@@ -75,6 +75,27 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _lastUpdateText, value);
         }
 
+        private string _rawAdcText = "--";
+        public string RawAdcText
+        {
+            get => _rawAdcText;
+            set => SetProperty(ref _rawAdcText, value);
+        }
+
+        private long _txFrames;
+        public long TxFrames
+        {
+            get => _txFrames;
+            set => SetProperty(ref _txFrames, value);
+        }
+
+        private long _rxFrames;
+        public long RxFrames
+        {
+            get => _rxFrames;
+            set => SetProperty(ref _rxFrames, value);
+        }
+
         // Commands
         public ICommand RequestStatusCommand { get; }
         public ICommand ShowHistoryCommand { get; }
@@ -95,7 +116,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 _canService.SystemStatusReceived += OnSystemStatusReceived;
                 _canService.PerformanceMetricsReceived += OnPerformanceMetricsReceived;
                 _canService.FirmwareVersionReceived += OnFirmwareVersionReceived;
+                _canService.RawDataReceived += OnRawDataReceived;
             }
+        }
+
+        private void OnRawDataReceived(object? sender, RawDataEventArgs e)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                RawAdcText = e.RawADCSum.ToString();
+            });
         }
 
         private void OnSystemStatusReceived(object? sender, SystemStatusEventArgs e)
@@ -159,6 +189,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnRequestStatus(object? parameter)
         {
             _canService?.RequestSystemStatus();
+        }
+
+        public void Refresh()
+        {
+            if (_canService != null)
+            {
+                TxFrames = _canService.TxMessageCount;
+                RxFrames = _canService.RxMessageCount;
+            }
+            OnPropertyChanged(nameof(TxFrames));
+            OnPropertyChanged(nameof(RxFrames));
         }
 
         private void OnShowHistory(object? parameter)

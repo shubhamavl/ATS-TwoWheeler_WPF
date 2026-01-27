@@ -34,10 +34,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         // Commands
         public ICommand OpenSettingsCommand { get; }
+        public ICommand OpenConfigViewerCommand { get; }
         public ICommand StopAllCommand { get; }
         
         // Events
         public event Action? OpenSettingsRequested;
+        public event Action? OpenConfigViewerRequested;
         
         public MainWindowViewModel()
         {
@@ -48,6 +50,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _settings = ServiceRegistry.GetService<ISettingsService>();
             var navigationService = ServiceRegistry.GetService<INavigationService>();
             
+            var updateService = ServiceRegistry.GetService<IUpdateService>();
+            var dialogService = ServiceRegistry.GetService<IDialogService>();
+            
             _weightProcessor.Start(); // Start processing thread
             
             // Initialize Child ViewModels
@@ -56,13 +61,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Calibration = new CalibrationViewModel(_weightProcessor, _canService, _settings, navigationService);
             SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService);
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
-            StatusBar = new AppStatusBarViewModel(_canService);
+            StatusBar = new AppStatusBarViewModel(_canService, updateService, dialogService);
             Settings = new SettingsViewModel(_settings);
             
             // Commands
             OpenSettingsCommand = new RelayCommand(_ => OnOpenSettings());
+            OpenConfigViewerCommand = new RelayCommand(_ => OpenConfigViewerRequested?.Invoke());
             StopAllCommand = new RelayCommand(OnStopAll);
-
+            
             // Setup UI Timer
             _uiTimer = new DispatcherTimer
             {
@@ -78,7 +84,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Dashboard.Refresh();
             Logging.Refresh();
             StatusBar.Refresh();
-            
+            SystemStatus.Refresh();
+           
             // Polling for connection state if not fully event-driven
             // ConnectionViewModel usually updates via internal logic or manual refresh, 
             // but we can ensure sync here if needed.
