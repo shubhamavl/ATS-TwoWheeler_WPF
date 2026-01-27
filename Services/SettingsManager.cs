@@ -365,6 +365,20 @@ namespace ATS_TwoWheeler_WPF.Services
                 ProductionLogger.Instance.LogError($"Failed to save calibration averaging settings: {ex.Message}", "Settings");
             }
         }
+
+        public void SetBrakeSettings(string unit, double multiplier)
+        {
+            try
+            {
+                _settings.BrakeDisplayUnit = unit;
+                _settings.BrakeKgToNewtonMultiplier = multiplier;
+                ProductionLogger.Instance.LogInfo($"Brake settings saved: Unit={unit}, Multiplier={multiplier}", "Settings");
+            }
+            catch (Exception ex)
+            {
+                ProductionLogger.Instance.LogError($"Failed to save brake settings: {ex.Message}", "Settings");
+            }
+        }
         
         /// <summary>
         /// Set efficiency limits for Pass/Fail validation (removed for ATS Two-Wheeler system)

@@ -212,6 +212,12 @@
                     <TextBlock Text="Ready for Calibration" FontSize="12" FontWeight="SemiBold" 
                                Foreground="White" VerticalAlignment="Center" Margin="0,0,15,0"/>
                     
+                    <!-- Mode Badge -->
+                    <Border Background="#33FFFFFF" CornerRadius="4" Padding="8,2" Margin="0,0,10,0" VerticalAlignment="Center"
+                            ToolTip="Current target unit for calibration result">
+                         <TextBlock Text="{Binding TargetUnit}" FontSize="11" FontWeight="Bold" Foreground="White" />
+                    </Border>
+                    
                     <!-- Info Button -->
                     <Button x:Name="InfoBtn" Content="ℹ️ Info" 
                             Background="#FF17A2B8" Foreground="White" 
@@ -257,9 +263,14 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <CheckBox Content="Calibrate in Newtons (Input kg)" 
-                              IsChecked="{Binding IsNewtonCalibration}"
-                              VerticalAlignment="Center" Margin="0,0,15,0"
+                    <!-- Unit Indicator (Read Only) -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                        <TextBlock Text="Target Unit: " FontSize="12" Foreground="#FF6C757D"/>
+                        <TextBlock Text="{Binding TargetUnit}" FontSize="12" FontWeight="Bold" Foreground="#FF212529"/>
+                    </StackPanel>
+
+                    <!-- Hidden manual toggle -->
+                    <CheckBox IsChecked="{Binding IsNewtonCalibration}" Visibility="Collapsed"
                               ToolTip="If checked, input weights (kg) are converted to Newtons (x9.8) for result"/>
                     
                     <Button x:Name="AddPointBtn" Content="➕ Add Point" 

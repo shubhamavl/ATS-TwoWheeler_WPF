@@ -54,7 +54,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
-        public string InputUnitHeader => IsNewtonCalibration ? "Mass (kg):" : "Value (Units):";
+        public string InputUnitLabel => "Input Weight (kg):";
+        public string TargetUnit => "Kilograms (kg)";
+        public string InputUnitHeader => "Input (kg) → Target (kg)";
 
         public string DialogTitle => _isBrakeMode ? "Brake Force Calibration" : "Total Weight Calibration";
         public string DialogSubtitle => _isBrakeMode ? "Brake Force Measurement System" : "Hardware Calibration Process";
@@ -194,9 +196,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private async Task CaptureDualMode(CalibrationPointViewModel point)
         {
-            // Set weight for the point prior to capture if needed
+            // Set weight for the point prior to capture
             double currentWeight = point.KnownWeight;
-            if (IsNewtonCalibration) currentWeight *= 9.80665; // Convert kg to Newtons if requested
+            // Always kg during calibration target as per user clarification
 
             // Statistics collection parameters
             int samples = 20;
@@ -236,7 +238,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         {
             try
             {
-                double factor = IsNewtonCalibration ? 9.80665 : 1.0;
+                // Factor is always 1.0 because calibration target is always KG as per user clarification
+                double factor = 1.0; 
                 var internalPoints = Points.Select(p => {
                     var cp = p.ToCalibrationPointInternal();
                     cp.KnownWeight *= factor;

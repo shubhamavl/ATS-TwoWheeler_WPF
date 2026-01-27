@@ -26,6 +26,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void SetBootloaderFeaturesEnabled(bool enabled);
         void SetCalibrationMode(string mode);
         void SetCalibrationAveragingSettings(bool enabled, int sampleCount, int durationMs, bool useMedian, bool removeOutliers, double outlierThreshold, double maxStdDev);
+        void SetBrakeSettings(string unit, double multiplier);
         
         // Calibration and Tare accessors
         LinearCalibration CalibrationDataInternal { get; }
