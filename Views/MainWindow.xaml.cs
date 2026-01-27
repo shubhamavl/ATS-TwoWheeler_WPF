@@ -38,6 +38,15 @@ namespace ATS_TwoWheeler_WPF.Views
             this.Closing += MainWindow_Closing;
         }
 
+        private void ToolsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ToolsButton.ContextMenu != null)
+            {
+                ToolsButton.ContextMenu.PlacementTarget = ToolsButton;
+                ToolsButton.ContextMenu.IsOpen = true;
+            }
+        }
+
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             _viewModel.Cleanup();

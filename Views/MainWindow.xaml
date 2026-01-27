@@ -21,9 +21,27 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.7"/>
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <TranslateTransform Y="1"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#FF95A5A6"/>
+                                <Setter Property="Foreground" Value="#FFBDC3C7"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -74,7 +92,7 @@
                             Margin="0,0,5,0"/>
                     
                     <!-- Stop All Button -->
-                    <Button Content="⏹ Stop All" Command="{Binding Connection.StopStreamCommand}"
+                    <Button Content="⏹ Stop All" Command="{Binding StopAllCommand}"
                             Style="{StaticResource HeaderButton}"
                             Background="#FFDC3545"
                             Margin="0,0,5,0"/>
@@ -87,7 +105,8 @@
                             Margin="0,0,5,0"/>
                     
                     <!-- Tools Menu Button -->
-                    <Button Content="🔧 Tools"
+                    <Button x:Name="ToolsButton" Content="🔧 Tools"
+                            Click="ToolsButton_Click"
                             Style="{StaticResource HeaderButton}"
                             Background="#FF17A2B8"
                             Margin="0,0,5,0">

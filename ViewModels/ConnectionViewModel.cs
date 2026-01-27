@@ -131,9 +131,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void LoadSettings()
         {
-            SelectedAdapterType = "USB-CAN-A Serial"; // Default or load from where? 
-            // SettingsManager doesn't seem to store AdapterType explicitly in properties I saw, 
-            // but assumes USB usually. But I added SetComPort etc.
+            SelectedAdapterType = "USB-CAN-A Serial"; 
+            IsUsbAdapter = SelectedAdapterType == "USB-CAN-A Serial";
+            IsPcanAdapter = SelectedAdapterType == "PCAN";
             
             SelectedPort = _settings.Settings.ComPort;
             SelectedBaudRate = GetBaudRateString(_settings.Settings.TransmissionRate);
