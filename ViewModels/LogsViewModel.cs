@@ -55,6 +55,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public ICommand ClearLogsCommand { get; }
         public ICommand ExportLogsCommand { get; }
+        public ICommand OpenLogsFolderCommand { get; }
 
         public LogsViewModel(IProductionLoggerService logger, IDataLoggerService dataLogger, IDialogService dialogService)
         {
@@ -67,6 +68,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             ClearLogsCommand = new RelayCommand(_ => ClearLogs());
             ExportLogsCommand = new RelayCommand(async _ => await ExportLogsAsync());
+            OpenLogsFolderCommand = new RelayCommand(_ => OnOpenLogsFolder());
 
             // Initialize from existing logs
             foreach (var entry in _logger.LogEntries)
@@ -169,6 +171,26 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             catch (Exception ex)
             {
                 _dialogService.ShowError($"Export error: {ex.Message}", "Error");
+            }
+        }
+
+        private void OnOpenLogsFolder()
+        {
+            try
+            {
+                string logsDir = PathHelper.GetLogsDirectory();
+                if (System.IO.Directory.Exists(logsDir))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", logsDir);
+                }
+                else
+                {
+                    _dialogService.ShowWarning("Logs directory does not exist yet.", "Directory Not Found");
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Error opening logs folder: {ex.Message}", "Error");
             }
         }
 

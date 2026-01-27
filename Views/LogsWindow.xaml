@@ -124,6 +124,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
             <TextBlock Grid.Column="0" 
@@ -135,10 +136,15 @@
                     Background="#FFDC3545" Width="120" Height="35" Margin="5"
                     Command="{Binding ClearLogsCommand}"/>
             
-            <Button Grid.Column="2" Content="Export Logs" 
+            <Button Grid.Column="2" Content="Export CSV" 
                     Style="{StaticResource ModernButton}" 
-                    Background="#FF17A2B8" Width="120" Height="35" Margin="5,5,15,5"
+                    Background="#FF17A2B8" Width="120" Height="35" Margin="5"
                     Command="{Binding ExportLogsCommand}"/>
+
+            <Button Grid.Column="3" Content="Open Folder" 
+                    Style="{StaticResource ModernButton}" 
+                    Background="#FF28A745" Width="120" Height="35" Margin="5,5,15,5"
+                    Command="{Binding OpenLogsFolderCommand}"/>
         </Grid>
         
         <!-- Footer -->
