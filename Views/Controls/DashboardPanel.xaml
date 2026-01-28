@@ -57,6 +57,8 @@
                             <ColumnDefinition Width="*"/>   <!-- Tare -->
                             <ColumnDefinition Width="Auto"/> <!-- Sep -->
                             <ColumnDefinition Width="*"/>   <!-- Raw ADC -->
+                            <ColumnDefinition Width="Auto"/> <!-- Sep -->
+                            <ColumnDefinition Width="*"/>   <!-- Peak -->
                         </Grid.ColumnDefinitions>           
                         
                         <!-- Streaming -->
@@ -99,6 +101,31 @@
                         <StackPanel Grid.Column="8" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="RAW ADC" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding RawAdcText}" FontSize="12" FontWeight="Bold" Foreground="#FF2980B9"/>
+                        </StackPanel>
+
+                        <Separator Grid.Column="9" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
+
+                        <!-- Peak (Brake Mode Only) -->
+                        <StackPanel Grid.Column="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="PEAK" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding PeakWeightText}" FontSize="12" FontWeight="Bold" Foreground="#FFDC3545" Margin="0,0,5,0"/>
+                                <Button Content="↻" Command="{Binding ResetPeakCommand}" 
+                                        ToolTip="Reset Peak"
+                                        Background="Transparent" BorderThickness="0" 
+                                        Foreground="#FF7F8C8D" Cursor="Hand"
+                                        FontSize="14" FontWeight="Bold" Padding="2,0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Foreground" Value="#FFDC3545"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </Border>
