@@ -106,14 +106,34 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 RawAdcText = data.RawADC.ToString();
                 double weight = data.TaredWeight;
                 
-                if (IsBrakeMode)
+                // Calibration Check
+                var internalCal = _weightProcessor.InternalCalibration;
+                var adsCal = _weightProcessor.Ads1115Calibration;
+                bool isCalibrated = (internalCal?.IsValid == true) || (adsCal?.IsValid == true);
+
+                if (!isCalibrated)
                 {
-                    weight *= 9.80665;
-                    WeightText = $"{weight:F1} N";
+                    WeightText = "Calibrate first";
+                    // TODO: Change text color to Amber/Red for warning state (currently uses default green)
                 }
                 else
                 {
-                    WeightText = $"{weight:F1} kg";
+                    if (IsBrakeMode)
+                    {
+                        if (_settings.Settings.BrakeDisplayUnit == "N")
+                        {
+                            weight *= _settings.Settings.BrakeKgToNewtonMultiplier;
+                            WeightText = $"{weight:F1} N";
+                        }
+                        else
+                        {
+                            WeightText = $"{weight:F1} kg";
+                        }
+                    }
+                    else
+                    {
+                        WeightText = $"{weight:F1} kg";
+                    }
                 }
                 
                 TareStatusText = $"Tare: {data.TareValue:F1} kg";

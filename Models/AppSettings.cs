@@ -63,6 +63,10 @@ namespace ATS_TwoWheeler_WPF.Models
         
         // Bootloader Settings
         public bool EnableBootloaderFeatures { get; set; } = true; // Enable/disable all bootloader functionality
+
+        // Brake Specific Settings
+        public string BrakeDisplayUnit { get; set; } = "kg"; // "kg" or "N"
+        public double BrakeKgToNewtonMultiplier { get; set; } = 9.80665; // Default g
     }
 }
 

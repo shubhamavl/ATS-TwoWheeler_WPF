@@ -4,6 +4,7 @@ using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.Views;
 using ATS_TwoWheeler_WPF.Core;
 using ATS_TwoWheeler_WPF.ViewModels;
+using ATS_TwoWheeler_WPF.Models;
 
 namespace ATS_TwoWheeler_WPF.Services
 {
@@ -44,14 +45,15 @@ namespace ATS_TwoWheeler_WPF.Services
             win.Show();
         }
 
-        public void ShowCalibrationDialog()
+        public void ShowCalibrationDialog(bool isBrakeMode = false)
         {
             var canService = ServiceRegistry.GetService<ICANService>();
             var settings = ServiceRegistry.GetService<ISettingsService>();
             var dialogService = ServiceRegistry.GetService<IDialogService>();
             var logger = ServiceRegistry.GetService<IProductionLoggerService>();
+            var weightProcessor = ServiceRegistry.GetService<IWeightProcessorService>();
             
-            var vm = new CalibrationDialogViewModel(canService, settings, dialogService, logger);
+            var vm = new CalibrationDialogViewModel(canService, settings, dialogService, logger, weightProcessor, (byte)(canService.CurrentADCMode == AdcMode.Ads1115 ? 1 : 0), 500, isBrakeMode);
             var diag = new CalibrationDialog(vm);
             diag.Owner = Application.Current.MainWindow;
             diag.ShowDialog();
@@ -77,7 +79,15 @@ namespace ATS_TwoWheeler_WPF.Services
             win.Show();
         }
 
-
+        public void ShowStatusHistory()
+        {
+            var statusManager = ServiceRegistry.GetService<Core.StatusHistoryManager>();
+             var vm = new StatusHistoryViewModel(statusManager);
+             var win = new StatusHistoryWindow();
+             win.DataContext = vm;
+             win.Owner = Application.Current.MainWindow;
+             win.Show();
+        }
 
         public void CloseWindow(object window)
         {

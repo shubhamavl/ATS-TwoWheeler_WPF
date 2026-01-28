@@ -11,6 +11,8 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         AdcMode CurrentADCMode { get; }
         long TxMessageCount { get; }
         long RxMessageCount { get; }
+        DateTime LastRxTime { get; }
+        DateTime LastSystemStatusTime { get; }
         event Action<CANMessage>? MessageReceived;
         event EventHandler<RawDataEventArgs>? RawDataReceived;
         event EventHandler<SystemStatusEventArgs>? SystemStatusReceived;

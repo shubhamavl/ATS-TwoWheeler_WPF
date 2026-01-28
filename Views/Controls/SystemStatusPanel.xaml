@@ -87,14 +87,20 @@
             </Grid>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="Status" Command="{Binding RequestStatusCommand}"
+                <Button Grid.Column="1" 
+                        Content="Firmware" 
+                        Command="{Binding RequestFirmwareCommand}"
                         Style="{StaticResource ModernButton}" 
                         Background="#FF17A2B8" 
-                        Width="70" Height="30" Margin="2,0"/>
-                <Button Content="History" Command="{Binding ShowHistoryCommand}"
+                        Width="70" Height="30" Margin="2,0"
+                        ToolTip="Request Firmware Version"/>
+                
+                <Button Grid.Column="2" 
+                        Content="History" 
+                        Command="{Binding ShowHistoryCommand}"
                         Style="{StaticResource ModernButton}" 
                         Background="#FF6F42C1" 
-                        Width="70" Height="30" Margin="2,0"/>
+                        Width="70" Height="30" Margin="5,0,0,0"/>
             </StackPanel>
         </StackPanel>
     </Border>

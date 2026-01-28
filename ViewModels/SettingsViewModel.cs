@@ -24,6 +24,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             FilterTypes = new ObservableCollection<string> { "EMA", "SMA", "None" };
             LogFormats = new ObservableCollection<string> { "CSV", "JSON" };
             CalibrationModes = new ObservableCollection<string> { "Regression", "Piecewise" };
+            BrakeUnits = new ObservableCollection<string> { "N", "kg" };
             
             // Commands
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings());
@@ -356,6 +357,37 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 }
             }
         }
+
+        // Brake Specific Settings
+        public string BrakeDisplayUnit
+        {
+            get => _settingsManager.Settings.BrakeDisplayUnit;
+            set
+            {
+                if (_settingsManager.Settings.BrakeDisplayUnit != value)
+                {
+                    _settingsManager.Settings.BrakeDisplayUnit = value;
+                    OnPropertyChanged();
+                    _settingsManager.SaveSettings();
+                }
+            }
+        }
+
+        public double BrakeKgToNewtonMultiplier
+        {
+            get => _settingsManager.Settings.BrakeKgToNewtonMultiplier;
+            set
+            {
+                if (Math.Abs(_settingsManager.Settings.BrakeKgToNewtonMultiplier - value) > 0.00001)
+                {
+                    _settingsManager.Settings.BrakeKgToNewtonMultiplier = value;
+                    OnPropertyChanged();
+                    _settingsManager.SaveSettings();
+                }
+            }
+        }
+
+        public ObservableCollection<string> BrakeUnits { get; }
 
         // --- Calibration Data Display ---
         private LinearCalibration? _internalCal;

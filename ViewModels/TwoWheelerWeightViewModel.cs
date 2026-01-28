@@ -82,10 +82,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public bool CanStop => CurrentState == TestState.Running || CurrentState == TestState.Paused;
 
         // Formatted strings for UI
-        public string MainWeightText => $"{CurrentWeight:F1} {UnitLabel}";
-        public string TotalWeightText => $"{CurrentWeight:F1} {UnitLabel}";
-        public string MinWeightText => $"{MinWeight:F1} {UnitLabel}";
-        public string MaxWeightText => $"{MaxWeight:F1} {UnitLabel}";
+        public string MainWeightText => IsCalibrated ? $"{CurrentWeight:F1} {UnitLabel}" : "Calibrate first";
+        public string TotalWeightText => IsCalibrated ? $"{CurrentWeight:F1} {UnitLabel}" : "Calibrate first";
+        public string MinWeightText => IsCalibrated ? $"{MinWeight:F1} {UnitLabel}" : "---";
+        public string MaxWeightText => IsCalibrated ? $"{MaxWeight:F1} {UnitLabel}" : "---";
         public string DataRateText => $"Rate: {_dataPointsPerSec} pts/sec";
         
         // Status & Connection
@@ -146,6 +146,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _sampleCount, value);
         }
 
+        private bool _isCalibrated = true;
+        public bool IsCalibrated
+        {
+            get => _isCalibrated;
+            set => SetProperty(ref _isCalibrated, value);
+        }
+
         private string _unitLabel = "kg";
         public string UnitLabel
         {
@@ -162,7 +169,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 if (SetProperty(ref _isBrakeMode, value))
                 {
                     _canService.SwitchSystemMode(_isBrakeMode ? SystemMode.Brake : SystemMode.Weight);
-                    UnitLabel = _isBrakeMode ? "N" : "kg";
+                    
+                    if (_isBrakeMode)
+                    {
+                        UnitLabel = _settings.Settings.BrakeDisplayUnit;
+                        YAxes[0].Name = UnitLabel == "N" ? "Brake Force (N)" : "Brake Force (kg)";
+                    }
+                    else
+                    {
+                        UnitLabel = "kg";
+                        YAxes[0].Name = "Weight (kg)";
+                    }
+
                     OnPropertyChanged(nameof(MainWeightText));
                     OnPropertyChanged(nameof(TotalWeightText));
                     OnPropertyChanged(nameof(MinWeightText));
@@ -283,8 +301,53 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             var latest = _weightProcessor.LatestTotal;
             double rawWeight = latest.TaredWeight;
 
-            // Apply Newton conversion if in Brake Mode
-            CurrentWeight = IsBrakeMode ? rawWeight * 9.80665 : rawWeight;
+            // Check calibration status
+            // Determine active ADC mode from canService or common state
+            // For now, checking both internal and ADS1115 (whichever is active in WeightProcessor)
+            var internalCal = _weightProcessor.InternalCalibration;
+            var adsCal = _weightProcessor.Ads1115Calibration;
+            
+            // TODO: Expose a single IsActiveCalibrated property in WeightProcessor to simplify this check
+            IsCalibrated = (internalCal?.IsValid == true) || (adsCal?.IsValid == true);
+
+            // Sync UnitLabel with settings
+            if (IsBrakeMode)
+            {
+                string settingUnit = _settings.Settings.BrakeDisplayUnit;
+                if (UnitLabel != settingUnit)
+                {
+                    UnitLabel = settingUnit;
+                    if (YAxes.Length > 0)
+                    {
+                        YAxes[0].Name = UnitLabel == "N" ? "Brake Force (N)" : "Brake Force (kg)";
+                    }
+                }
+            }
+            else if (UnitLabel != "kg")
+            {
+                UnitLabel = "kg";
+                if (YAxes.Length > 0)
+                {
+                    YAxes[0].Name = "Weight (kg)";
+                }
+            }
+
+            // Apply conversion if in Brake Mode
+            if (IsBrakeMode)
+            {
+                if (_settings.Settings.BrakeDisplayUnit == "N")
+                {
+                    CurrentWeight = rawWeight * _settings.Settings.BrakeKgToNewtonMultiplier;
+                }
+                else
+                {
+                    CurrentWeight = rawWeight; // Default kg
+                }
+            }
+            else
+            {
+                CurrentWeight = rawWeight;
+            }
 
             // Rate calculation
             _dataPointsCurrentSec++;
@@ -335,13 +398,32 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 }
                 
                 double range = max - min;
-                double threshold = IsBrakeMode ? 5.0 : 0.5; // 5N or 0.5kg threshold
+                
+                double threshold;
+                if (IsBrakeMode)
+                {
+                    threshold = _settings.Settings.BrakeDisplayUnit == "kg" ? 0.5 : 5.0; // 0.5kg or 5N
+                }
+                else
+                {
+                    threshold = 0.5; // 0.5kg
+                }
+                
                 isStable = range < threshold;
             }
 
             // Validation Indicator Logic
             // Green if stable and weight > threshold
-            double activeThreshold = IsBrakeMode ? 10.0 : 1.0; // 10N or 1kg
+            double activeThreshold;
+            if (IsBrakeMode)
+            {
+                activeThreshold = _settings.Settings.BrakeDisplayUnit == "kg" ? 1.0 : 10.0; // 1kg or 10N
+            }
+            else
+            {
+                activeThreshold = 1.0; // 1kg
+            }
+
             if (CurrentWeight > activeThreshold && isStable)
                 ValidationColor = "#FF28A745"; // Green
             else if (CurrentWeight > activeThreshold)

@@ -87,7 +87,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnCalibrate(object? parameter)
         {
-             _navigationService.ShowCalibrationDialog();
+             _navigationService.ShowCalibrationDialog(IsBrakeMode);
         }
 
         private void OnResetCalibration(object? parameter)

@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:ATS_TwoWheeler_WPF.ViewModels"
         xmlns:controls="clr-namespace:ATS_TwoWheeler_WPF.Views.Controls"
         mc:Ignorable="d"
-        Title="ATS Two-Wheeler Weight System (Refactored)" Height="900" Width="1200"
+        Title="ATS Two-Wheeler Weight System" Height="900" Width="1200"
         WindowStartupLocation="CenterScreen" Background="#FFF5F5F5"
         Icon="pack://application:,,,/Assets/AVL_Icon.ico">
     
