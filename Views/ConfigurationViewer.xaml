@@ -84,16 +84,16 @@
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding InternalCalSlope, StringFormat='F4'}"/>
+                                <Run Text="{Binding InternalCalSlope, StringFormat='F4', Mode=OneWay}"/>
                                 <Run Text=" / "/>
-                                <Run Text="{Binding InternalCalIntercept, StringFormat='F2'}"/>
+                                <Run Text="{Binding InternalCalIntercept, StringFormat='F2', Mode=OneWay}"/>
                             </TextBlock>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding InternalCalZeroPoint}"/>
+                                <Run Text="{Binding InternalCalZeroPoint, Mode=OneWay}"/>
                                 <Run Text=" / "/>
-                                <Run Text="{Binding InternalCalKnownWeightAdc}"/>
+                                <Run Text="{Binding InternalCalKnownWeightAdc, Mode=OneWay}"/>
                             </TextBlock>
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
@@ -129,16 +129,16 @@
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding AdsCalSlope, StringFormat='F4'}"/>
+                                <Run Text="{Binding AdsCalSlope, StringFormat='F4', Mode=OneWay}"/>
                                 <Run Text=" / "/>
-                                <Run Text="{Binding AdsCalIntercept, StringFormat='F2'}"/>
+                                <Run Text="{Binding AdsCalIntercept, StringFormat='F2', Mode=OneWay}"/>
                             </TextBlock>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding AdsCalZeroPoint}"/>
+                                <Run Text="{Binding AdsCalZeroPoint, Mode=OneWay}"/>
                                 <Run Text=" / "/>
-                                <Run Text="{Binding AdsCalKnownWeightAdc}"/>
+                                <Run Text="{Binding AdsCalKnownWeightAdc, Mode=OneWay}"/>
                             </TextBlock>
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>

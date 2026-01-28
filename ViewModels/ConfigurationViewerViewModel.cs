@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows.Input;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
@@ -17,11 +18,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public double InternalCalIntercept => _settings.CalibrationDataInternal.Intercept;
         public string InternalCalDate => _settings.CalibrationDataInternal.CalibrationDate.ToString("yyyy-MM-dd HH:mm");
 
+        public int InternalCalZeroPoint => _settings.CalibrationDataInternal.Points?.FirstOrDefault(p => p.KnownWeight == 0)?.RawADC ?? 0;
+        public int InternalCalKnownWeightAdc => _settings.CalibrationDataInternal.Points?.OrderByDescending(p => p.KnownWeight).FirstOrDefault()?.RawADC ?? 0;
+
         public string AdsCalFileLocation => _settings.GetCalibrationFilePath(true);
         public string AdsCalStatus => _settings.CalibrationDataADS1115.IsValid ? "Calibrated" : "Not Calibrated";
         public double AdsCalSlope => _settings.CalibrationDataADS1115.Slope;
         public double AdsCalIntercept => _settings.CalibrationDataADS1115.Intercept;
         public string AdsCalDate => _settings.CalibrationDataADS1115.CalibrationDate.ToString("yyyy-MM-dd HH:mm");
+
+        public int AdsCalZeroPoint => _settings.CalibrationDataADS1115.Points?.FirstOrDefault(p => p.KnownWeight == 0)?.RawADC ?? 0;
+        public int AdsCalKnownWeightAdc => _settings.CalibrationDataADS1115.Points?.OrderByDescending(p => p.KnownWeight).FirstOrDefault()?.RawADC ?? 0;
 
         public string TareFileLocation => _settings.GetTareFilePath();
         public string TareStatus => _settings.TareValue != 0 ? "Active" : "Stable/Zero";

@@ -66,6 +66,15 @@ namespace ATS_TwoWheeler_WPF.Core
 
             // Update Service
             Register<IUpdateService>(new UpdateService());
+
+            // Bootloader Services
+            var diagService = new BootloaderDiagnosticsService();
+            Register<BootloaderDiagnosticsService>(diagService);
+            Register<IBootloaderDiagnosticsService>(diagService);
+
+            var firmwareService = new FirmwareUpdateService(canService);
+            Register<FirmwareUpdateService>(firmwareService);
+            Register<IFirmwareUpdateService>(firmwareService);
         }
         
         /// <summary>
