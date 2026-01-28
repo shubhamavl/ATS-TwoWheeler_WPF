@@ -5,6 +5,7 @@ using ATS_TwoWheeler_WPF.Services;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
 using ATS_TwoWheeler_WPF.Models;
+using ATS_TwoWheeler_WPF.Core;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -78,18 +79,21 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
 
 
-        // Commands
-        public ICommand RequestStatusCommand { get; }
+        public ICommand RequestFirmwareCommand { get; }
         public ICommand ShowHistoryCommand { get; }
 
         private readonly INavigationService? _navigationService;
+        private readonly IStatusMonitorService? _statusMonitor;
+        private readonly StatusHistoryManager? _historyManager;
 
-        public SystemStatusPanelViewModel(ICANService? canService, INavigationService? navigationService)
+        public SystemStatusPanelViewModel(ICANService? canService, INavigationService? navigationService, IStatusMonitorService? statusMonitor, StatusHistoryManager? historyManager = null)
         {
             _canService = canService;
             _navigationService = navigationService;
+            _statusMonitor = statusMonitor;
+            _historyManager = historyManager ?? ServiceRegistry.GetService<StatusHistoryManager>(); // Fallback or inject
             
-            RequestStatusCommand = new RelayCommand(OnRequestStatus);
+            RequestFirmwareCommand = new RelayCommand(OnRequestFirmware);
             ShowHistoryCommand = new RelayCommand(OnShowHistory);
             
             // Subscribe to events
@@ -99,6 +103,34 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 _canService.PerformanceMetricsReceived += OnPerformanceMetricsReceived;
                 _canService.FirmwareVersionReceived += OnFirmwareVersionReceived;
             }
+
+            if (_statusMonitor != null)
+            {
+                _statusMonitor.AvailabilityChanged += OnAvailabilityChanged;
+            }
+        }
+
+        private void OnAvailabilityChanged(object? sender, bool isAvailable)
+        {
+             System.Windows.Application.Current.Dispatcher.Invoke(() =>
+             {
+                 if (!isAvailable)
+                 {
+                     StatusText = "NOT AVAILABLE";
+                     StatusColor = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
+                 }
+                 else
+                 {
+                     // If coming back online, we might want to reset to Unknown or wait for next Status packet.
+                     // The next Status packet will update it to OK/Warn/Error.
+                     // Temporarily set to "Unknown" or just leave it until next packet updates it.
+                     if (StatusText == "NOT AVAILABLE")
+                     {
+                         StatusText = "Connected...";
+                         StatusColor = Brushes.Gray;
+                     }
+                 }
+             });
         }
 
 
@@ -141,6 +173,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 UptimeText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)t.TotalHours, t.Minutes, t.Seconds);
                 
                 LastUpdateText = e.Timestamp.ToString("HH:mm:ss");
+                
+                // Add to history
+                _historyManager?.AddStatusEntry(
+                    (byte)e.SystemStatus, 
+                    e.ErrorFlags, 
+                    (byte)e.ADCMode, 
+                    (byte)e.RelayState, 
+                    0, 0, // Hz not available in this packet, explicitly
+                    e.UptimeSeconds,
+                    FirmwareVersionText.Replace("FW: ", "") // Rough extraction, or store separately
+                );
             });
         }
 
@@ -161,9 +204,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             });
         }
 
-        private void OnRequestStatus(object? parameter)
+        private void OnRequestFirmware(object? parameter)
         {
-            _canService?.RequestSystemStatus();
+            _canService?.RequestFirmwareVersion();
         }
 
         public void Refresh()
@@ -173,7 +216,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnShowHistory(object? parameter)
         {
-            _navigationService?.ShowLogsWindow();
+            _navigationService?.ShowStatusHistory();
         }
     }
 }

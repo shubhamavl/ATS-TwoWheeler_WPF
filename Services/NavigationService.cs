@@ -79,7 +79,15 @@ namespace ATS_TwoWheeler_WPF.Services
             win.Show();
         }
 
-
+        public void ShowStatusHistory()
+        {
+            var statusManager = ServiceRegistry.GetService<Core.StatusHistoryManager>();
+             var vm = new StatusHistoryViewModel(statusManager);
+             var win = new StatusHistoryWindow();
+             win.DataContext = vm;
+             win.Owner = Application.Current.MainWindow;
+             win.Show();
+        }
 
         public void CloseWindow(object window)
         {

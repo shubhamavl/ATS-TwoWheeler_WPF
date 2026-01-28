@@ -60,127 +60,224 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                
-                <!-- Internal ADC -->
-                <Border Style="{StaticResource ConfigCard}">
-                    <StackPanel>
-                        <TextBlock Text="📏 Internal ADC (12-bit)" Style="{StaticResource ConfigHeader}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding InternalCalStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
+            <TabControl Margin="-2,0,-2,0" Padding="5">
+                <TabItem Header="Weight System" FontSize="14" FontWeight="SemiBold">
+                    <StackPanel Margin="0,15,0,0">
+                        <!-- Internal ADC -->
+                        <Border Style="{StaticResource ConfigCard}">
+                            <StackPanel>
+                                <TextBlock Text="📏 Internal ADC (12-bit)" Style="{StaticResource ConfigHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding InternalCalStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding InternalCalSlope, StringFormat='F4', Mode=OneWay}"/>
-                                <Run Text=" / "/>
-                                <Run Text="{Binding InternalCalIntercept, StringFormat='F2', Mode=OneWay}"/>
-                            </TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding InternalCalSlope, StringFormat='F4', Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding InternalCalIntercept, StringFormat='F2', Mode=OneWay}"/>
+                                    </TextBlock>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding InternalCalZeroPoint, Mode=OneWay}"/>
-                                <Run Text=" / "/>
-                                <Run Text="{Binding InternalCalKnownWeightAdc, Mode=OneWay}"/>
-                            </TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding InternalCalZeroPoint, Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding InternalCalKnownWeightAdc, Mode=OneWay}"/>
+                                    </TextBlock>
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InternalCalDate}" Style="{StaticResource ConfigValue}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InternalCalDate}" Style="{StaticResource ConfigValue}"/>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding InternalCalFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
-                        </Grid>
-                        <Button Content="Reset Internal" Command="{Binding ResetInternalCommand}" 
-                                Background="#FFE74C3C" Foreground="White" Width="120" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding InternalCalFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
+                                </Grid>
+                                <Button Content="Reset Internal" Command="{Binding ResetInternalCommand}" 
+                                        Background="#FFE74C3C" Foreground="White" Width="120" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ADS1115 ADC -->
+                        <Border Style="{StaticResource ConfigCard}">
+                            <StackPanel>
+                                <TextBlock Text="📏 ADS1115 (16-bit)" Style="{StaticResource ConfigHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AdsCalStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding AdsCalSlope, StringFormat='F4', Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding AdsCalIntercept, StringFormat='F2', Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding AdsCalZeroPoint, Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding AdsCalKnownWeightAdc, Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AdsCalDate}" Style="{StaticResource ConfigValue}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AdsCalFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
+                                </Grid>
+                                 <Button Content="Reset ADS1115" Command="{Binding ResetAdsCommand}" 
+                                        Background="#FFE74C3C" Foreground="White" Width="120" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tare & Data -->
+                        <Border Style="{StaticResource ConfigCard}">
+                            <StackPanel>
+                                <TextBlock Text="📂 Data Locations" Style="{StaticResource ConfigHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tare Baseline:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TareBaseline, StringFormat='F2'}" Style="{StaticResource ConfigValue}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Tare File:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding TareFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Data Directory:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DataDirectoryPath}" Style="{StaticResource ConfigValue}" FontSize="10"/>
+                                </Grid>
+                                <Button Content="Open Data Folder" Command="{Binding OpenDataDirectoryCommand}" 
+                                        Background="#FF28A745" Foreground="White" Width="140" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
+                </TabItem>
 
-                <!-- ADS1115 ADC -->
-                <Border Style="{StaticResource ConfigCard}">
-                    <StackPanel>
-                        <TextBlock Text="📏 ADS1115 (16-bit)" Style="{StaticResource ConfigHeader}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AdsCalStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
+                <TabItem Header="Brake System" FontSize="14" FontWeight="SemiBold">
+                    <StackPanel Margin="0,15,0,0">
+                         <!-- Internal ADC Brake -->
+                        <Border Style="{StaticResource ConfigCard}">
+                            <StackPanel>
+                                <TextBlock Text="📏 Internal ADC (Brake)" Style="{StaticResource ConfigHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding InternalCalBrakeStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding AdsCalSlope, StringFormat='F4', Mode=OneWay}"/>
-                                <Run Text=" / "/>
-                                <Run Text="{Binding AdsCalIntercept, StringFormat='F2', Mode=OneWay}"/>
-                            </TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding InternalCalBrakeSlope, StringFormat='F4', Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding InternalCalBrakeIntercept, StringFormat='F2', Mode=OneWay}"/>
+                                    </TextBlock>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
-                                <Run Text="{Binding AdsCalZeroPoint, Mode=OneWay}"/>
-                                <Run Text=" / "/>
-                                <Run Text="{Binding AdsCalKnownWeightAdc, Mode=OneWay}"/>
-                            </TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding InternalCalBrakeZeroPoint, Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding InternalCalBrakeKnownWeightAdc, Mode=OneWay}"/>
+                                    </TextBlock>
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AdsCalDate}" Style="{StaticResource ConfigValue}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InternalCalBrakeDate}" Style="{StaticResource ConfigValue}"/>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AdsCalFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
-                        </Grid>
-                         <Button Content="Reset ADS1115" Command="{Binding ResetAdsCommand}" 
-                                Background="#FFE74C3C" Foreground="White" Width="120" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding InternalCalBrakeFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
+                                </Grid>
+                                <Button Content="Reset Internal Brake" Command="{Binding ResetInternalBrakeCommand}" 
+                                        Background="#FFE74C3C" Foreground="White" Width="140" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ADS1115 ADC Brake -->
+                        <Border Style="{StaticResource ConfigCard}">
+                            <StackPanel>
+                                <TextBlock Text="📏 ADS1115 (Brake)" Style="{StaticResource ConfigHeader}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AdsCalBrakeStatus}" Style="{StaticResource ConfigValue}" FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Slope / Intercept:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding AdsCalBrakeSlope, StringFormat='F4', Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding AdsCalBrakeIntercept, StringFormat='F2', Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Zero / Full ADC:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ConfigValue}">
+                                        <Run Text="{Binding AdsCalBrakeZeroPoint, Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding AdsCalBrakeKnownWeightAdc, Mode=OneWay}"/>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Last Calibrated:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AdsCalBrakeDate}" Style="{StaticResource ConfigValue}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="File Path:" Style="{StaticResource ConfigLabel}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AdsCalBrakeFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
+                                </Grid>
+                                 <Button Content="Reset ADS1115 Brake" Command="{Binding ResetAdsBrakeCommand}" 
+                                        Background="#FFE74C3C" Foreground="White" Width="140" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
-
-                <!-- Tare & Data -->
-                <Border Style="{StaticResource ConfigCard}">
-                    <StackPanel>
-                        <TextBlock Text="📂 Data Locations" Style="{StaticResource ConfigHeader}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Tare Baseline:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TareBaseline, StringFormat='F2'}" Style="{StaticResource ConfigValue}"/>
-
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Tare File:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding TareFileLocation}" Style="{StaticResource ConfigValue}" FontSize="10" Foreground="Gray"/>
-
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Data Directory:" Style="{StaticResource ConfigLabel}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DataDirectoryPath}" Style="{StaticResource ConfigValue}" FontSize="10"/>
-                        </Grid>
-                        <Button Content="Open Data Folder" Command="{Binding OpenDataDirectoryCommand}" 
-                                Background="#FF28A745" Foreground="White" Width="140" HorizontalAlignment="Left" Margin="0,15,0,0" Padding="5"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                </TabItem>
+            </TabControl>
         </ScrollViewer>
 
         <!-- Footer -->

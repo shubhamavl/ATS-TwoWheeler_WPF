@@ -31,9 +31,13 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         // Calibration and Tare accessors
         LinearCalibration CalibrationDataInternal { get; }
         LinearCalibration CalibrationDataADS1115 { get; }
+        LinearCalibration CalibrationDataInternalBrake { get; }
+        LinearCalibration CalibrationDataADS1115Brake { get; }
         string GetCalibrationFilePath(bool adcMode);
+        string GetCalibrationBrakeFilePath(bool adcMode);
         string GetTareFilePath();
         void ResetCalibration(bool adsMode);
+        void ResetBrakeCalibration(bool adsMode);
         double TareValue { get; }
     }
 }

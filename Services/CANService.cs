@@ -35,6 +35,9 @@ namespace ATS_TwoWheeler_WPF.Services
         private DateTime _lastMessageTime = DateTime.MinValue;
         private TimeSpan _timeout = TimeSpan.FromSeconds(5); // Configurable timeout
         private bool _timeoutNotified = false;
+        
+        public DateTime LastRxTime => _lastMessageTime;
+        public DateTime LastSystemStatusTime { get; private set; } = DateTime.MinValue;
 
         // v0.1 Ultra-Minimal CAN Protocol - Semantic IDs & Maximum Efficiency
         // Raw Data: 2 bytes only (75% reduction from 8 bytes)
@@ -104,7 +107,11 @@ namespace ATS_TwoWheeler_WPF.Services
             
             // Wire up event dispatcher to service events
             _eventDispatcher.RawDataReceived += (s, e) => RawDataReceived?.Invoke(this, e);
-            _eventDispatcher.SystemStatusReceived += (s, e) => SystemStatusReceived?.Invoke(this, e);
+            _eventDispatcher.SystemStatusReceived += (s, e) => 
+            {
+                LastSystemStatusTime = DateTime.Now;
+                SystemStatusReceived?.Invoke(this, e);
+            };
             _eventDispatcher.FirmwareVersionReceived += (s, e) => FirmwareVersionReceived?.Invoke(this, e);
             _eventDispatcher.PerformanceMetricsReceived += (s, e) => PerformanceMetricsReceived?.Invoke(this, e);
             _eventDispatcher.DataTimeout += (s, e) => DataTimeout?.Invoke(this, e);

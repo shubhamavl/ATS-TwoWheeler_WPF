@@ -389,9 +389,17 @@ namespace ATS_TwoWheeler_WPF.Services
         public LinearCalibration CalibrationDataInternal => LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Weight) ?? new LinearCalibration { IsValid = false };
         public LinearCalibration CalibrationDataADS1115 => LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Weight) ?? new LinearCalibration { IsValid = false };
 
+        public LinearCalibration CalibrationDataInternalBrake => LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Brake) ?? new LinearCalibration { IsValid = false };
+        public LinearCalibration CalibrationDataADS1115Brake => LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Brake) ?? new LinearCalibration { IsValid = false };
+
         public string GetCalibrationFilePath(bool adcMode)
         {
             return PathHelper.GetCalibrationPath(adcMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Weight);
+        }
+
+        public string GetCalibrationBrakeFilePath(bool adcMode)
+        {
+            return PathHelper.GetCalibrationPath(adcMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Brake);
         }
 
         public string GetTareFilePath()
@@ -402,6 +410,11 @@ namespace ATS_TwoWheeler_WPF.Services
         public void ResetCalibration(bool adsMode)
         {
             LinearCalibration.DeleteCalibration(adsMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Weight);
+        }
+
+        public void ResetBrakeCalibration(bool adsMode)
+        {
+            LinearCalibration.DeleteCalibration(adsMode ? AdcMode.Ads1115 : AdcMode.InternalWeight, SystemMode.Brake);
         }
 
         public double TareValue

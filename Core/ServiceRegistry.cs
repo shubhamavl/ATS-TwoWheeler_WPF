@@ -58,6 +58,10 @@ namespace ATS_TwoWheeler_WPF.Core
             // Production Logger
             Register<IProductionLoggerService>(ProductionLogger.Instance);
 
+            // History Manager
+            var historyManager = new StatusHistoryManager();
+            Register<StatusHistoryManager>(historyManager);
+
             // Navigation
             Register<INavigationService>(new NavigationService());
 
@@ -75,6 +79,13 @@ namespace ATS_TwoWheeler_WPF.Core
             var firmwareService = new FirmwareUpdateService(canService);
             Register<FirmwareUpdateService>(firmwareService);
             Register<IFirmwareUpdateService>(firmwareService);
+
+            // Status Monitor
+            var statusMonitor = new StatusMonitorService(canService, GetService<IDialogService>());
+            Register<IStatusMonitorService>(statusMonitor);
+            
+            // Start monitoring
+            statusMonitor.StartMonitoring();
         }
         
         /// <summary>

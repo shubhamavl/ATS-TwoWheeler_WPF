@@ -52,6 +52,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             
             var updateService = ServiceRegistry.GetService<IUpdateService>();
             var dialogService = ServiceRegistry.GetService<IDialogService>();
+            var statusMonitor = ServiceRegistry.GetService<IStatusMonitorService>();
+            var historyManager = ServiceRegistry.GetService<StatusHistoryManager>();
             
             _weightProcessor.Start(); // Start processing thread
             
@@ -59,7 +61,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Connection = new ConnectionViewModel(_canService, _settings);
             Dashboard = new DashboardViewModel(_weightProcessor, _canService, _settings);
             Calibration = new CalibrationViewModel(_weightProcessor, _canService, _settings, navigationService);
-            SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService);
+            SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService, statusMonitor, historyManager);
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
             StatusBar = new AppStatusBarViewModel(_canService, updateService, dialogService);
             Settings = new SettingsViewModel(_settings);

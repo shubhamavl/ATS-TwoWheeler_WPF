@@ -9,7 +9,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void ShowCalibrationDialog(bool isBrakeMode = false);
         void ShowMonitorWindow();
         void ShowLogsWindow();
-
+        void ShowStatusHistory();
         void CloseWindow(object window);
     }
 }
