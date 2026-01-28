@@ -16,6 +16,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly IProductionLoggerService _logger;
         private readonly IDataLoggerService _dataLogger;
         private readonly IDialogService _dialogService;
+        
+        // Batching for performance
+        private readonly System.Collections.Concurrent.ConcurrentQueue<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry> _logPendingQueue = new();
+        private readonly DispatcherTimer _batchTimer;
 
         private readonly ObservableCollection<LogEntry> _allLogEntries = new();
         public ReadOnlyObservableCollection<LogEntry> AllLogEntries { get; }
@@ -70,32 +74,66 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             ExportLogsCommand = new RelayCommand(async _ => await ExportLogsAsync());
             OpenLogsFolderCommand = new RelayCommand(_ => OnOpenLogsFolder());
 
-            // Initialize from existing logs
-            foreach (var entry in _logger.LogEntries)
+            // Initialize from existing logs (using thread-safe snapshot)
+            foreach (var entry in _logger.GetAllLogsSnapshot())
+            {
+                AddLogEntry(entry);
+            }
+
+            // Initialize from existing logs (using thread-safe snapshot)
+            foreach (var entry in _logger.GetAllLogsSnapshot())
             {
                 AddLogEntry(entry);
             }
 
             _logger.LogEntries.CollectionChanged += OnLoggerCollectionChanged;
+
+            // Setup batch timer (updates UI every 250ms)
+            _batchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _batchTimer.Tick += OnBatchTimerTick;
+            _batchTimer.Start();
         }
 
         private void OnLoggerCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
             {
-                if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+                foreach (ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry in e.NewItems)
                 {
-                    foreach (ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry in e.NewItems)
-                    {
-                        AddLogEntry(entry);
-                    }
+                    _logPendingQueue.Enqueue(entry);
                 }
-                else if (e.Action == NotifyCollectionChangedAction.Reset)
-                {
+            }
+            else if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                // For reset, do it immediately on UI thread
+                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                 {
                     _allLogEntries.Clear();
                     _filteredLogEntries.Clear();
+                 });
+            }
+        }
+
+        private void OnBatchTimerTick(object? sender, EventArgs e)
+        {
+            if (_logPendingQueue.IsEmpty) return;
+
+            var batch = new List<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry>();
+            while (_logPendingQueue.TryDequeue(out var entry))
+            {
+                batch.Add(entry);
+                // Limit batch size to prevent freezing if queue is huge
+                if (batch.Count > 500) break; 
+            }
+
+            if (batch.Count > 0)
+            {
+                 // AddLogEntry logic inline or reused (AddLogEntry adds to collections)
+                foreach (var entry in batch)
+                {
+                    AddLogEntry(entry);
                 }
-            });
+            }
         }
 
         private void AddLogEntry(ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry)
@@ -199,6 +237,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public void Cleanup()
         {
+            _batchTimer.Stop();
             _logger.LogEntries.CollectionChanged -= OnLoggerCollectionChanged;
         }
     }

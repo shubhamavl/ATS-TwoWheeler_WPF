@@ -22,13 +22,13 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
 
         bool Connect(CanAdapterConfig config, out string errorMessage);
         void Disconnect();
-        bool SendMessage(uint id, byte[] data);
+        bool SendMessage(uint id, byte[] data, bool log = true);
         bool StartStream(TransmissionRate rate);
         bool StopAllStreams();
         bool SwitchToInternalADC();
         bool SwitchToADS1115();
         bool SwitchSystemMode(SystemMode mode);
-        bool RequestSystemStatus();
+        bool RequestSystemStatus(bool log = true);
         bool RequestFirmwareVersion();
         void SetTimeout(TimeSpan timeout);
     }

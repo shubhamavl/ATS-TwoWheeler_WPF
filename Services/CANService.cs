@@ -357,7 +357,7 @@ namespace ATS_TwoWheeler_WPF.Services
 
 
 
-        public bool SendMessage(uint id, byte[] data)
+        public bool SendMessage(uint id, byte[] data, bool log = true)
         {
             if (!_connected || _adapter == null) return false;
 
@@ -390,7 +390,11 @@ namespace ATS_TwoWheeler_WPF.Services
                 // TxMessageCount++; 
                 // MessageReceived?.Invoke(txMessage);
 
-                ProductionLogger.Instance.LogInfo($"CAN: Sent CAN frame ID=0x{id:X3}, Data={BitConverter.ToString(data ?? new byte[0])}", "CANService");
+                if (log)
+                {
+                    string dataStr = (data == null || data.Length == 0) ? "[No Data]" : BitConverter.ToString(data);
+                    ProductionLogger.Instance.LogInfo($"CAN: Sent CAN frame ID=0x{id:X3}, Data={dataStr}", "CANService");
+                }
                 return result;
             }
             catch (Exception ex)
@@ -490,9 +494,9 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Request system status from STM32 (on-demand)
         /// </summary>
         /// <returns>True if request sent successfully</returns>
-        public bool RequestSystemStatus()
+        public bool RequestSystemStatus(bool log = true)
         {
-            return SendMessage(CAN_MSG_ID_STATUS_REQUEST, new byte[0]);
+            return SendMessage(CAN_MSG_ID_STATUS_REQUEST, new byte[0], log);
         }
 
         /// <summary>

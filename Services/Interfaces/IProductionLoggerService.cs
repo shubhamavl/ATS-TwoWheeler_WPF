@@ -20,5 +20,6 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         IEnumerable<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry> GetFilteredLogs(bool showInfo, bool showWarning, bool showError, bool showCritical);
         string GetLogFilePath();
         int GetLogCount();
+        IEnumerable<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry> GetAllLogsSnapshot();
     }
 }

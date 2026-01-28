@@ -6,8 +6,7 @@
         xmlns:viewmodels="clr-namespace:ATS_TwoWheeler_WPF.ViewModels"
         mc:Ignorable="d"
         Title="Status History" Height="450" Width="800"
-        WindowStartupLocation="CenterOwner"
-        Icon="/ATS_TwoWheeler_WPF;component/Resources/logo.ico">
+        WindowStartupLocation="CenterOwner">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>

@@ -118,7 +118,7 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _settings.CanBaudRate = rate;
                 _settings.CanBaudRateIndex = index;
-                ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{rate:X2})", "Settings");
+                ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{(int)rate:X2})", "Settings");
             }
             catch (Exception ex)
             {
@@ -147,7 +147,7 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _settings.TransmissionRate = rate;
                 _settings.TransmissionRateIndex = index;
-                ProductionLogger.Instance.LogInfo($"Sampling rate set to: 0x{rate:X2} (index: {index})", "Settings");
+                ProductionLogger.Instance.LogInfo($"Sampling rate set to: 0x{(int)rate:X2} (index: {index})", "Settings");
             }
             catch (Exception ex)
             {

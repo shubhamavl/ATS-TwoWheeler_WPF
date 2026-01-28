@@ -72,7 +72,7 @@ namespace ATS_TwoWheeler_WPF.Services
             // If we haven't seen a Status packet in > 2 seconds, request it.
             if (timeSinceStatus.TotalSeconds > 2)
             {
-                _canService.RequestSystemStatus();
+                _canService.RequestSystemStatus(log: false);
             }
 
             // CRITICAL CHECK: If we haven't received ANY RX for > 3 seconds, OR 

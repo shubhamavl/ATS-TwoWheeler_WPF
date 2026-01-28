@@ -251,6 +251,17 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
 
+        /// <summary>
+        /// Get a thread-safe snapshot of all log entries
+        /// </summary>
+        public IEnumerable<LogEntry> GetAllLogsSnapshot()
+        {
+            lock (_logLock)
+            {
+                return new List<LogEntry>(_logEntries);
+            }
+        }
+
         private void WriteToFile(LogEntry entry)
         {
             try

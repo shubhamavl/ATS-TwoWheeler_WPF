@@ -164,8 +164,8 @@ namespace ATS_TwoWheeler_WPF.Adapters
                         int count = _serialPort.Read(buffer, 0, buffer.Length);
 
                         // HEX DUMP for debugging: Log raw bytes arriving from serial
-                        string hex = BitConverter.ToString(buffer, 0, count);
-                        ProductionLogger.Instance.LogInfo($"RAW SERIAL: {hex}", "Adapter");
+                        // string hex = BitConverter.ToString(buffer, 0, count);
+                        // ProductionLogger.Instance.LogInfo($"RAW SERIAL: {hex}", "Adapter");
 
                         for (int i = 0; i < count; i++)
                             _frameBuffer.Enqueue(buffer[i]);
@@ -313,7 +313,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
                          if (dlc > 0) Array.Copy(frame, 4, canData, 0, dlc);
                     }
                     
-                    ProductionLogger.Instance.LogInfo($"Adapter RX (Var): ID=0x{canId:X} ({(isExtended?"EXT":"STD")}) Data={BitConverter.ToString(canData)}", "Adapter");
+                    // ProductionLogger.Instance.LogInfo($"Adapter RX (Var): ID=0x{canId:X} ({(isExtended?"EXT":"STD")}) Data={BitConverter.ToString(canData)}", "Adapter");
                 }
                 else
                 {
