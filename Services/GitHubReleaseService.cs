@@ -14,7 +14,7 @@ namespace ATS_TwoWheeler_WPF.Services
     {
         private static readonly HttpClient HttpClient = CreateHttpClient();
         private const string RepositoryOwner = "shubhamavl";
-        private const string RepositoryName = "ATS_TwoWheeler_WPF";
+        private const string RepositoryName = "ATS-TwoWheeler_WPF";
         private const string AssetNameSubstring = "ATS_TwoWheeler_WPF_Portable";
         private const string AssetExtension = ".zip";
         private static readonly string[] AllowedDomains = { "github.com", "githubusercontent.com" };

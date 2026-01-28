@@ -61,7 +61,8 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void ShowMonitorWindow()
         {
-            var win = new MonitorWindow();
+            var canService = ServiceRegistry.GetService<ICANService>() as CANService;
+            var win = new MonitorWindow(canService);
             win.Owner = Application.Current.MainWindow;
             win.Show();
         }

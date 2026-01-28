@@ -81,18 +81,21 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnLoggerCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                foreach (ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry in e.NewItems)
+                if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
                 {
-                    AddLogEntry(entry);
+                    foreach (ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry in e.NewItems)
+                    {
+                        AddLogEntry(entry);
+                    }
                 }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Reset)
-            {
-                _allLogEntries.Clear();
-                _filteredLogEntries.Clear();
-            }
+                else if (e.Action == NotifyCollectionChangedAction.Reset)
+                {
+                    _allLogEntries.Clear();
+                    _filteredLogEntries.Clear();
+                }
+            });
         }
 
         private void AddLogEntry(ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry entry)
