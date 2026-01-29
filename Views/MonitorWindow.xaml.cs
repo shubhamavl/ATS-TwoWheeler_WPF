@@ -60,6 +60,11 @@ namespace ATS_TwoWheeler_WPF.Views
                 _updateTimer.Tick += UpdateTimer_Tick;
                 _updateTimer.Start();
             }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show($"Monitor state error: {ex.Message}", "Error", 
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Start monitor error: {ex.Message}", "Error", 
@@ -86,6 +91,11 @@ namespace ATS_TwoWheeler_WPF.Views
                 // Stop update timer
                 _updateTimer?.Stop();
                 _updateTimer = null;
+            }
+            catch (InvalidOperationException ex)
+            {
+                 MessageBox.Show($"Monitor state error: {ex.Message}", "Error", 
+                              MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
@@ -238,6 +248,16 @@ namespace ATS_TwoWheeler_WPF.Views
                                   "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"Export IO error: {ex.Message}", "Export Failed", 
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                 MessageBox.Show($"Access denied: {ex.Message}", "Export Failed", 
+                              MessageBoxButton.OK, MessageBoxImage.Error);
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Export error: {ex.Message}", "Error", 
@@ -288,6 +308,14 @@ namespace ATS_TwoWheeler_WPF.Views
                         }
                     }
                 }
+            }
+            catch (IOException ex)
+            {
+                 throw new IOException($"Failed to write file: {ex.Message}", ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                 throw new UnauthorizedAccessException($"Access denied: {ex.Message}", ex);
             }
             catch (Exception ex)
             {

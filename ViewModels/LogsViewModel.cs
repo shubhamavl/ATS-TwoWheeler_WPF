@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -209,9 +210,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 
                 _dialogService.ShowMessage($"Logs exported to: {filePath}", "Export Complete");
             }
+            catch (IOException ex)
+            {
+                _dialogService.ShowError($"File export error: {ex.Message}", "Export Failed");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _dialogService.ShowError($"Access denied: {ex.Message}", "Export Failed");
+            }
             catch (Exception ex)
             {
-                _dialogService.ShowError($"Export error: {ex.Message}", "Error");
+                _dialogService.ShowError($"Unexpected export error: {ex.Message}", "Error");
             }
         }
 
