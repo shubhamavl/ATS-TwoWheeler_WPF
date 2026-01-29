@@ -182,7 +182,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     (byte)e.RelayState, 
                     0, 0, // Hz not available in this packet, explicitly
                     e.UptimeSeconds,
-                    FirmwareVersionText.Replace("FW: ", "") // Rough extraction, or store separately
+                    FirmwareVersionText // No longer has "FW: " prefix
                 );
             });
         }
@@ -200,7 +200,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         {
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                FirmwareVersionText = $"FW: {e.VersionString}";
+                FirmwareVersionText = e.VersionString;
             });
         }
 
