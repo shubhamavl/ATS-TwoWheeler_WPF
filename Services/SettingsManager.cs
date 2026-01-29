@@ -21,7 +21,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             _settingsPath = PathHelper.GetSettingsPath(); // Portable: next to executable
             ProductionLogger.Instance.LogInfo($"Settings file path: {_settingsPath}", "Settings");
-            
+
             LoadSettings();
         }
 
@@ -58,9 +58,19 @@ namespace ATS_TwoWheeler_WPF.Services
                     ProductionLogger.Instance.LogInfo($"Settings file not found, using defaults: {_settingsPath}", "Settings");
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
-                ProductionLogger.Instance.LogError($"Failed to load settings: {ex.Message}", "Settings");
+                ProductionLogger.Instance.LogError($"Invalid JSON in settings file: {ex.Message}", "Settings");
+                _settings = new AppSettings();
+            }
+            catch (IOException ex)
+            {
+                ProductionLogger.Instance.LogError($"Cannot read settings file: {ex.Message}", "Settings");
+                _settings = new AppSettings();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                ProductionLogger.Instance.LogError($"Access denied to settings file: {ex.Message}", "Settings");
                 _settings = new AppSettings();
             }
         }
@@ -71,106 +81,108 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _settings.LastSaved = DateTime.Now;
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
-                
+
                 string? directory = Path.GetDirectoryName(_settingsPath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
-                
+
                 File.WriteAllText(_settingsPath, json);
                 ProductionLogger.Instance.LogInfo($"Settings saved to: {_settingsPath}", "Settings");
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                ProductionLogger.Instance.LogError($"Failed to save settings: {ex.Message}", "Settings");
+                ProductionLogger.Instance.LogError($"Cannot write settings file: {ex.Message}", "Settings");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                ProductionLogger.Instance.LogError($"Access denied when writing settings: {ex.Message}", "Settings");
             }
         }
 
         public void SetComPort(string comPort)
         {
-            if (string.IsNullOrWhiteSpace(comPort)) return;
-            try
+            if (string.IsNullOrWhiteSpace(comPort))
             {
-                _settings.ComPort = comPort;
-                ProductionLogger.Instance.LogInfo($"COM port set to: {comPort}", "Settings");
+                return;
             }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to set COM port: {ex.Message}", "Settings");
-            }
+
+            _settings.ComPort = comPort;
+            ProductionLogger.Instance.LogInfo($"COM port set to: {comPort}", "Settings");
         }
 
         public void SetCanBaudRate(string baudRate)
         {
             CanBaudRate rate = CanBaudRate.Bps250k; // Default 250k
             int index = 1;
-            
+
             switch (baudRate)
             {
                 case "125 kbps": rate = CanBaudRate.Bps125k; index = 0; break;
                 case "250 kbps": rate = CanBaudRate.Bps250k; index = 1; break;
                 case "500 kbps": rate = CanBaudRate.Bps500k; index = 2; break;
-                case "1 Mbps":   rate = CanBaudRate.Bps1M; index = 3; break;
+                case "1 Mbps": rate = CanBaudRate.Bps1M; index = 3; break;
             }
-            
-            try
-            {
-                _settings.CanBaudRate = rate;
-                _settings.CanBaudRateIndex = index;
-                ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{(int)rate:X2})", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to set CAN baud rate: {ex.Message}", "Settings");
-            }
+
+            _settings.CanBaudRate = rate;
+            _settings.CanBaudRateIndex = index;
+            ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{(int)rate:X2})", "Settings");
         }
 
         public void SetTransmissionRate(string samplingRate)
         {
             TransmissionRate rate = TransmissionRate.Hz1000; // Default 1kHz
             int index = 3;
-            
+
             switch (samplingRate)
             {
-                case "1 Hz":   rate = TransmissionRate.Hz1; index = 0; break;
+                case "1 Hz": rate = TransmissionRate.Hz1; index = 0; break;
                 case "100 Hz": rate = TransmissionRate.Hz100; index = 1; break;
                 case "500 Hz": rate = TransmissionRate.Hz500; index = 2; break;
-                case "1 kHz":  rate = TransmissionRate.Hz1000; index = 3; break;
+                case "1 kHz": rate = TransmissionRate.Hz1000; index = 3; break;
             }
             SetTransmissionRate(rate, index);
         }
 
         public void SetTransmissionRate(TransmissionRate rate, int index)
         {
-            try
-            {
-                _settings.TransmissionRate = rate;
-                _settings.TransmissionRateIndex = index;
-                ProductionLogger.Instance.LogInfo($"Sampling rate set to: 0x{(int)rate:X2} (index: {index})", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to set sampling rate: {ex.Message}", "Settings");
-            }
+            _settings.TransmissionRate = rate;
+            _settings.TransmissionRateIndex = index;
+            ProductionLogger.Instance.LogInfo($"Sampling rate set to: 0x{(int)rate:X2} (index: {index})", "Settings");
         }
 
         public void SetSaveDirectory(string directory)
         {
-            if (string.IsNullOrWhiteSpace(directory)) return;
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return;
+            }
+
             try
             {
                 if (!Directory.Exists(directory))
+                {
                     Directory.CreateDirectory(directory);
+                }
+
                 _settings.SaveDirectory = directory;
                 ProductionLogger.Instance.LogInfo($"Save directory set to: {directory}", "Settings");
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                ProductionLogger.Instance.LogError($"Failed to set save directory: {ex.Message}", "Settings");
+                ProductionLogger.Instance.LogError($"Cannot create save directory: {ex.Message}", "Settings");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                ProductionLogger.Instance.LogError($"Access denied to save directory: {ex.Message}", "Settings");
+            }
+            catch (ArgumentException ex)
+            {
+                ProductionLogger.Instance.LogError($"Invalid save directory path: {ex.Message}", "Settings");
             }
         }
-        
+
         /// <summary>
         /// Update system status in settings
         /// </summary>
@@ -179,20 +191,13 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <param name="errorFlags">Error flags</param>
         public void UpdateSystemStatus(AdcMode adcMode, SystemStatus systemStatus, byte errorFlags)
         {
-            try
-            {
-                _settings.LastKnownADCMode = adcMode;
-                _settings.LastKnownSystemStatus = systemStatus;
-                _settings.LastKnownErrorFlags = errorFlags;
-                _settings.LastStatusUpdate = DateTime.Now;
-                ProductionLogger.Instance.LogInfo($"System status updated: ADC={adcMode}, Status={systemStatus}, Errors=0x{errorFlags:X2}", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to update system status: {ex.Message}", "Settings");
-            }
+            _settings.LastKnownADCMode = adcMode;
+            _settings.LastKnownSystemStatus = systemStatus;
+            _settings.LastKnownErrorFlags = errorFlags;
+            _settings.LastStatusUpdate = DateTime.Now;
+            ProductionLogger.Instance.LogInfo($"System status updated: ADC={adcMode}, Status={systemStatus}, Errors=0x{errorFlags:X2}", "Settings");
         }
-        
+
         /// <summary>
         /// Get last known ADC mode
         /// </summary>
@@ -201,185 +206,129 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return _settings.LastKnownADCMode;
         }
-        
+
         /// <summary>
         /// Get last known system status
         /// </summary>
         /// <returns>System status info</returns>
         public (AdcMode adcMode, SystemStatus systemStatus, byte errorFlags, DateTime lastUpdate) GetLastKnownSystemStatus()
         {
-            return (_settings.LastKnownADCMode, _settings.LastKnownSystemStatus, 
+            return (_settings.LastKnownADCMode, _settings.LastKnownSystemStatus,
                    _settings.LastKnownErrorFlags, _settings.LastStatusUpdate);
         }
-        
+
         /// <summary>
         /// Set filter settings
         /// </summary>
         public void SetFilterSettings(string filterType, double filterAlpha, int filterWindowSize, bool filterEnabled)
         {
-            try
+            if (Enum.TryParse(filterType, out FilterType fType))
             {
-                if (Enum.TryParse(filterType, out FilterType fType))
-                {
-                    _settings.FilterType = fType;
-                }
-                else
-                {
-                    _settings.FilterType = FilterType.EMA;
-                }
-                _settings.FilterAlpha = filterAlpha;
-                _settings.FilterWindowSize = filterWindowSize;
-                _settings.FilterEnabled = filterEnabled;
-                ProductionLogger.Instance.LogInfo($"Filter settings saved: {filterType}, Alpha={filterAlpha}, Window={filterWindowSize}, Enabled={filterEnabled}", "Settings");
+                _settings.FilterType = fType;
             }
-            catch (Exception ex)
+            else
             {
-                ProductionLogger.Instance.LogError($"Failed to save filter settings: {ex.Message}", "Settings");
+                _settings.FilterType = FilterType.EMA;
             }
+            _settings.FilterAlpha = filterAlpha;
+            _settings.FilterWindowSize = filterWindowSize;
+            _settings.FilterEnabled = filterEnabled;
+            ProductionLogger.Instance.LogInfo($"Filter settings saved: {filterType}, Alpha={filterAlpha}, Window={filterWindowSize}, Enabled={filterEnabled}", "Settings");
         }
-        
+
         /// <summary>
         /// Set display and performance settings
         /// </summary>
         public void SetDisplaySettings(int weightDecimals, int uiUpdateRate, int dataTimeout)
         {
-            try
-            {
-                _settings.WeightDisplayDecimals = weightDecimals;
-                _settings.UIUpdateRateMs = uiUpdateRate;
-                _settings.DataTimeoutSeconds = dataTimeout;
-                ProductionLogger.Instance.LogInfo($"Display settings saved: WeightDecimals={weightDecimals}, UIUpdateRate={uiUpdateRate}ms, DataTimeout={dataTimeout}s", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to save display settings: {ex.Message}", "Settings");
-            }
+            _settings.WeightDisplayDecimals = weightDecimals;
+            _settings.UIUpdateRateMs = uiUpdateRate;
+            _settings.DataTimeoutSeconds = dataTimeout;
+            ProductionLogger.Instance.LogInfo($"Display settings saved: WeightDecimals={weightDecimals}, UIUpdateRate={uiUpdateRate}ms, DataTimeout={dataTimeout}s", "Settings");
         }
-        
+
         /// <summary>
         /// Set UI visibility settings
         /// </summary>
         public void SetUIVisibilitySettings(int statusBannerDuration, int messageHistoryLimit, bool showRawADC, bool showCalibratedWeight, bool showStreamingIndicators, bool showCalibrationIcons)
         {
-            try
-            {
-                _settings.StatusBannerDurationMs = statusBannerDuration;
-                _settings.MessageHistoryLimit = messageHistoryLimit;
-                _settings.ShowRawADC = showRawADC;
-                _settings.ShowCalibratedWeight = showCalibratedWeight;
-                _settings.ShowStreamingIndicators = showStreamingIndicators;
-                _settings.ShowCalibrationIcons = showCalibrationIcons;
-                ProductionLogger.Instance.LogInfo($"UI visibility settings saved: StatusBanner={statusBannerDuration}ms, MessageLimit={messageHistoryLimit}, ShowRawADC={showRawADC}, ShowCalibrated={showCalibratedWeight}, ShowIndicators={showStreamingIndicators}, ShowIcons={showCalibrationIcons}", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to save UI visibility settings: {ex.Message}", "Settings");
-            }
+            _settings.StatusBannerDurationMs = statusBannerDuration;
+            _settings.MessageHistoryLimit = messageHistoryLimit;
+            _settings.ShowRawADC = showRawADC;
+            _settings.ShowCalibratedWeight = showCalibratedWeight;
+            _settings.ShowStreamingIndicators = showStreamingIndicators;
+            _settings.ShowCalibrationIcons = showCalibrationIcons;
+            ProductionLogger.Instance.LogInfo($"UI visibility settings saved: StatusBanner={statusBannerDuration}ms, MessageLimit={messageHistoryLimit}, ShowRawADC={showRawADC}, ShowCalibrated={showCalibratedWeight}, ShowIndicators={showStreamingIndicators}, ShowIcons={showCalibrationIcons}", "Settings");
         }
-        
+
         /// <summary>
         /// Set advanced settings
         /// </summary>
         public void SetAdvancedSettings(int txFlashMs, string logFormat, int batchSize, int clockInterval, int calibrationDelay, bool showQualityMetrics)
         {
-            try
+            _settings.TXIndicatorFlashMs = txFlashMs;
+            if (Enum.TryParse(logFormat, out LogFormat lFormat))
             {
-                _settings.TXIndicatorFlashMs = txFlashMs;
-                if (Enum.TryParse(logFormat, out LogFormat lFormat))
-                {
-                    _settings.LogFileFormat = lFormat;
-                }
-                else
-                {
-                    _settings.LogFileFormat = LogFormat.CSV;
-                }
-                _settings.BatchProcessingSize = batchSize;
-                _settings.ClockUpdateIntervalMs = clockInterval;
-                _settings.CalibrationCaptureDelayMs = calibrationDelay;
-                _settings.ShowCalibrationQualityMetrics = showQualityMetrics;
-                ProductionLogger.Instance.LogInfo($"Advanced settings saved: TXFlash={txFlashMs}ms, LogFormat={logFormat}, BatchSize={batchSize}, ClockInterval={clockInterval}ms, CalDelay={calibrationDelay}ms, ShowQuality={showQualityMetrics}", "Settings");
+                _settings.LogFileFormat = lFormat;
             }
-            catch (Exception ex)
+            else
             {
-                ProductionLogger.Instance.LogError($"Failed to save advanced settings: {ex.Message}", "Settings");
+                _settings.LogFileFormat = LogFormat.CSV;
             }
+            _settings.BatchProcessingSize = batchSize;
+            _settings.ClockUpdateIntervalMs = clockInterval;
+            _settings.CalibrationCaptureDelayMs = calibrationDelay;
+            _settings.ShowCalibrationQualityMetrics = showQualityMetrics;
+            ProductionLogger.Instance.LogInfo($"Advanced settings saved: TXFlash={txFlashMs}ms, LogFormat={logFormat}, BatchSize={batchSize}, ClockInterval={clockInterval}ms, CalDelay={calibrationDelay}ms, ShowQuality={showQualityMetrics}", "Settings");
         }
-        
+
         /// <summary>
         /// Set bootloader feature enable/disable
         /// </summary>
         public void SetBootloaderFeaturesEnabled(bool enabled)
         {
-            try
-            {
-                _settings.EnableBootloaderFeatures = enabled;
-                ProductionLogger.Instance.LogInfo($"Bootloader features {(enabled ? "enabled" : "disabled")}", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to save bootloader setting: {ex.Message}", "Settings");
-            }
+            _settings.EnableBootloaderFeatures = enabled;
+            ProductionLogger.Instance.LogInfo($"Bootloader features {(enabled ? "enabled" : "disabled")}", "Settings");
         }
-        
+
         /// <summary>
         /// Set calibration mode (Regression or Piecewise)
         /// </summary>
         public void SetCalibrationMode(string mode)
         {
-            try
+            if (Enum.TryParse(mode, out CalibrationMode calMode))
             {
-                if (Enum.TryParse(mode, out CalibrationMode calMode))
-                {
-                    _settings.CalibrationMode = calMode;
-                }
-                else
-                {
-                    _settings.CalibrationMode = CalibrationMode.Regression;
-                }
-                ProductionLogger.Instance.LogInfo($"Calibration mode set to: {mode}", "Settings");
+                _settings.CalibrationMode = calMode;
             }
-            catch (Exception ex)
+            else
             {
-                ProductionLogger.Instance.LogError($"Failed to save calibration mode: {ex.Message}", "Settings");
+                _settings.CalibrationMode = CalibrationMode.Regression;
             }
+            ProductionLogger.Instance.LogInfo($"Calibration mode set to: {mode}", "Settings");
         }
-        
+
         /// <summary>
         /// Set calibration averaging settings
         /// </summary>
         public void SetCalibrationAveragingSettings(bool enabled, int sampleCount, int durationMs, bool useMedian, bool removeOutliers, double outlierThreshold, double maxStdDev)
         {
-            try
-            {
-                _settings.CalibrationAveragingEnabled = enabled;
-                _settings.CalibrationSampleCount = sampleCount;
-                _settings.CalibrationCaptureDurationMs = durationMs;
-                _settings.CalibrationUseMedian = useMedian;
-                _settings.CalibrationRemoveOutliers = removeOutliers;
-                _settings.CalibrationOutlierThreshold = outlierThreshold;
-                _settings.CalibrationMaxStdDev = maxStdDev;
-                ProductionLogger.Instance.LogInfo($"Calibration averaging settings saved: Enabled={enabled}, SampleCount={sampleCount}, Duration={durationMs}ms, UseMedian={useMedian}, RemoveOutliers={removeOutliers}, OutlierThreshold={outlierThreshold:F1}σ, MaxStdDev={maxStdDev:F1}", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to save calibration averaging settings: {ex.Message}", "Settings");
-            }
+            _settings.CalibrationAveragingEnabled = enabled;
+            _settings.CalibrationSampleCount = sampleCount;
+            _settings.CalibrationCaptureDurationMs = durationMs;
+            _settings.CalibrationUseMedian = useMedian;
+            _settings.CalibrationRemoveOutliers = removeOutliers;
+            _settings.CalibrationOutlierThreshold = outlierThreshold;
+            _settings.CalibrationMaxStdDev = maxStdDev;
+            ProductionLogger.Instance.LogInfo($"Calibration averaging settings saved: Enabled={enabled}, SampleCount={sampleCount}, Duration={durationMs}ms, UseMedian={useMedian}, RemoveOutliers={removeOutliers}, OutlierThreshold={outlierThreshold:F1}σ, MaxStdDev={maxStdDev:F1}", "Settings");
         }
 
         public void SetBrakeSettings(string unit, double multiplier)
         {
-            try
-            {
-                _settings.BrakeDisplayUnit = unit;
-                _settings.BrakeKgToNewtonMultiplier = multiplier;
-                ProductionLogger.Instance.LogInfo($"Brake settings saved: Unit={unit}, Multiplier={multiplier}", "Settings");
-            }
-            catch (Exception ex)
-            {
-                ProductionLogger.Instance.LogError($"Failed to save brake settings: {ex.Message}", "Settings");
-            }
+            _settings.BrakeDisplayUnit = unit;
+            _settings.BrakeKgToNewtonMultiplier = multiplier;
+            ProductionLogger.Instance.LogInfo($"Brake settings saved: Unit={unit}, Multiplier={multiplier}", "Settings");
         }
-        
+
         /// <summary>
         /// Set efficiency limits for Pass/Fail validation (removed for ATS Two-Wheeler system)
         /// </summary>

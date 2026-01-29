@@ -62,14 +62,14 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 }
 
                 _serialPort = new SerialPort(usbConfig.PortName, usbConfig.SerialBaudRate, Parity.None, 8, StopBits.One);
-                
+
                 // Configure timeouts to prevent blocking during high-speed transfers
                 _serialPort.WriteTimeout = 100; // 100ms timeout instead of infinite (prevents blocking)
                 _serialPort.ReadTimeout = 100;  // 100ms read timeout (may be removable if BytesToRead check prevents blocking)
                 // Note: Handshake defaults to None, no need to set explicitly
                 _serialPort.DtrEnable = true; // Enable DTR for better USB-CAN adapter compatibility
                 _serialPort.RtsEnable = true; // Enable RTS for better USB-CAN adapter compatibility
-                
+
                 _serialPort.Open();
                 _connected = true;
 
@@ -95,7 +95,9 @@ namespace ATS_TwoWheeler_WPF.Adapters
             _connected = false;
             _cancellationTokenSource?.Cancel();
             if (_serialPort?.IsOpen == true)
+            {
                 _serialPort.Close();
+            }
 
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
@@ -106,7 +108,10 @@ namespace ATS_TwoWheeler_WPF.Adapters
 
         public bool SendMessage(uint id, byte[] data)
         {
-            if (!_connected || _serialPort == null) return false;
+            if (!_connected || _serialPort == null)
+            {
+                return false;
+            }
 
             try
             {
@@ -168,7 +173,9 @@ namespace ATS_TwoWheeler_WPF.Adapters
                         // ProductionLogger.Instance.LogInfo($"RAW SERIAL: {hex}", "Adapter");
 
                         for (int i = 0; i < count; i++)
+                        {
                             _frameBuffer.Enqueue(buffer[i]);
+                        }
 
                         ProcessFrames();
 
@@ -198,12 +205,12 @@ namespace ATS_TwoWheeler_WPF.Adapters
             // USB-CAN-A Protocol Detection
             // Based on logs, the hardware is sending FIXED 20-byte frames starting with AA 55.
             // Format: [AA] [55] [?] [?] [?] [ID_L] [ID_H] [?] [?] [?] [Data 0-7] [?] [Footer?]
-            
-            while (_frameBuffer.Count >= 5) 
+
+            while (_frameBuffer.Count >= 5)
             {
                 byte[] bytes = _frameBuffer.ToArray();
                 int headerIndex = -1;
-                
+
                 // Search for 0xAA (Packet Start Flag)
                 for (int i = 0; i < bytes.Length; i++)
                 {
@@ -213,7 +220,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
                         break;
                     }
                 }
-                
+
                 // Fallback for simple 0xAA variable length header
                 if (headerIndex == -1)
                 {
@@ -230,7 +237,11 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 if (headerIndex == -1)
                 {
                     // No header found, clear buffer
-                    while (_frameBuffer.TryDequeue(out _)) ;
+                    while (_frameBuffer.TryDequeue(out _))
+                    {
+                        ;
+                    }
+
                     return;
                 }
 
@@ -242,25 +253,31 @@ namespace ATS_TwoWheeler_WPF.Adapters
 
                 // Refresh byte array after alignment
                 bytes = _frameBuffer.ToArray();
-                if (bytes.Length < 2) break; // Need at least Header+Type
+                if (bytes.Length < 2)
+                {
+                    break; // Need at least Header+Type
+                }
 
                 // Strict Variable Length Protocol (Waveshare)
                 // [AA] [Type/DLC] [ID] ...
-                if (bytes.Length < 2) break; // Need at least header and type to determine length
+                if (bytes.Length < 2)
+                {
+                    break; // Need at least header and type to determine length
+                }
 
                 // Sanity check: Header must be 0xAA
                 if (bytes[0] != 0xAA)
                 {
                     // Should be unreachable due to alignment above, but safe to check
                     _frameBuffer.TryDequeue(out _);
-                    continue; 
+                    continue;
                 }
 
                 byte typeByte = bytes[1];
                 if ((typeByte & 0xF0) == 0) // Sanity check: Type usually starts with 0xC0 or 0xE0, or at least has high bits
                 {
-                     // If type byte looks wrong (e.g. 0x00), usually not a variable frame start.
-                     // But strictly speaking, spec says bits 0-3 are DLC.
+                    // If type byte looks wrong (e.g. 0x00), usually not a variable frame start.
+                    // But strictly speaking, spec says bits 0-3 are DLC.
                 }
 
                 bool isExtended = (typeByte & 0x20) != 0;
@@ -268,13 +285,20 @@ namespace ATS_TwoWheeler_WPF.Adapters
                 int overhead = isExtended ? 7 : 5; // Header(1) + Type(1) + ID(2 or 4) + Footer(1)
                 int expectedLength = overhead + dlc;
 
-                if (bytes.Length < expectedLength) break;
+                if (bytes.Length < expectedLength)
+                {
+                    break;
+                }
 
                 // Validate footer
                 if (bytes[expectedLength - 1] == 0x55)
                 {
                     var frame = new byte[expectedLength];
-                    for (int i = 0; i < expectedLength; i++) _frameBuffer.TryDequeue(out frame[i]);
+                    for (int i = 0; i < expectedLength; i++)
+                    {
+                        _frameBuffer.TryDequeue(out frame[i]);
+                    }
+
                     DecodeFrame(frame);
                 }
                 else
@@ -299,20 +323,26 @@ namespace ATS_TwoWheeler_WPF.Adapters
                     byte typeByte = frame[1];
                     bool isExtended = (typeByte & 0x20) != 0;
                     dlc = (byte)(typeByte & 0x0F);
-                    
+
                     if (isExtended)
                     {
-                         canId = (uint)(frame[2] | (frame[3] << 8) | (frame[4] << 16) | (frame[5] << 24));
-                         canData = new byte[dlc];
-                         if (dlc > 0) Array.Copy(frame, 6, canData, 0, dlc);
+                        canId = (uint)(frame[2] | (frame[3] << 8) | (frame[4] << 16) | (frame[5] << 24));
+                        canData = new byte[dlc];
+                        if (dlc > 0)
+                        {
+                            Array.Copy(frame, 6, canData, 0, dlc);
+                        }
                     }
                     else
                     {
-                         canId = (uint)(frame[2] | (frame[3] << 8));
-                         canData = new byte[dlc];
-                         if (dlc > 0) Array.Copy(frame, 4, canData, 0, dlc);
+                        canId = (uint)(frame[2] | (frame[3] << 8));
+                        canData = new byte[dlc];
+                        if (dlc > 0)
+                        {
+                            Array.Copy(frame, 4, canData, 0, dlc);
+                        }
                     }
-                    
+
                     // ProductionLogger.Instance.LogInfo($"Adapter RX (Var): ID=0x{canId:X} ({(isExtended?"EXT":"STD")}) Data={BitConverter.ToString(canData)}", "Adapter");
                 }
                 else
@@ -391,7 +421,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
             // Variable-length protocol: [0xAA] [Type] [ID_LOW] [ID_HIGH] [DATA...] [0x55]
             // Type byte: bit5=0 (standard frame), bit4=0 (data frame), bits 0-3=DLC (0-8)
             byte dlc = (byte)Math.Min(data?.Length ?? 0, 8);
-            
+
             var frame = new List<byte>
             {
                 FRAME_HEADER,                                    // Byte 0: Header (0xAA)
@@ -408,7 +438,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
 
             // Add footer
             frame.Add(FRAME_FOOTER);                             // Last byte: Footer (0x55)
-            
+
             return frame.ToArray();
         }
 

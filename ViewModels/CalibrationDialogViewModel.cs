@@ -103,14 +103,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnRawDataReceived(object? sender, RawDataEventArgs e)
         {
             _currentRawADC = e.RawADCSum;
-            
+
             // Update live ADC for points not yet captured
             foreach (var point in Points.Where(p => !p.BothModesCaptured))
             {
                 if (_adcMode == 0)
                 {
                     if (_currentRawADC >= 0 && _currentRawADC <= 16380)
+                    {
                         point.InternalADC = (ushort)_currentRawADC;
+                    }
                 }
                 else
                 {
@@ -131,7 +133,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void RemovePoint(CalibrationPointViewModel? point)
         {
-            if (point == null) return;
+            if (point == null)
+            {
+                return;
+            }
+
             if (Points.Count <= 1)
             {
                 _dialogService.ShowMessage("At least one calibration point is required.", "Cannot Remove");
@@ -149,7 +155,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void UpdatePointNumbers()
         {
             for (int i = 0; i < Points.Count; i++)
+            {
                 Points[i].PointNumber = i + 1;
+            }
         }
 
         private void UpdateCapturedCount()
@@ -159,7 +167,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private async Task OnCapturePoint(CalibrationPointViewModel? point)
         {
-            if (point == null || _isCapturingDualMode) return;
+            if (point == null || _isCapturingDualMode)
+            {
+                return;
+            }
 
             if (point.KnownWeight < 0 || point.KnownWeight > 10000)
             {
@@ -190,7 +201,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             {
                 _isCapturingDualMode = false;
                 UpdateCapturedCount();
-                if (point == Points.Last() && point.IsCaptured) AddNewPoint();
+                if (point == Points.Last() && point.IsCaptured)
+                {
+                    AddNewPoint();
+                }
             }
         }
 
@@ -207,23 +221,35 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             // Step 1: Capture current mode
             point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
             var result1 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
-            
-            if (_adcMode == 0) point.InternalADC = (ushort)result1.AveragedValue;
-            else point.ADS1115ADC = result1.AveragedValue;
+
+            if (_adcMode == 0)
+            {
+                point.InternalADC = (ushort)result1.AveragedValue;
+            }
+            else
+            {
+                point.ADS1115ADC = result1.AveragedValue;
+            }
 
             // Step 2: Switch mode
             point.StatusText = "Switching ADC Mode...";
             if (_adcMode == 0) { _canService.SwitchToADS1115(); _adcMode = 1; }
             else { _canService.SwitchToInternalADC(); _adcMode = 0; }
-            
+
             await Task.Delay(1000); // Wait for switch and data stabilization
 
             // Step 3: Capture second mode
             point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
             var result2 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
 
-            if (_adcMode == 0) point.InternalADC = (ushort)result2.AveragedValue;
-            else point.ADS1115ADC = result2.AveragedValue;
+            if (_adcMode == 0)
+            {
+                point.InternalADC = (ushort)result2.AveragedValue;
+            }
+            else
+            {
+                point.ADS1115ADC = result2.AveragedValue;
+            }
 
             point.CaptureSampleCount = samples;
             point.CaptureMean = result2.Mean;
@@ -239,14 +265,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             try
             {
                 // Factor is always 1.0 because calibration target is always KG as per user clarification
-                double factor = 1.0; 
-                var internalPoints = Points.Select(p => {
+                double factor = 1.0;
+                var internalPoints = Points.Select(p =>
+                {
                     var cp = p.ToCalibrationPointInternal();
                     cp.KnownWeight *= factor;
                     return cp;
                 }).ToList();
 
-                var adsPoints = Points.Select(p => {
+                var adsPoints = Points.Select(p =>
+                {
                     var cp = p.ToCalibrationPointADS1115();
                     cp.KnownWeight *= factor;
                     return cp;
@@ -257,21 +285,21 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
                 _internalCalResult.ADCMode = AdcMode.InternalWeight;
                 _internalCalResult.SystemMode = _isBrakeMode ? SystemMode.Brake : SystemMode.Weight;
-                
+
                 _ads1115CalResult.ADCMode = AdcMode.Ads1115;
                 _ads1115CalResult.SystemMode = _isBrakeMode ? SystemMode.Brake : SystemMode.Weight;
 
                 string resultsMsg = $"Calculation Successful!\n\n" +
                                    $"Internal: {_internalCalResult.GetEquationString()} (R²={_internalCalResult.R2:F4})\n" +
                                    $"ADS1115: {_ads1115CalResult.GetEquationString()} (R²={_ads1115CalResult.R2:F4})";
-                
+
                 _dialogService.ShowMessage(resultsMsg, "Calibration Calculated");
-                
-                CalculationCompleted?.Invoke(this, new CalibrationDialogResultsEventArgs 
-                { 
+
+                CalculationCompleted?.Invoke(this, new CalibrationDialogResultsEventArgs
+                {
                     InternalEquation = _internalCalResult.GetEquationString(),
                     AdsEquation = _ads1115CalResult.GetEquationString(),
-                    IsSuccessful = true 
+                    IsSuccessful = true
                 });
             }
             catch (Exception ex)
@@ -305,12 +333,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnEditPoint(CalibrationPointViewModel? point)
         {
-            if (point != null) point.IsEditing = true;
+            if (point != null)
+            {
+                point.IsEditing = true;
+            }
         }
 
         private void OnSavePoint(CalibrationPointViewModel? point)
         {
-            if (point == null) return;
+            if (point == null)
+            {
+                return;
+            }
             // Add validation here
             point.IsEditing = false;
             UpdateCapturedCount();
@@ -318,7 +352,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnCancelPoint(CalibrationPointViewModel? point)
         {
-            if (point != null) point.IsEditing = false;
+            if (point != null)
+            {
+                point.IsEditing = false;
+            }
         }
 
         public override void Dispose()

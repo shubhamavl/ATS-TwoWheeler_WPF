@@ -43,14 +43,22 @@ namespace ATS_TwoWheeler_WPF.Services
             try
             {
                 var latest = await _githubService.GetLatestReleaseAsync(cancellationToken);
-                if (latest == null) return UpdateCheckResult.Error("No releases found on GitHub.");
+                if (latest == null)
+                {
+                    return UpdateCheckResult.Error("No releases found on GitHub.");
+                }
 
                 var asset = _githubService.GetMatchingAsset(latest);
                 if (asset == null || string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+                {
                     return UpdateCheckResult.Error("No suitable asset found in the latest release.");
+                }
 
                 var latestVersion = ParseVersion(latest.TagName);
-                if (latestVersion == null) return UpdateCheckResult.Error("Invalid version tag on release.");
+                if (latestVersion == null)
+                {
+                    return UpdateCheckResult.Error("Invalid version tag on release.");
+                }
 
                 return UpdateCheckResult.Success(new UpdateInfo
                 {
@@ -81,7 +89,10 @@ namespace ATS_TwoWheeler_WPF.Services
                 if (!string.IsNullOrEmpty(info.ExpectedSha256Hash))
                 {
                     bool valid = await _downloadService.VerifySha256HashAsync(targetPath, info.ExpectedSha256Hash);
-                    if (!valid) return DownloadResult.Error("Hash verification failed.");
+                    if (!valid)
+                    {
+                        return DownloadResult.Error("Hash verification failed.");
+                    }
                 }
 
                 return DownloadResult.Success(targetPath);
@@ -100,7 +111,10 @@ namespace ATS_TwoWheeler_WPF.Services
             foreach (var release in releases)
             {
                 var info = ConvertToUpdateInfo(release);
-                if (info != null) results.Add(UpdateCheckResult.Success(info));
+                if (info != null)
+                {
+                    results.Add(UpdateCheckResult.Success(info));
+                }
             }
             return results;
         }
@@ -109,7 +123,10 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             var asset = _githubService.GetMatchingAsset(release);
             var version = ParseVersion(release.TagName);
-            if (asset == null || version == null || string.IsNullOrEmpty(asset.BrowserDownloadUrl)) return null;
+            if (asset == null || version == null || string.IsNullOrEmpty(asset.BrowserDownloadUrl))
+            {
+                return null;
+            }
 
             return new UpdateInfo
             {

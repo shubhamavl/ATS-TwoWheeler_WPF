@@ -16,7 +16,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public ushort AdcSampleHz { get; set; }     // ADC Sample Rate
         public uint UptimeSeconds { get; set; }     // System Uptime in seconds
         public string FirmwareVersion { get; set; } = "--"; // Firmware Version
-        
+
         public string StatusText => SystemStatus switch
         {
             0 => "OK",
@@ -25,14 +25,14 @@ namespace ATS_TwoWheeler_WPF.Models
             3 => "Critical",
             _ => "Unknown"
         };
-        
+
         public string ModeText => ADCMode switch
         {
             0 => "Internal ADC",
             1 => "ADS1115",
             _ => "Unknown"
         };
-        
+
         public string ErrorFlagsText => $"0x{ErrorFlags:X2}";
     }
 }

@@ -11,22 +11,22 @@ namespace ATS_TwoWheeler_WPF.Views
     {
         private MainWindowViewModel _viewModel;
 
-        public MainWindow()
+        public MainWindow(MainWindowViewModel viewModel)
         {
             InitializeComponent();
-            
+
             // Initialize ViewModel
-            _viewModel = new MainWindowViewModel();
+            _viewModel = viewModel;
             this.DataContext = _viewModel;
-            
-            _viewModel.OpenSettingsRequested += () => 
+
+            _viewModel.OpenSettingsRequested += () =>
             {
                 var settingsWindow = new SettingsWindow
                 {
                     DataContext = _viewModel,
                     Owner = this
                 };
-                settingsWindow.Show(); 
+                settingsWindow.Show();
             };
 
             _viewModel.OpenConfigViewerRequested += () =>

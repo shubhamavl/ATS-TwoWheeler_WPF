@@ -34,7 +34,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Base
         public async void Execute(object? parameter)
         {
             if (!CanExecute(parameter))
+            {
                 return;
+            }
 
             _isExecuting = true;
             RaiseCanExecuteChanged();
@@ -80,10 +82,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Base
         public bool CanExecute(object? parameter)
         {
             if (_isExecuting)
+            {
                 return false;
+            }
 
             if (parameter is T typedParam)
+            {
                 return _canExecute?.Invoke(typedParam) ?? true;
+            }
 
             return _canExecute?.Invoke(default) ?? true;
         }
@@ -91,7 +97,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Base
         public async void Execute(object? parameter)
         {
             if (!CanExecute(parameter))
+            {
                 return;
+            }
 
             _isExecuting = true;
             RaiseCanExecuteChanged();

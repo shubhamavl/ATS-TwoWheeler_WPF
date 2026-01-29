@@ -65,7 +65,7 @@ namespace ATS_TwoWheeler_WPF.Adapters
             {
                 // Convert channel from ushort to PcanChannel enum
                 _channel = ConvertToPcanChannel(pcanConfig.Channel);
-                
+
                 // Convert bitrate from ushort to Bitrate enum
                 Bitrate bitrate = ConvertToBitrate(pcanConfig.PcanBitrate);
 
@@ -127,7 +127,10 @@ namespace ATS_TwoWheeler_WPF.Adapters
 
         public bool SendMessage(uint id, byte[] data)
         {
-            if (!_connected || _channel == PcanChannel.None) return false;
+            if (!_connected || _channel == PcanChannel.None)
+            {
+                return false;
+            }
 
             try
             {
@@ -181,8 +184,8 @@ namespace ATS_TwoWheeler_WPF.Adapters
         public string[] GetAvailableOptions()
         {
             var channels = new List<string>();
-            var testChannels = new PcanChannel[] 
-            { 
+            var testChannels = new PcanChannel[]
+            {
                 PcanChannel.Usb01, PcanChannel.Usb02, PcanChannel.Usb03, PcanChannel.Usb04,
                 PcanChannel.Usb05, PcanChannel.Usb06, PcanChannel.Usb07, PcanChannel.Usb08
             };
@@ -259,7 +262,9 @@ namespace ATS_TwoWheeler_WPF.Adapters
         {
             // Explicitly block 0x500 messages
             if (canId == 0x500)
+            {
                 return false;
+            }
 
             switch (canId)
             {

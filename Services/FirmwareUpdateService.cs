@@ -22,7 +22,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private const int END_TIMEOUT_MS = 10000;
         private const int MAX_RETRIES = 3;
         private const int RETRY_DELAY_MS = 50;  // Base delay for exponential backoff
-        
+
         // Firmware size limits
         private const int MAX_FIRMWARE_SIZE = 0x1E000;  // 120KB (Bank A limit)
         private const int SEQUENCE_WRAP_SIZE = 256 * 7;  // 18,176 bytes per wrap (sequence wraps at 256)
@@ -31,23 +31,23 @@ namespace ATS_TwoWheeler_WPF.Services
         private readonly CANBootloaderService _bootloaderService;
         private readonly ProductionLogger _logger = ProductionLogger.Instance;
         private BootloaderDiagnosticsService? _diagnosticsService;
-        
+
         private readonly FirmwareProtocolHandler _protocolHandler;
         private readonly FirmwareFlashState _flashState;
-        
+
         // Update phase tracking
         private enum UpdatePhase { None, Ping, Begin, Transfer, End }
         private UpdatePhase _currentPhase = UpdatePhase.None;
-        
+
         // Transfer error tracking
         private BootloaderStatus? _transferError = null;
-        
+
         // Retry logic tracking
         private byte? _retryRequestedSequence = null;
-        
+
         // Firmware info for progress tracking  
         private int _firmwareLength = 0;
-        
+
         // Event handlers
         private EventHandler<BootPingResponseEventArgs>? _pingHandler;
         private EventHandler<BootBeginResponseEventArgs>? _beginHandler;
@@ -74,53 +74,55 @@ namespace ATS_TwoWheeler_WPF.Services
         public async Task<bool> UpdateFirmwareAsync(string binPath, IProgress<FirmwareProgress>? progress = null, CancellationToken cancellationToken = default)
         {
             if (!File.Exists(binPath))
+            {
                 throw new FirmwareValidationException(binPath, "File not found");
+            }
 
             byte[] fullFirmware = await File.ReadAllBytesAsync(binPath, cancellationToken).ConfigureAwait(false);
-            
+
             // In the current setup, we assume the provided .bin file is the application-only binary 
             // starting directly at APP_BANK_A_START (0x08008000). 
             // Previous logic was skipping 8KB (0x2000) which led to corrupted data being sent.
             byte[] firmware = fullFirmware;
-            
+
             // Validate firmware size (max 120KB for Bank A)
             if (firmware.Length > MAX_FIRMWARE_SIZE)
             {
                 _logger.LogError($"Firmware too large: {firmware.Length} bytes (max {MAX_FIRMWARE_SIZE} bytes)", "FWUpdater");
                 throw new FirmwareSizeException(firmware.Length, MAX_FIRMWARE_SIZE);
             }
-            
+
             // Warn if firmware will cause sequence number wrap-around
             if (firmware.Length > SEQUENCE_WRAP_SIZE)
             {
                 int wraps = (firmware.Length + SEQUENCE_WRAP_SIZE - 1) / SEQUENCE_WRAP_SIZE;
                 _logger.LogInfo($"Firmware size {firmware.Length} bytes will cause {wraps} sequence number wrap(s). STM32 handles this correctly.", "FWUpdater");
             }
-            
+
             int totalChunks = (firmware.Length + (MaxChunkSize - 1)) / MaxChunkSize;
             _firmwareLength = firmware.Length;  // Store for progress handler
 
             _logger.LogInfo($"Firmware update start. Full size={fullFirmware.Length} bytes, Application size={firmware.Length} bytes, Chunks={totalChunks}", "FWUpdater");
-            
+
             // Initialize flash state
             _flashState.Reset();
             _flashState.TotalBytes = firmware.Length;
             _flashState.TotalChunks = totalChunks;
             _flashState.StartTime = DateTime.Now;
-            
+
             // Subscribe to bootloader response events
             _pingHandler = (sender, e) => _protocolHandler.OnPingResponse();
             _beginHandler = (sender, e) => _protocolHandler.OnBeginResponse(e.Status);
             _endHandler = (sender, e) => _protocolHandler.OnEndResponse(e.Status);
             _errorHandler = (sender, e) => OnErrorReceived(e);
             _progressHandler = (sender, e) => OnProgressReceived(e, progress);
-            
+
             _bootloaderService.BootPingResponseReceived += _pingHandler;
             _bootloaderService.BootBeginResponseReceived += _beginHandler;
             _bootloaderService.BootEndResponseReceived += _endHandler;
             _bootloaderService.BootErrorReceived += _errorHandler;
             _bootloaderService.BootProgressReceived += _progressHandler;
-            
+
             try
             {
 
@@ -130,7 +132,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     _logger.LogError("Failed to request bootloader entry", "FWUpdater");
                     return false;
                 }
-                
+
                 // Capture Enter message after successful send
                 _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootEnter, Array.Empty<byte>(), true);
 
@@ -143,10 +145,10 @@ namespace ATS_TwoWheeler_WPF.Services
                 _currentPhase = UpdatePhase.Ping;
                 const int PING_RETRY_ATTEMPTS = 3;
                 const int PING_RETRY_DELAY_MS = 500;
-                
+
                 bool pingSuccess = await _protocolHandler.PingWithRetryAsync(
                     PING_RETRY_ATTEMPTS, PING_RETRY_DELAY_MS, cancellationToken);
-                
+
                 if (!pingSuccess)
                 {
                     _logger.LogError("Bootloader ping failed or timeout after all retry attempts", "FWUpdater");
@@ -163,28 +165,28 @@ namespace ATS_TwoWheeler_WPF.Services
 
                 uint runningCrc = 0xFFFFFFFFu;
                 byte sequenceNumber = 0;  // Sequence number starts at 0, wraps at 256
-                
+
                 _currentPhase = UpdatePhase.Transfer;
                 _transferError = null;  // Clear any previous transfer errors
                 _retryRequestedSequence = null;  // Clear any previous retry requests
-                
+
                 // Data transfer loop with retry support
                 int chunk = 0;
                 while (chunk < totalChunks)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     // Check for retry request from STM32
                     if (_retryRequestedSequence.HasValue)
                     {
                         byte requestedSeq = _retryRequestedSequence.Value;
                         _logger.LogInfo($"Handling retry request: restarting from sequence {requestedSeq}", "FWUpdater");
-                        
+
                         // Calculate chunk index from sequence number
                         // Sequence number directly maps to chunk index (each chunk has one sequence number)
                         chunk = requestedSeq;
                         sequenceNumber = requestedSeq;
-                        
+
                         // Recalculate CRC up to the retry point
                         // We need to recalculate CRC for all data up to (but not including) the retry point
                         runningCrc = 0xFFFFFFFFu;
@@ -196,19 +198,19 @@ namespace ATS_TwoWheeler_WPF.Services
                             Array.Copy(firmware, i, chunkData, 0, chunkRemaining);
                             runningCrc = UpdateCrc(runningCrc, chunkData);
                         }
-                        
+
                         // Clear retry request
                         _retryRequestedSequence = null;
                         _logger.LogInfo($"Retry: recalculated CRC for {bytesToRecalculate} bytes, resuming from chunk {chunk}", "FWUpdater");
                     }
-                    
+
                     // Check for transfer errors from STM32 (non-retry errors)
                     if (_transferError.HasValue)
                     {
                         _logger.LogError($"Transfer aborted due to error: {BootloaderProtocol.DescribeStatus(_transferError.Value)}", "FWUpdater");
                         return false;
                     }
-                    
+
                     // Check CAN connection before sending
                     if (!_canService.IsConnected)
                     {
@@ -233,7 +235,7 @@ namespace ATS_TwoWheeler_WPF.Services
 
                     // Capture data frame for diagnostics
                     _diagnosticsService?.CaptureMessage(DataId, frame, true);
-                    
+
                     // Send with retry mechanism
                     if (!await SendMessageWithRetry(DataId, frame, cancellationToken))
                     {
@@ -244,12 +246,12 @@ namespace ATS_TwoWheeler_WPF.Services
                     // Update CRC only on data bytes (exclude sequence number)
                     runningCrc = UpdateCrc(runningCrc, data);
                     sequenceNumber = (byte)((sequenceNumber + 1) % 256);  // Explicit wrap-around
-                    
+
                     chunk++;  // Move to next chunk
                     progress?.Report(new FirmwareProgress(chunk, totalChunks));
 
                     await Task.Delay(2, cancellationToken).ConfigureAwait(false);
-                    
+
                     // Check for errors after delay (STM32 may have sent error response)
                     if (_transferError.HasValue)
                     {
@@ -259,7 +261,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 }
 
                 uint finalCrc = runningCrc ^ 0xFFFFFFFFu;
-                
+
                 // Send END command and wait for SUCCESS response
                 _currentPhase = UpdatePhase.End;
                 if (!await _protocolHandler.EndAsync(finalCrc, cancellationToken))
@@ -269,7 +271,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 }
 
                 _logger.LogInfo("Firmware update completed successfully. Sending reset command...", "FWUpdater");
-                
+
                 // Send reset command to boot new firmware
                 if (!_bootloaderService.RequestReset())
                 {
@@ -280,7 +282,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     _diagnosticsService?.CaptureMessage(BootloaderProtocol.CanIdBootReset, Array.Empty<byte>(), true);
                     _logger.LogInfo("Reset command sent successfully. STM32 will boot from new firmware.", "FWUpdater");
-                    
+
                     // Small delay to allow STM32 to process reset command
                     await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                 }
@@ -315,7 +317,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     _bootloaderService.BootProgressReceived -= _progressHandler;
                     _progressHandler = null;
                 }
-                
+
                 // Clean up protocol handler
                 _protocolHandler.Cleanup();
                 _currentPhase = UpdatePhase.None;
@@ -324,7 +326,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 _firmwareLength = 0;
             }
         }
-        
+
         /// <summary>
         /// Handle progress update from STM32
         /// </summary>
@@ -337,15 +339,15 @@ namespace ATS_TwoWheeler_WPF.Services
                 // Calculate chunks from bytes received (more accurate than our chunk count)
                 int totalExpectedChunks = (_firmwareLength + (MaxChunkSize - 1)) / MaxChunkSize;
                 int chunksReceived = (int)((e.BytesReceived + (MaxChunkSize - 1)) / MaxChunkSize);
-                
+
                 // Use STM32-reported progress, capped at expected chunks
                 int calculatedChunks = Math.Min(chunksReceived, totalExpectedChunks);
                 progress.Report(new FirmwareProgress(calculatedChunks, totalExpectedChunks));
-                
+
                 _logger.LogInfo($"Progress update from STM32: {e.Percent}% ({e.BytesReceived}/{_firmwareLength} bytes, {calculatedChunks}/{totalExpectedChunks} chunks)", "FWUpdater");
             }
         }
-        
+
         /// <summary>
         /// Handle error response (retry requests, failures)
         /// </summary>
@@ -384,19 +386,19 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     return false;
                 }
-                
+
                 // Check connection before each attempt
                 if (!_canService.IsConnected)
                 {
                     _logger.LogError("CAN connection lost during retry", "FWUpdater");
                     return false;
                 }
-                
+
                 if (_canService.SendMessage(canId, data))
                 {
                     return true;
                 }
-                
+
                 // Exponential backoff: 50ms, 100ms, 200ms
                 if (attempt < MAX_RETRIES - 1)
                 {
@@ -405,7 +407,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
             }
-            
+
             return false;
         }
 
@@ -437,7 +439,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             const uint polynomial = 0x04C11DB7u;
             uint crc = running;
-            
+
             foreach (byte b in data)
             {
                 crc ^= b;
@@ -453,7 +455,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     }
                 }
             }
-            
+
             return crc;
         }
     }

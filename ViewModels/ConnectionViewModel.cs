@@ -36,7 +36,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         }
 
         public string ConnectionButtonText => IsConnected ? "❌ Disconnect" : "🔌 Connect";
-        public Brush ConnectionButtonColor => IsConnected 
+        public Brush ConnectionButtonColor => IsConnected
             ? new SolidColorBrush(Color.FromRgb(220, 53, 69)) // Red
             : new SolidColorBrush(Color.FromRgb(40, 167, 69)); // Green
 
@@ -62,7 +62,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         // Adapter Configuration
         public ObservableCollection<string> AdapterTypes { get; } = new ObservableCollection<string> { "USB-CAN-A Serial", "PCAN" };
-        
+
         private string _selectedAdapterType = "USB-CAN-A Serial";
         public string SelectedAdapterType
         {
@@ -92,7 +92,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         }
 
         public ObservableCollection<string> AvailablePorts { get; } = new ObservableCollection<string>();
-        
+
         private string _selectedPort = "";
         public string SelectedPort
         {
@@ -100,9 +100,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             set => SetProperty(ref _selectedPort, value);
         }
 
-        public ObservableCollection<string> BaudRates { get; } = new ObservableCollection<string> 
-        { 
-            "125 kbps", "250 kbps", "500 kbps", "1 Mbps" 
+        public ObservableCollection<string> BaudRates { get; } = new ObservableCollection<string>
+        {
+            "125 kbps", "250 kbps", "500 kbps", "1 Mbps"
         };
 
         private string _selectedBaudRate = "250 kbps";
@@ -146,10 +146,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void LoadSettings()
         {
-            SelectedAdapterType = "USB-CAN-A Serial"; 
+            SelectedAdapterType = "USB-CAN-A Serial";
             IsUsbAdapter = SelectedAdapterType == "USB-CAN-A Serial";
             IsPcanAdapter = SelectedAdapterType == "PCAN";
-            
+
             SelectedPort = _settings.Settings.ComPort;
             SelectedBaudRate = GetBaudRateString(_settings.Settings.CanBaudRate);
             SelectedStreamingRate = GetStreamingRateString(_settings.Settings.TransmissionRate);
@@ -168,7 +168,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             {
                 AvailablePorts.Add(port);
             }
-            
+
             // If the currently selected port is not in the list, or is empty, try to pick the first available
             if (!string.IsNullOrEmpty(SelectedPort) && !AvailablePorts.Contains(SelectedPort))
             {
@@ -207,15 +207,15 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                         MessageBox.Show("Please select a COM port.", "Connection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    
+
                     ushort baudRate = GetBaudRateValue(SelectedBaudRate);
                     config = new UsbSerialCanAdapterConfig
                     {
                         PortName = SelectedPort,
-                        SerialBaudRate = 2000000, 
+                        SerialBaudRate = 2000000,
                         BitrateKbps = baudRate
                     };
-                    
+
                     // Update and save settings
                     _settings.SetComPort(SelectedPort);
                     _settings.SetCanBaudRate(SelectedBaudRate);
@@ -223,9 +223,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 }
                 else if (IsPcanAdapter)
                 {
-                   // Placeholder for PCAN config logic if implemented
-                   MessageBox.Show("PCAN support not fully implemented in this refactor view.", "Info");
-                   return;
+                    // Placeholder for PCAN config logic if implemented
+                    MessageBox.Show("PCAN support not fully implemented in this refactor view.", "Info");
+                    return;
                 }
 
                 if (config != null)
@@ -245,7 +245,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnStartStream(object? parameter)
         {
             TransmissionRate rate = GetStreamingRateValue(SelectedStreamingRate);
-            if (_canService.StartStream(rate)) 
+            if (_canService.StartStream(rate))
             {
                 IsStreaming = true;
                 _settings.SetTransmissionRate(SelectedStreamingRate);
@@ -255,14 +255,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private TransmissionRate GetStreamingRateValue(string rateString)
         {
-             return rateString switch
-             {
-                 "1 Hz" => TransmissionRate.Hz1,
-                 "100 Hz" => TransmissionRate.Hz100,
-                 "500 Hz" => TransmissionRate.Hz500,
-                 "1 kHz" => TransmissionRate.Hz1000,
-                 _ => TransmissionRate.Hz1000
-             };
+            return rateString switch
+            {
+                "1 Hz" => TransmissionRate.Hz1,
+                "100 Hz" => TransmissionRate.Hz100,
+                "500 Hz" => TransmissionRate.Hz500,
+                "1 kHz" => TransmissionRate.Hz1000,
+                _ => TransmissionRate.Hz1000
+            };
         }
 
         private void OnStopStream(object? parameter)
@@ -273,37 +273,37 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private ushort GetBaudRateValue(string rateString)
         {
-             return rateString switch
-             {
-                 "125 kbps" => 125,
-                 "250 kbps" => 250,
-                 "500 kbps" => 500,
-                 "1 Mbps" => 1000,
-                 _ => 250
-             };
+            return rateString switch
+            {
+                "125 kbps" => 125,
+                "250 kbps" => 250,
+                "500 kbps" => 500,
+                "1 Mbps" => 1000,
+                _ => 250
+            };
         }
         private string GetBaudRateString(CanBaudRate rate)
         {
-             return rate switch
-             {
-                 CanBaudRate.Bps125k => "125 kbps",
-                 CanBaudRate.Bps250k => "250 kbps",
-                 CanBaudRate.Bps500k => "500 kbps",
-                 CanBaudRate.Bps1M => "1 Mbps",
-                 _ => "250 kbps"
-             };
+            return rate switch
+            {
+                CanBaudRate.Bps125k => "125 kbps",
+                CanBaudRate.Bps250k => "250 kbps",
+                CanBaudRate.Bps500k => "500 kbps",
+                CanBaudRate.Bps1M => "1 Mbps",
+                _ => "250 kbps"
+            };
         }
 
         private string GetStreamingRateString(TransmissionRate rate)
         {
-             return rate switch
-             {
-                 TransmissionRate.Hz1 => "1 Hz",
-                 TransmissionRate.Hz100 => "100 Hz",
-                 TransmissionRate.Hz500 => "500 Hz",
-                 TransmissionRate.Hz1000 => "1 kHz",
-                 _ => "1 kHz"
-             };
+            return rate switch
+            {
+                TransmissionRate.Hz1 => "1 Hz",
+                TransmissionRate.Hz100 => "100 Hz",
+                TransmissionRate.Hz500 => "500 Hz",
+                TransmissionRate.Hz1000 => "1 kHz",
+                _ => "1 kHz"
+            };
         }
     }
 }

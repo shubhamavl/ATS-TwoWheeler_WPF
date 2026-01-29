@@ -11,7 +11,7 @@ namespace ATS_TwoWheeler_WPF.Views.Controls
         public SettingsPanel()
         {
             InitializeComponent();
-            
+
             // Subscribe to DataContextChanged to manage HelpRequested event subscription
             this.DataContextChanged += SettingsPanel_DataContextChanged;
 

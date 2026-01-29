@@ -38,11 +38,11 @@ namespace ATS_TwoWheeler_WPF.Services.FirmwareUpdate
                 {
                     lastException = ex;
                     attempt++;
-                    
+
                     // Exponential backoff: delay = initialDelay * 2^(attempt-1)
                     var delay = TimeSpan.FromMilliseconds(
                         _initialDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                    
+
                     await Task.Delay(delay, cancellationToken);
                 }
             }
@@ -86,10 +86,10 @@ namespace ATS_TwoWheeler_WPF.Services.FirmwareUpdate
                 {
                     lastException = ex;
                     attempt++;
-                    
+
                     var delay = TimeSpan.FromMilliseconds(
                         _initialDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                    
+
                     await Task.Delay(delay, cancellationToken);
                 }
             }

@@ -54,12 +54,12 @@ namespace ATS_TwoWheeler_WPF.Core
             const int sampleIntervalMs = 10; // Collect samples at ~100Hz
 
             // Collect samples until we reach target count or duration limit
-            while (samples.Count < sampleCount && 
+            while (samples.Count < sampleCount &&
                    (DateTime.Now - startTime).TotalMilliseconds < durationMs &&
                    !cancellationToken.IsCancellationRequested)
             {
                 int currentADC = getCurrentADC();
-                
+
                 // Accept all valid signed values (including zero and negative for ADS1115)
                 // Range for 4 channels summed: -131072 to +131068
                 if (currentADC >= -131072 && currentADC <= 131068)
@@ -83,7 +83,7 @@ namespace ATS_TwoWheeler_WPF.Core
             // Calculate statistics
             double mean = samples.Average(x => (double)x);
             double stdDev = CalculateStandardDeviation(samples, mean);
-            
+
             // Calculate median
             var sortedSamples = new List<int>(samples);
             sortedSamples.Sort();
@@ -96,13 +96,13 @@ namespace ATS_TwoWheeler_WPF.Core
             {
                 filteredSamples = RemoveOutliers(samples, mean, stdDev, outlierThreshold);
                 outliersRemoved = samples.Count - filteredSamples.Count;
-                
+
                 // Recalculate statistics after outlier removal
                 if (filteredSamples.Count > 0)
                 {
                     mean = filteredSamples.Average(x => (double)x);
                     stdDev = CalculateStandardDeviation(filteredSamples, mean);
-                    
+
                     sortedSamples = new List<int>(filteredSamples);
                     sortedSamples.Sort();
                     median = CalculateMedian(sortedSamples);
@@ -110,8 +110,8 @@ namespace ATS_TwoWheeler_WPF.Core
             }
 
             // Determine final averaged value (keep as int to support signed values)
-            int averagedValue = useMedian 
-                ? (int)Math.Round(median) 
+            int averagedValue = useMedian
+                ? (int)Math.Round(median)
                 : (int)Math.Round(mean);
 
             // Check stability
@@ -135,7 +135,9 @@ namespace ATS_TwoWheeler_WPF.Core
         public static double CalculateStandardDeviation(List<int> samples, double mean)
         {
             if (samples.Count <= 1)
+            {
                 return 0.0;
+            }
 
             double sumSquaredDiff = samples.Sum(s => Math.Pow(s - mean, 2));
             return Math.Sqrt(sumSquaredDiff / (samples.Count - 1));
@@ -147,7 +149,9 @@ namespace ATS_TwoWheeler_WPF.Core
         public static List<int> RemoveOutliers(List<int> samples, double mean, double stdDev, double threshold)
         {
             if (stdDev < 0.1) // Very low std dev, no outliers to remove
+            {
                 return new List<int>(samples);
+            }
 
             return samples.Where(s => Math.Abs(s - mean) <= threshold * stdDev).ToList();
         }
@@ -158,7 +162,9 @@ namespace ATS_TwoWheeler_WPF.Core
         public static double CalculateMedian(List<int> sortedSamples)
         {
             if (sortedSamples.Count == 0)
+            {
                 return 0.0;
+            }
 
             int mid = sortedSamples.Count / 2;
             if (sortedSamples.Count % 2 == 0)

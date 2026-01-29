@@ -45,13 +45,13 @@ namespace ATS_TwoWheeler_WPF.Services
 
         private void OnTimerTick(object? sender, EventArgs e)
         {
-            if (!_canService.IsConnected) 
+            if (!_canService.IsConnected)
             {
                 if (_wasConnected)
                 {
-                     // Transitioned to disconnected
-                     UpdateAvailability(false);
-                     _wasConnected = false;
+                    // Transitioned to disconnected
+                    UpdateAvailability(false);
+                    _wasConnected = false;
                 }
                 return;
             }
@@ -63,7 +63,7 @@ namespace ATS_TwoWheeler_WPF.Services
             // 2. BUT user wants to ensure SYSTEM STATUS is checked.
             // 3. If we received a SystemStatus recently (< 2s), we are good.
             // 4. If NOT, request it.
-            
+
             var now = DateTime.Now;
             var timeSinceRx = now - _canService.LastRxTime;
             var timeSinceStatus = now - _canService.LastSystemStatusTime;
@@ -77,29 +77,32 @@ namespace ATS_TwoWheeler_WPF.Services
 
             // CRITICAL CHECK: If we haven't received ANY RX for > 3 seconds, OR 
             // We haven't received STATUS for > 5 seconds (despite requesting), mark Unavailable.
-            
+
             bool isDataFlowing = timeSinceRx.TotalSeconds < 3;
             bool isStatusFlowing = timeSinceStatus.TotalSeconds < 5;
 
             // If we are Streaming, DataFlowing is the main check.
             // If we are Idle, StatusFlowing is the main check (since we request it).
-            
+
             bool isAvailable = false;
-            
+
             if (_canService.IsStreaming)
             {
-                 // Even if streaming, we should probably get status responses if we ask.
-                 // But let's trust DataFlowing primarily for "Availability".
-                 isAvailable = isDataFlowing;
+                // Even if streaming, we should probably get status responses if we ask.
+                // But let's trust DataFlowing primarily for "Availability".
+                isAvailable = isDataFlowing;
             }
             else
             {
                 // Not streaming, relying on Status Ping
                 isAvailable = isStatusFlowing;
-                
+
                 // If we have RX but no Status? Might be bootloader or other traffic.
                 // Assuming RX = available is safer for basic connectivity.
-                if (isDataFlowing) isAvailable = true; 
+                if (isDataFlowing)
+                {
+                    isAvailable = true;
+                }
             }
 
             UpdateAvailability(isAvailable);
@@ -111,18 +114,18 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _isSystemAvailable = isAvailable;
                 AvailabilityChanged?.Invoke(this, isAvailable);
-                
+
                 // User requested popup or action
                 if (!isAvailable && _canService.IsConnected)
                 {
-                     // Only show popup if we were previously OK and still think we are "Connected" (serial port open)
-                     // Using Dispatcher to ensure UI thread if showing dialog
-                     // Warning: Blocking dialogs in timer tick can be dangerous. 
-                     // Using non-blocking notification or toast is better, but user asked for popup.
-                     // We will rely on ViewModel to show visual indication (Red text), 
-                     // avoiding spamming Popups every 1 second.
+                    // Only show popup if we were previously OK and still think we are "Connected" (serial port open)
+                    // Using Dispatcher to ensure UI thread if showing dialog
+                    // Warning: Blocking dialogs in timer tick can be dangerous. 
+                    // Using non-blocking notification or toast is better, but user asked for popup.
+                    // We will rely on ViewModel to show visual indication (Red text), 
+                    // avoiding spamming Popups every 1 second.
                 }
-                
+
                 ProductionLogger.Instance.LogInfo($"System availability changed: {isAvailable}", "StatusMonitor");
             }
         }

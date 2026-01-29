@@ -15,24 +15,24 @@ namespace ATS_TwoWheeler_WPF.Models
         public int CanBaudRateIndex { get; set; } = 1; // Index for 250kbps in baud rates
         public string SaveDirectory { get; set; } = PathHelper.GetDataDirectory(); // Portable: relative to executable
         public DateTime LastSaved { get; set; } = DateTime.Now;
-        
+
         // System status persistence
         public AdcMode LastKnownADCMode { get; set; } = AdcMode.InternalWeight; // 0=Internal, 1=ADS1115
         public SystemStatus LastKnownSystemStatus { get; set; } = SystemStatus.Ok; // 0=OK, 1=Warning, 2=Error
         public byte LastKnownErrorFlags { get; set; } = 0;
         public DateTime LastStatusUpdate { get; set; } = DateTime.MinValue;
-        
+
         // Weight Filtering Settings
         public FilterType FilterType { get; set; } = FilterType.EMA; // "EMA", "SMA", "None"
         public double FilterAlpha { get; set; } = 0.15; // EMA alpha (0.0-1.0)
         public int FilterWindowSize { get; set; } = 10; // SMA window size
         public bool FilterEnabled { get; set; } = true; // Enable/disable filtering
-        
+
         // Display and Performance Settings
         public int WeightDisplayDecimals { get; set; } = 0; // 0=integer, 1=one decimal, 2=two decimals
         public int UIUpdateRateMs { get; set; } = 50; // UI refresh rate in milliseconds
         public int DataTimeoutSeconds { get; set; } = 5; // CAN data timeout in seconds
-        
+
         // UI Visibility Settings (Medium Priority)
         public int StatusBannerDurationMs { get; set; } = 3000; // Status banner display duration
         public int MessageHistoryLimit { get; set; } = 1000; // Max messages stored in memory
@@ -40,7 +40,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public bool ShowCalibratedWeight { get; set; } = false; // Show calibrated weight (before tare)
         public bool ShowStreamingIndicators { get; set; } = true; // Show streaming status indicators
         public bool ShowCalibrationIcons { get; set; } = true; // Show calibration status icons
-        
+
         // Advanced Settings (Low Priority)
         public int TXIndicatorFlashMs { get; set; } = 200; // TX indicator flash duration
         public LogFormat LogFileFormat { get; set; } = LogFormat.CSV; // Log format: "CSV", "JSON", "TXT"
@@ -48,7 +48,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public int ClockUpdateIntervalMs { get; set; } = 1000; // Clock refresh rate
         public int CalibrationCaptureDelayMs { get; set; } = 500; // Delay before capturing calibration point
         public bool ShowCalibrationQualityMetrics { get; set; } = true; // Display R² and error metrics
-        
+
         // Calibration Averaging Settings
         public bool CalibrationAveragingEnabled { get; set; } = true; // Enable/disable multi-sample averaging
         public int CalibrationSampleCount { get; set; } = 50; // Number of samples to collect for averaging
@@ -57,10 +57,10 @@ namespace ATS_TwoWheeler_WPF.Models
         public bool CalibrationRemoveOutliers { get; set; } = true; // Remove outliers before averaging
         public double CalibrationOutlierThreshold { get; set; } = 2.0; // Standard deviations for outlier removal
         public double CalibrationMaxStdDev { get; set; } = 10.0; // Maximum acceptable standard deviation (warning threshold)
-        
+
         // Calibration Mode Settings
         public CalibrationMode CalibrationMode { get; set; } = CalibrationMode.Regression; // "Regression" or "Piecewise"
-        
+
         // Bootloader Settings
         public bool EnableBootloaderFeatures { get; set; } = true; // Enable/disable all bootloader functionality
 

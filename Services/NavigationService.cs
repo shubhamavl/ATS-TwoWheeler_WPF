@@ -16,7 +16,7 @@ namespace ATS_TwoWheeler_WPF.Services
             var firmwareService = ServiceRegistry.GetService<FirmwareUpdateService>();
             var diagService = ServiceRegistry.GetService<BootloaderDiagnosticsService>();
             var dialogService = ServiceRegistry.GetService<IDialogService>();
-            
+
             if (canService == null || firmwareService == null || diagService == null || dialogService == null)
             {
                 dialogService?.ShowError("Required services for Bootloader not found.", "Service Error");
@@ -37,7 +37,7 @@ namespace ATS_TwoWheeler_WPF.Services
             var dataLogger = ServiceRegistry.GetService<IDataLoggerService>();
             var settings = ServiceRegistry.GetService<ISettingsService>();
             var dialogService = ServiceRegistry.GetService<IDialogService>();
-            
+
             var vm = new TwoWheelerWeightViewModel(canService, weightProcessor, dataLogger, settings, dialogService);
             var win = new TwoWheelerWeightWindow(canService, weightProcessor);
             win.DataContext = vm;
@@ -52,7 +52,7 @@ namespace ATS_TwoWheeler_WPF.Services
             var dialogService = ServiceRegistry.GetService<IDialogService>();
             var logger = ServiceRegistry.GetService<IProductionLoggerService>();
             var weightProcessor = ServiceRegistry.GetService<IWeightProcessorService>();
-            
+
             var vm = new CalibrationDialogViewModel(canService, settings, dialogService, logger, weightProcessor, (byte)(canService.CurrentADCMode == AdcMode.Ads1115 ? 1 : 0), 500, isBrakeMode);
             var diag = new CalibrationDialog(vm);
             diag.Owner = Application.Current.MainWindow;
@@ -72,7 +72,7 @@ namespace ATS_TwoWheeler_WPF.Services
             var logger = ServiceRegistry.GetService<IProductionLoggerService>();
             var dataLogger = ServiceRegistry.GetService<IDataLoggerService>();
             var dialog = ServiceRegistry.GetService<IDialogService>();
-            
+
             var vm = new LogsViewModel(logger, dataLogger, dialog);
             var win = new LogsWindow(null, null); // Pass nulls as they are no longer used by the new logic
             win.DataContext = vm;
@@ -83,11 +83,11 @@ namespace ATS_TwoWheeler_WPF.Services
         public void ShowStatusHistory()
         {
             var statusManager = ServiceRegistry.GetService<Core.StatusHistoryManager>();
-             var vm = new StatusHistoryViewModel(statusManager);
-             var win = new StatusHistoryWindow();
-             win.DataContext = vm;
-             win.Owner = Application.Current.MainWindow;
-             win.Show();
+            var vm = new StatusHistoryViewModel(statusManager);
+            var win = new StatusHistoryWindow();
+            win.DataContext = vm;
+            win.Owner = Application.Current.MainWindow;
+            win.Show();
         }
 
         public void CloseWindow(object window)

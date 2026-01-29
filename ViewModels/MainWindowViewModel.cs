@@ -25,7 +25,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public LoggingPanelViewModel Logging { get; }
         public AppStatusBarViewModel StatusBar { get; }
         public SettingsViewModel Settings { get; }
-        
+
         // Timer for UI updates (polling high-frequency data)
         private readonly DispatcherTimer _uiTimer;
 
@@ -36,27 +36,30 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public ICommand OpenSettingsCommand { get; }
         public ICommand OpenConfigViewerCommand { get; }
         public ICommand StopAllCommand { get; }
-        
+
         // Events
         public event Action? OpenSettingsRequested;
         public event Action? OpenConfigViewerRequested;
-        
-        public MainWindowViewModel()
+
+        public MainWindowViewModel(
+            ICANService canService,
+            IWeightProcessorService weightProcessor,
+            IDataLoggerService dataLogger,
+            ISettingsService settings,
+            INavigationService navigationService,
+            IUpdateService updateService,
+            IDialogService dialogService,
+            IStatusMonitorService statusMonitor,
+            StatusHistoryManager historyManager)
         {
-            // Resolve Services via registry
-            _canService = ServiceRegistry.GetService<ICANService>();
-            _weightProcessor = ServiceRegistry.GetService<IWeightProcessorService>();
-            _dataLogger = ServiceRegistry.GetService<IDataLoggerService>();
-            _settings = ServiceRegistry.GetService<ISettingsService>();
-            var navigationService = ServiceRegistry.GetService<INavigationService>();
-            
-            var updateService = ServiceRegistry.GetService<IUpdateService>();
-            var dialogService = ServiceRegistry.GetService<IDialogService>();
-            var statusMonitor = ServiceRegistry.GetService<IStatusMonitorService>();
-            var historyManager = ServiceRegistry.GetService<StatusHistoryManager>();
-            
+            // Resolve Services
+            _canService = canService;
+            _weightProcessor = weightProcessor;
+            _dataLogger = dataLogger;
+            _settings = settings;
+
             _weightProcessor.Start(); // Start processing thread
-            
+
             // Initialize Child ViewModels
             Connection = new ConnectionViewModel(_canService, _settings);
             Dashboard = new DashboardViewModel(_weightProcessor, _canService, _settings);
@@ -65,16 +68,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
             StatusBar = new AppStatusBarViewModel(_canService, updateService, dialogService);
             Settings = new SettingsViewModel(_settings);
-            
+
             // Wire up CAN Service to Weight Processor and UI
             _canService.RawDataReceived += OnRawDataReceived;
             _canService.SystemStatusReceived += OnSystemStatusReceived;
-            
+
             // Commands
             OpenSettingsCommand = new RelayCommand(_ => OnOpenSettings());
             OpenConfigViewerCommand = new RelayCommand(_ => OpenConfigViewerRequested?.Invoke());
             StopAllCommand = new RelayCommand(OnStopAll);
-            
+
             // Setup UI Timer
             _uiTimer = new DispatcherTimer
             {
@@ -91,7 +94,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             Logging.Refresh();
             StatusBar.Refresh();
             SystemStatus.Refresh();
-           
+
             // Polling for connection state if not fully event-driven
             // ConnectionViewModel usually updates via internal logic or manual refresh, 
             // but we can ensure sync here if needed.
@@ -118,10 +121,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         {
             // Sync Dashboard state
             Dashboard.UpdateSystemStatus(e.ADCMode, e.RelayState);
-            
+
             // Sync Calibration state
             Calibration.UpdateSystemStatus(e.ADCMode, e.RelayState);
-            
+
             // Sync WeightProcessor mode
             _weightProcessor.SetADCMode(e.ADCMode);
             _weightProcessor.SetBrakeMode(e.RelayState != 0);

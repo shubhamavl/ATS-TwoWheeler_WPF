@@ -11,7 +11,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public string Level { get; set; } = "";
         public string Message { get; set; } = "";
         public string Source { get; set; } = "";
-        
+
         public string FormattedMessage => $"[{Timestamp:HH:mm:ss.fff}] {Level}: {Message}";
     }
 }

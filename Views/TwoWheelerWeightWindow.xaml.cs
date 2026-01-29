@@ -31,7 +31,7 @@ namespace ATS_TwoWheeler_WPF.Views
         public TwoWheelerWeightWindow(ICANService? canService, IWeightProcessorService? weightProcessor)
         {
             InitializeComponent();
-            
+
             // UI Update Timer for ViewModel refresh
             DispatcherTimer uiTimer = new DispatcherTimer
             {
@@ -47,20 +47,35 @@ namespace ATS_TwoWheeler_WPF.Views
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             var vm = DataContext as TwoWheelerWeightViewModel;
-            if (vm == null) return;
+            if (vm == null)
+            {
+                return;
+            }
 
             switch (e.Key)
             {
                 case Key.F1:
-                    if (vm.StartTestCommand.CanExecute(null)) vm.StartTestCommand.Execute(null);
+                    if (vm.StartTestCommand.CanExecute(null))
+                    {
+                        vm.StartTestCommand.Execute(null);
+                    }
+
                     e.Handled = true;
                     break;
                 case Key.F2:
-                    if (vm.StopTestCommand.CanExecute(null)) vm.StopTestCommand.Execute(null);
+                    if (vm.StopTestCommand.CanExecute(null))
+                    {
+                        vm.StopTestCommand.Execute(null);
+                    }
+
                     e.Handled = true;
                     break;
                 case Key.F3:
-                    if (vm.SaveTestCommand.CanExecute(null)) vm.SaveTestCommand.Execute(null);
+                    if (vm.SaveTestCommand.CanExecute(null))
+                    {
+                        vm.SaveTestCommand.Execute(null);
+                    }
+
                     e.Handled = true;
                     break;
             }

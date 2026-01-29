@@ -9,9 +9,13 @@ using ATS_TwoWheeler_WPF.Models;
 using ATS_TwoWheeler_WPF.Services;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
+using ATS_TwoWheeler_WPF.ViewModels.Settings;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
+    /// <summary>
+    /// Main settings ViewModel with grouped settings
+    /// </summary>
     public class SettingsViewModel : BaseViewModel
     {
         private readonly ISettingsService _settingsManager;
@@ -20,12 +24,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         {
             _settingsManager = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
 
+            // Initialize nested ViewModels
+            Filter = new FilterSettingsViewModel(_settingsManager);
+            Display = new DisplaySettingsViewModel(_settingsManager);
+            Calibration = new CalibrationSettingsViewModel(_settingsManager);
+            Advanced = new AdvancedSettingsViewModel(_settingsManager);
+
             // Initialize Collections for ComboBoxes
             FilterTypes = new ObservableCollection<string> { "EMA", "SMA", "None" };
             LogFormats = new ObservableCollection<string> { "CSV", "JSON" };
             CalibrationModes = new ObservableCollection<string> { "Regression", "Piecewise" };
             BrakeUnits = new ObservableCollection<string> { "N", "kg" };
-            
+
             // Commands
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings());
             OpenDataDirectoryCommand = new RelayCommand(_ => OpenDataDirectory());
@@ -33,379 +43,45 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             ResetCalibrationInternalCommand = new RelayCommand(_ => ResetCalibration(AdcMode.InternalWeight, "Internal ADC"));
             ResetCalibrationADS1115Command = new RelayCommand(_ => ResetCalibration(AdcMode.Ads1115, "ADS1115"));
             ShowHelpCommand = new RelayCommand(p => OnShowHelp(p?.ToString()));
-            
-            RefreshCalibrationData();
         }
 
-        // Collections
+        #region Nested ViewModels
+
+        /// <summary>
+        /// Filter settings (Type, Alpha, WindowSize, Enabled)
+        /// </summary>
+        public FilterSettingsViewModel Filter { get; }
+
+        /// <summary>
+        /// Display settings (WeightDecimals, UIUpdateRateMs, DataTimeoutSeconds, Show* flags)
+        /// </summary>
+        public DisplaySettingsViewModel Display { get; }
+
+        /// <summary>
+        /// Calibration settings (Mode, advanced calibration parameters, calibration data display)
+        /// </summary>
+        public CalibrationSettingsViewModel Calibration { get; }
+
+        /// <summary>
+        /// Advanced settings (LogFileFormat, BatchProcessingSize, ClockUpdateIntervalMs, Brake settings)
+        /// </summary>
+        public AdvancedSettingsViewModel Advanced { get; }
+
+        #endregion
+
+        #region Collections for ComboBoxes
+
         public ObservableCollection<string> FilterTypes { get; }
         public ObservableCollection<string> LogFormats { get; }
         public ObservableCollection<string> CalibrationModes { get; }
-
-        // --- Proxy Properties to SettingsManager ---
-
-        // Weight Filtering
-        public string FilterType
-        {
-            get => _settingsManager.Settings.FilterType.ToString();
-            set
-            {
-                if (Enum.TryParse(value, out FilterType newType) && _settingsManager.Settings.FilterType != newType)
-                {
-                    _settingsManager.Settings.FilterType = newType;
-                    OnPropertyChanged();
-                    SaveFilterSettings();
-                }
-            }
-        }
-
-        public double FilterAlpha
-        {
-            get => _settingsManager.Settings.FilterAlpha;
-            set
-            {
-                if (Math.Abs(_settingsManager.Settings.FilterAlpha - value) > 0.001)
-                {
-                    _settingsManager.Settings.FilterAlpha = value;
-                    OnPropertyChanged();
-                    SaveFilterSettings();
-                }
-            }
-        }
-
-        public int FilterWindowSize
-        {
-            get => _settingsManager.Settings.FilterWindowSize;
-            set
-            {
-                if (_settingsManager.Settings.FilterWindowSize != value)
-                {
-                    _settingsManager.Settings.FilterWindowSize = value;
-                    OnPropertyChanged();
-                    SaveFilterSettings();
-                }
-            }
-        }
-
-        public bool FilterEnabled
-        {
-            get => _settingsManager.Settings.FilterEnabled;
-            set
-            {
-                if (_settingsManager.Settings.FilterEnabled != value)
-                {
-                    _settingsManager.Settings.FilterEnabled = value;
-                    OnPropertyChanged();
-                    SaveFilterSettings();
-                }
-            }
-        }
-
-        // Display Settings
-        public int WeightDisplayDecimals
-        {
-            get => _settingsManager.Settings.WeightDisplayDecimals;
-            set
-            {
-                if (_settingsManager.Settings.WeightDisplayDecimals != value)
-                {
-                    _settingsManager.Settings.WeightDisplayDecimals = value;
-                    OnPropertyChanged();
-                    SaveDisplaySettings();
-                }
-            }
-        }
-
-        public int UIUpdateRateMs
-        {
-            get => _settingsManager.Settings.UIUpdateRateMs;
-            set
-            {
-                if (_settingsManager.Settings.UIUpdateRateMs != value)
-                {
-                    _settingsManager.Settings.UIUpdateRateMs = value;
-                    OnPropertyChanged();
-                    SaveDisplaySettings();
-                }
-            }
-        }
-
-        public int DataTimeoutSeconds
-        {
-            get => _settingsManager.Settings.DataTimeoutSeconds;
-            set
-            {
-                if (_settingsManager.Settings.DataTimeoutSeconds != value)
-                {
-                    _settingsManager.Settings.DataTimeoutSeconds = value;
-                    OnPropertyChanged();
-                    SaveDisplaySettings();
-                }
-            }
-        }
-
-        // UI Visibility
-        public bool ShowRawADC
-        {
-            get => _settingsManager.Settings.ShowRawADC;
-            set
-            {
-                if (_settingsManager.Settings.ShowRawADC != value)
-                {
-                    _settingsManager.Settings.ShowRawADC = value;
-                    OnPropertyChanged();
-                    SaveVisibilitySettings();
-                }
-            }
-        }
-
-        public bool ShowStreamingIndicators
-        {
-            get => _settingsManager.Settings.ShowStreamingIndicators;
-            set
-            {
-                if (_settingsManager.Settings.ShowStreamingIndicators != value)
-                {
-                    _settingsManager.Settings.ShowStreamingIndicators = value;
-                    OnPropertyChanged();
-                    SaveVisibilitySettings();
-                }
-            }
-        }
-
-        public bool ShowCalibrationIcons
-        {
-            get => _settingsManager.Settings.ShowCalibrationIcons;
-            set
-            {
-                if (_settingsManager.Settings.ShowCalibrationIcons != value)
-                {
-                    _settingsManager.Settings.ShowCalibrationIcons = value;
-                    OnPropertyChanged();
-                    SaveVisibilitySettings();
-                }
-            }
-        }
-
-        // Advanced Settings
-        public string LogFileFormat
-        {
-            get => _settingsManager.Settings.LogFileFormat.ToString();
-            set
-            {
-                if (Enum.TryParse(value, out LogFormat format) && _settingsManager.Settings.LogFileFormat != format)
-                {
-                    _settingsManager.Settings.LogFileFormat = format;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public int BatchProcessingSize
-        {
-            get => _settingsManager.Settings.BatchProcessingSize;
-            set
-            {
-                if (_settingsManager.Settings.BatchProcessingSize != value)
-                {
-                    _settingsManager.Settings.BatchProcessingSize = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public int ClockUpdateIntervalMs
-        {
-            get => _settingsManager.Settings.ClockUpdateIntervalMs;
-            set
-            {
-                if (_settingsManager.Settings.ClockUpdateIntervalMs != value)
-                {
-                    _settingsManager.Settings.ClockUpdateIntervalMs = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-        
-        public bool ShowCalibrationQualityMetrics
-        {
-            get => _settingsManager.Settings.ShowCalibrationQualityMetrics;
-            set
-            {
-                if (_settingsManager.Settings.ShowCalibrationQualityMetrics != value)
-                {
-                    _settingsManager.Settings.ShowCalibrationQualityMetrics = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-        
-        // Calibration Mode Settings
-        public string CalibrationMode
-        {
-            get => _settingsManager.Settings.CalibrationMode.ToString();
-            set
-            {
-                if (Enum.TryParse(value, out CalibrationMode mode) && _settingsManager.Settings.CalibrationMode != mode)
-                {
-                    _settingsManager.Settings.CalibrationMode = mode;
-                    OnPropertyChanged();
-                    SaveCalibrationMode();
-                }
-            }
-        }
-
-        // Advanced Calibration Settings
-        public bool CalibrationAveragingEnabled
-        {
-            get => _settingsManager.Settings.CalibrationAveragingEnabled;
-            set
-            {
-                if (_settingsManager.Settings.CalibrationAveragingEnabled != value)
-                {
-                    _settingsManager.Settings.CalibrationAveragingEnabled = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public int CalibrationSampleCount
-        {
-            get => _settingsManager.Settings.CalibrationSampleCount;
-            set
-            {
-                if (_settingsManager.Settings.CalibrationSampleCount != value)
-                {
-                    _settingsManager.Settings.CalibrationSampleCount = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public int CalibrationCaptureDurationMs
-        {
-            get => _settingsManager.Settings.CalibrationCaptureDurationMs;
-            set
-            {
-                if (_settingsManager.Settings.CalibrationCaptureDurationMs != value)
-                {
-                    _settingsManager.Settings.CalibrationCaptureDurationMs = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public bool CalibrationUseMedian
-        {
-            get => _settingsManager.Settings.CalibrationUseMedian;
-            set
-            {
-                if (_settingsManager.Settings.CalibrationUseMedian != value)
-                {
-                    _settingsManager.Settings.CalibrationUseMedian = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public bool CalibrationRemoveOutliers
-        {
-            get => _settingsManager.Settings.CalibrationRemoveOutliers;
-            set
-            {
-                if (_settingsManager.Settings.CalibrationRemoveOutliers != value)
-                {
-                    _settingsManager.Settings.CalibrationRemoveOutliers = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public double CalibrationOutlierThreshold
-        {
-            get => _settingsManager.Settings.CalibrationOutlierThreshold;
-            set
-            {
-                if (Math.Abs(_settingsManager.Settings.CalibrationOutlierThreshold - value) > 0.001)
-                {
-                    _settingsManager.Settings.CalibrationOutlierThreshold = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        public double CalibrationMaxStdDev
-        {
-            get => _settingsManager.Settings.CalibrationMaxStdDev;
-            set
-            {
-                if (Math.Abs(_settingsManager.Settings.CalibrationMaxStdDev - value) > 0.001)
-                {
-                    _settingsManager.Settings.CalibrationMaxStdDev = value;
-                    OnPropertyChanged();
-                    SaveAdvancedSettings();
-                }
-            }
-        }
-
-        // Brake Specific Settings
-        public string BrakeDisplayUnit
-        {
-            get => _settingsManager.Settings.BrakeDisplayUnit;
-            set
-            {
-                if (_settingsManager.Settings.BrakeDisplayUnit != value)
-                {
-                    _settingsManager.Settings.BrakeDisplayUnit = value;
-                    OnPropertyChanged();
-                    _settingsManager.SaveSettings();
-                }
-            }
-        }
-
-        public double BrakeKgToNewtonMultiplier
-        {
-            get => _settingsManager.Settings.BrakeKgToNewtonMultiplier;
-            set
-            {
-                if (Math.Abs(_settingsManager.Settings.BrakeKgToNewtonMultiplier - value) > 0.00001)
-                {
-                    _settingsManager.Settings.BrakeKgToNewtonMultiplier = value;
-                    OnPropertyChanged();
-                    _settingsManager.SaveSettings();
-                }
-            }
-        }
-
         public ObservableCollection<string> BrakeUnits { get; }
 
-        // --- Calibration Data Display ---
-        private LinearCalibration? _internalCal;
-        private LinearCalibration? _adsCal;
+        #endregion
 
-        public string InternalCalStatus => _internalCal?.IsValid == true ? "✓ Valid" : "⚠ Not Calibrated";
-        public string InternalCalSlope => _internalCal?.Slope.ToString("F6") ?? "N/A";
-        public string InternalCalIntercept => _internalCal?.Intercept.ToString("F6") ?? "N/A";
-        public string InternalCalDate => _internalCal?.CalibrationDate.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A";
+        #region Save Directory Info
 
-        public string AdsCalStatus => _adsCal?.IsValid == true ? "✓ Valid" : "⚠ Not Calibrated";
-        public string AdsCalSlope => _adsCal?.Slope.ToString("F6") ?? "N/A";
-        public string AdsCalIntercept => _adsCal?.Intercept.ToString("F6") ?? "N/A";
-        public string AdsCalDate => _adsCal?.CalibrationDate.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A";
-        
-        // Save Directory Info
         public string SaveDirectory => _settingsManager.Settings.SaveDirectory;
-        
+
         public string DataStatsText
         {
             get
@@ -419,14 +95,20 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     }
                     return "Directory not found";
                 }
-                catch
+                catch (IOException ex)
                 {
-                    return "Error reading directory";
+                    return $"Error: {ex.Message}";
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return "Access denied";
                 }
             }
         }
 
-        // --- Commands ---
+        #endregion
+
+        #region Commands
 
         public ICommand SaveSettingsCommand { get; }
         public ICommand OpenDataDirectoryCommand { get; }
@@ -437,24 +119,25 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public event Action<string, string>? HelpRequested;
 
+        #endregion
+
+        #region Command Implementations
+
         private void SaveSettings()
         {
-            _settingsManager.SaveSettings();
+            try
+            {
+                _settingsManager.SaveSettings();
+            }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"Cannot save settings: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                MessageBox.Show($"Access denied when saving settings: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
-
-        private void SaveFilterSettings()
-        {
-            // Assuming SettingsManager exposes specific update methods or we just save all
-            // Ideally we'd call _settingsManager.SetFilterSettings(...) but since we're modifying the
-            // internal object directly via properties above, calling SaveSettings() is sufficient 
-            // if we want to persist immediately.
-            _settingsManager.SaveSettings();
-        }
-        
-        private void SaveDisplaySettings() => _settingsManager.SaveSettings();
-        private void SaveVisibilitySettings() => _settingsManager.SaveSettings();
-        private void SaveAdvancedSettings() => _settingsManager.SaveSettings();
-        private void SaveCalibrationMode() => _settingsManager.SaveSettings();
 
         private void OpenDataDirectory()
         {
@@ -469,9 +152,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     MessageBox.Show($"Directory not found: {SaveDirectory}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
-            catch (Exception ex)
+            catch (System.ComponentModel.Win32Exception ex)
             {
-                MessageBox.Show($"Error opening directory: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Cannot open Explorer: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"Error accessing directory: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -484,8 +171,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 {
                     Process.Start("notepad.exe", path);
                 }
+                else
+                {
+                    MessageBox.Show("Settings file not found", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
-            catch (Exception ex)
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                MessageBox.Show($"Cannot open Notepad: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (IOException ex)
             {
                 MessageBox.Show($"Error opening settings file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -501,29 +196,29 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             if (result == MessageBoxResult.Yes)
             {
-                LinearCalibration.DeleteCalibration(mode, SystemMode.Weight);
-                RefreshCalibrationData(); // Reload data
-                MessageBox.Show("Calibration deleted.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                try
+                {
+                    LinearCalibration.DeleteCalibration(mode, SystemMode.Weight);
+                    Calibration.RefreshCalibrationData();
+                    MessageBox.Show("Calibration deleted.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (IOException ex)
+                {
+                    MessageBox.Show($"Cannot delete calibration file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    MessageBox.Show($"Access denied when deleting calibration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
-        }
-
-        private void RefreshCalibrationData()
-        {
-             _internalCal = LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Weight);
-             _adsCal = LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Weight);
-             OnPropertyChanged(nameof(InternalCalStatus));
-             OnPropertyChanged(nameof(InternalCalSlope));
-             OnPropertyChanged(nameof(InternalCalIntercept));
-             OnPropertyChanged(nameof(InternalCalDate));
-             OnPropertyChanged(nameof(AdsCalStatus));
-             OnPropertyChanged(nameof(AdsCalSlope));
-             OnPropertyChanged(nameof(AdsCalIntercept));
-             OnPropertyChanged(nameof(AdsCalDate));
         }
 
         private void OnShowHelp(string? key)
         {
-            if (string.IsNullOrEmpty(key)) return;
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
 
             string title = key switch
             {
@@ -550,5 +245,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             HelpRequested?.Invoke(title, content);
         }
+
+        #endregion
     }
 }

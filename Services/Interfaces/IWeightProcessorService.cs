@@ -10,7 +10,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         ProcessedWeightData LatestTotal { get; }
         LinearCalibration? InternalCalibration { get; }
         LinearCalibration? Ads1115Calibration { get; }
-        
+
         void Start();
         void Stop();
         void SetCalibration(LinearCalibration? calibration, AdcMode mode = AdcMode.InternalWeight);
@@ -23,5 +23,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
         void ResetFilters();
         void Tare();
         void ResetTare();
+
+        bool IsActiveCalibrated { get; }
     }
 }

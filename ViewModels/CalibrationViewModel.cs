@@ -21,7 +21,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             get => _calStatusText;
             set => SetProperty(ref _calStatusText, value);
         }
-        
+
         private string _tareStatusText = "Tare: --";
         public string TareStatusText
         {
@@ -35,7 +35,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             get => _systemModeText;
             set => SetProperty(ref _systemModeText, value);
         }
-        
+
         private string _adcModeText = "Internal";
         public string AdcModeText
         {
@@ -87,12 +87,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnCalibrate(object? parameter)
         {
-             _navigationService.ShowCalibrationDialog(IsBrakeMode);
+            _navigationService.ShowCalibrationDialog(IsBrakeMode);
         }
 
         private void OnResetCalibration(object? parameter)
         {
-            if (MessageBox.Show("Are you sure you want to reset calibration? This will delete the current calibration file.", 
+            if (MessageBox.Show("Are you sure you want to reset calibration? This will delete the current calibration file.",
                 "Reset Calibration", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
                 LinearCalibration.DeleteCalibration(_canService.CurrentADCMode, SystemModeText == "Brake" ? SystemMode.Brake : SystemMode.Weight);
@@ -116,9 +116,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void OnSwitchAdcMode(object? parameter)
         {
             if (_canService.CurrentADCMode == AdcMode.InternalWeight)
+            {
                 _canService.SwitchToADS1115();
+            }
             else
+            {
                 _canService.SwitchToInternalADC();
+            }
         }
 
         private void OnOpenTwoWheeler(object? parameter)

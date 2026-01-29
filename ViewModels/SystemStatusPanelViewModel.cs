@@ -12,7 +12,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
     public class SystemStatusPanelViewModel : BaseViewModel
     {
         private readonly ICANService? _canService;
-        
+
         // Properties
         private string _statusText = "Unknown";
         public string StatusText
@@ -34,7 +34,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             get => _relayStateText;
             set => SetProperty(ref _relayStateText, value);
         }
-        
+
         private Brush _relayStateColor = Brushes.Black;
         public Brush RelayStateColor
         {
@@ -92,10 +92,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _navigationService = navigationService;
             _statusMonitor = statusMonitor;
             _historyManager = historyManager ?? ServiceRegistry.GetService<StatusHistoryManager>(); // Fallback or inject
-            
+
             RequestFirmwareCommand = new RelayCommand(OnRequestFirmware);
             ShowHistoryCommand = new RelayCommand(OnShowHistory);
-            
+
             // Subscribe to events
             if (_canService != null)
             {
@@ -112,25 +112,25 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnAvailabilityChanged(object? sender, bool isAvailable)
         {
-             System.Windows.Application.Current.Dispatcher.Invoke(() =>
-             {
-                 if (!isAvailable)
-                 {
-                     StatusText = "NOT AVAILABLE";
-                     StatusColor = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
-                 }
-                 else
-                 {
-                     // If coming back online, we might want to reset to Unknown or wait for next Status packet.
-                     // The next Status packet will update it to OK/Warn/Error.
-                     // Temporarily set to "Unknown" or just leave it until next packet updates it.
-                     if (StatusText == "NOT AVAILABLE")
-                     {
-                         StatusText = "Connected...";
-                         StatusColor = Brushes.Gray;
-                     }
-                 }
-             });
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (!isAvailable)
+                {
+                    StatusText = "NOT AVAILABLE";
+                    StatusColor = new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
+                }
+                else
+                {
+                    // If coming back online, we might want to reset to Unknown or wait for next Status packet.
+                    // The next Status packet will update it to OK/Warn/Error.
+                    // Temporarily set to "Unknown" or just leave it until next packet updates it.
+                    if (StatusText == "NOT AVAILABLE")
+                    {
+                        StatusText = "Connected...";
+                        StatusColor = Brushes.Gray;
+                    }
+                }
+            });
         }
 
 
@@ -142,7 +142,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             // Since this is called from background thread usually, we might need dispatching.
             // But we'll implement properties to just update. The View binding engine usually handles cross-thread prop changes in newer WPF, 
             // or we use Application.Current.Dispatcher)
-            
+
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 // Status Color & Text
@@ -153,7 +153,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     SystemStatus.Error => new SolidColorBrush(Color.FromRgb(220, 53, 69)),   // Red - Error
                     _ => new SolidColorBrush(Color.FromRgb(128, 128, 128)) // Gray - Unknown
                 };
-                
+
                 string status = e.SystemStatus switch
                 {
                     SystemStatus.Ok => "OK",
@@ -161,25 +161,29 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     SystemStatus.Error => "ERROR",
                     _ => "???"
                 };
-                if (e.ErrorFlags != 0) status += $" (0x{e.ErrorFlags:X2})";
+                if (e.ErrorFlags != 0)
+                {
+                    status += $" (0x{e.ErrorFlags:X2})";
+                }
+
                 StatusText = status;
-                
+
                 // Relay State
                 RelayStateText = e.RelayState == SystemMode.Weight ? "Weight" : "Brake";
                 RelayStateColor = e.RelayState == SystemMode.Weight ? Brushes.Blue : Brushes.Red;
-                
+
                 // Uptime
                 TimeSpan t = TimeSpan.FromSeconds(e.UptimeSeconds);
                 UptimeText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)t.TotalHours, t.Minutes, t.Seconds);
-                
+
                 LastUpdateText = e.Timestamp.ToString("HH:mm:ss");
-                
+
                 // Add to history
                 _historyManager?.AddStatusEntry(
-                    (byte)e.SystemStatus, 
-                    e.ErrorFlags, 
-                    (byte)e.ADCMode, 
-                    (byte)e.RelayState, 
+                    (byte)e.SystemStatus,
+                    e.ErrorFlags,
+                    (byte)e.ADCMode,
+                    (byte)e.RelayState,
                     0, 0, // Hz not available in this packet, explicitly
                     e.UptimeSeconds,
                     FirmwareVersionText // No longer has "FW: " prefix

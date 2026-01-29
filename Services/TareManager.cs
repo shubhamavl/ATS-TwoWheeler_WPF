@@ -21,7 +21,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool TotalIsTaredADS1115 { get; private set; }
         public DateTime TotalTareTimeInternal { get; private set; }
         public DateTime TotalTareTimeADS1115 { get; private set; }
-        
+
         /// <summary>
         /// Tare total weight: store positive offset from calibrator removal for compensation
         /// When calibrator is removed, weight goes negative (e.g., -23 kg).
@@ -36,16 +36,16 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 throw new ArgumentException($"Invalid tare offset: {currentCalibratedKg} (NaN or Infinity)", nameof(currentCalibratedKg));
             }
-            
+
             // Only allow negative values (calibrator removed scenario)
             if (currentCalibratedKg >= 0)
             {
                 throw new ArgumentException($"Tare only works with negative weight (calibrator removed). Current weight: {currentCalibratedKg:F3} kg", nameof(currentCalibratedKg));
             }
-            
+
             // Store the absolute value (positive) as offset for compensation
             double offset = Math.Abs(currentCalibratedKg);
-            
+
             if (adcMode == AdcMode.InternalWeight) // Internal
             {
                 TotalOffsetKgInternal = offset; // Store positive offset
@@ -61,7 +61,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 System.Diagnostics.Debug.WriteLine($"[TareManager] Total ADS1115 tare set: offset=+{offset:F3} kg (from {currentCalibratedKg:F3} kg)");
             }
         }
-        
+
         /// <summary>
         /// Reset total tare for specific ADC mode
         /// </summary>
@@ -79,7 +79,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 TotalOffsetKgADS1115 = 0;
             }
         }
-        
+
         /// <summary>
         /// Reset all tares (all modes)
         /// </summary>
@@ -88,7 +88,7 @@ namespace ATS_TwoWheeler_WPF.Services
             ResetTotal(AdcMode.InternalWeight);
             ResetTotal(AdcMode.Ads1115);
         }
-        
+
         /// <summary>
         /// Apply tare: add positive offset to current calibrated weight to compensate for calibrator removal
         /// Example: If offset is +23 kg and calibrated weight is -23 kg, result = 0 kg
@@ -101,7 +101,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             double offset = 0;
             bool isTared = false;
-            
+
             if (adcMode == AdcMode.InternalWeight) // Internal
             {
                 offset = TotalOffsetKgInternal;
@@ -112,7 +112,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 offset = TotalOffsetKgADS1115;
                 isTared = TotalIsTaredADS1115;
             }
-            
+
             if (isTared)
             {
                 // Add positive offset to compensate for calibrator removal
@@ -126,7 +126,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 return calibratedKg; // Not tared, return as-is
             }
         }
-        
+
         /// <summary>
         /// Check if total weight and ADC mode is tared
         /// </summary>
@@ -136,7 +136,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return adcMode == AdcMode.InternalWeight ? TotalIsTaredInternal : TotalIsTaredADS1115;
         }
-        
+
         /// <summary>
         /// Get offset weight for ADC mode
         /// </summary>
@@ -146,7 +146,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return adcMode == AdcMode.InternalWeight ? TotalOffsetKgInternal : TotalOffsetKgADS1115;
         }
-        
+
         /// <summary>
         /// Get tare time for ADC mode
         /// </summary>
@@ -156,7 +156,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return adcMode == AdcMode.InternalWeight ? TotalTareTimeInternal : TotalTareTimeADS1115;
         }
-        
+
         /// <summary>
         /// Get tare status text for display
         /// </summary>
@@ -175,7 +175,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 return "- Not Tared";
             }
         }
-        
+
         /// <summary>
         /// Get tare time for display
         /// </summary>
@@ -193,7 +193,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 return "";
             }
         }
-        
+
         /// <summary>
         /// Save tare state to JSON file
         /// </summary>
@@ -208,15 +208,15 @@ namespace ATS_TwoWheeler_WPF.Services
                 TotalIsTaredADS1115 = TotalIsTaredADS1115,
                 TotalTareTimeInternal = TotalTareTimeInternal,
                 TotalTareTimeADS1115 = TotalTareTimeADS1115,
-                
+
                 SaveTime = DateTime.Now
             };
-            
+
             string path = PathHelper.GetTareConfigPath(); // Portable: in Data directory
             string jsonString = JsonSerializer.Serialize(tareData, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(path, jsonString);
         }
-        
+
         /// <summary>
         /// Load tare state from JSON file
         /// </summary>
@@ -225,13 +225,15 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             string path = PathHelper.GetTareConfigPath(); // Portable: in Data directory
             if (!File.Exists(path))
+            {
                 return false;
-                
+            }
+
             try
             {
                 string jsonString = File.ReadAllText(path);
                 var tareData = JsonSerializer.Deserialize<TareData>(jsonString);
-                
+
                 if (tareData != null)
                 {
                     // Load offsets
@@ -241,18 +243,22 @@ namespace ATS_TwoWheeler_WPF.Services
                     TotalIsTaredADS1115 = tareData.TotalIsTaredADS1115;
                     TotalTareTimeInternal = tareData.TotalTareTimeInternal;
                     TotalTareTimeADS1115 = tareData.TotalTareTimeADS1115;
-                    
+
                     return true;
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading tare config: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error parsing tare config: {ex.Message}");
             }
-            
+            catch (IOException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error reading tare config: {ex.Message}");
+            }
+
             return false;
         }
-        
+
         /// <summary>
         /// Delete tare configuration file
         /// </summary>
@@ -265,14 +271,18 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     File.Delete(path);
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error deleting tare config: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error deleting tare config (IO): {ex.Message}");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Access denied deleting tare config: {ex.Message}");
                 }
             }
         }
     }
-    
+
     /// <summary>
     /// Data structure for tare configuration persistence (offset-based)
     /// </summary>
@@ -285,7 +295,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool TotalIsTaredADS1115 { get; set; }
         public DateTime TotalTareTimeInternal { get; set; }
         public DateTime TotalTareTimeADS1115 { get; set; }
-        
+
         public DateTime SaveTime { get; set; }
     }
 }

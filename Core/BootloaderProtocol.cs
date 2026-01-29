@@ -50,7 +50,10 @@ namespace ATS_TwoWheeler_WPF.Core
 
         public static string ParseErrorMessage(uint canId, byte[] data)
         {
-            if (data == null) return "Unknown Error";
+            if (data == null)
+            {
+                return "Unknown Error";
+            }
 
             switch (canId)
             {

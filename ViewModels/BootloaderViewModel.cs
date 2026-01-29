@@ -11,6 +11,8 @@ using ATS_TwoWheeler_WPF.Services;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
 using ATS_TwoWheeler_WPF.ViewModels.Base;
 using ATS_TwoWheeler_WPF.ViewModels.Bootloader;
+using ATS_TwoWheeler_WPF.Core.Exceptions;
+using System.ComponentModel;
 
 namespace ATS_TwoWheeler_WPF.ViewModels
 {
@@ -296,9 +298,20 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _selectedFirmwarePath = firmwarePath;
                 }
             }
+
+            catch (Win32Exception ex)
+            {
+                _logger.LogError($"Firmware browse dialog error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Dialog error: {ex.Message}", "Error");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError($"Firmware file access error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"File error: {ex.Message}", "Error");
+            }
             catch (Exception ex)
             {
-                _logger.LogError($"Firmware browse error: {ex.Message}", "BootloaderManager");
+                _logger.LogError($"Unexpected firmware browse error: {ex.Message}", "BootloaderManager");
                 _dialogService.ShowError($"Failed to select firmware: {ex.Message}", "Error");
             }
         }
@@ -306,10 +319,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private async Task OnStartUpdate()
         {
             if (!ValidateFirmwareSelection())
+            {
                 return;
+            }
 
             if (!ConfirmFirmwareUpdate())
+            {
                 return;
+            }
 
             InitializeUpdateState();
 
@@ -321,13 +338,27 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _selectedFirmwarePath!, progress, _updateCts!.Token);
 
                 if (success)
+                {
                     HandleUpdateSuccess();
+                }
                 else
+                {
                     HandleUpdateFailure("Firmware update failed - check diagnostics");
+                }
             }
             catch (OperationCanceledException)
             {
                 HandleUpdateCancelled();
+            }
+            catch (FileNotFoundException ex)
+            {
+                _logger.LogError($"Firmware file not found: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"File not found: {ex.Message}", "Error");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError($"Firmware IO error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Disk error: {ex.Message}", "Error");
             }
             catch (Exception ex)
             {
@@ -497,6 +528,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _dialogService.ShowError("Failed to send ping command.", "Error");
                 }
             }
+            catch (CANSendException ex)
+            {
+                _logger.LogError($"Test bootloader CAN error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogError($"Test bootloader timeout: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError("Communication timed out.", "Error");
+            }
             catch (Exception ex)
             {
                 _logger.LogError($"Test bootloader error: {ex.Message}", "BootloaderManager");
@@ -515,7 +556,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 "The system will be ready for firmware updates.",
                 "Confirm Enter Bootloader");
 
-            if (!result) return;
+            if (!result)
+            {
+                return;
+            }
 
             try
             {
@@ -539,6 +583,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _dialogService.ShowError("Failed to send Enter Bootloader command.", "Error");
                 }
             }
+            catch (CANSendException ex)
+            {
+                _logger.LogError($"Enter bootloader CAN error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogError($"Enter bootloader timeout: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError("Communication timed out.", "Error");
+            }
             catch (Exception ex)
             {
                 _logger.LogError($"Enter bootloader error: {ex.Message}", "BootloaderManager");
@@ -554,7 +608,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 "The system will boot from the active bank.",
                 "Confirm Reset");
 
-            if (!result) return;
+            if (!result)
+            {
+                return;
+            }
 
             try
             {
@@ -567,6 +624,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 {
                     _dialogService.ShowError("Failed to send reset command.", "Error");
                 }
+            }
+            catch (CANSendException ex)
+            {
+                _logger.LogError($"Reset CAN error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogError($"Reset timeout: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError("Communication timed out.", "Error");
             }
             catch (Exception ex)
             {
@@ -607,6 +674,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _dialogService.ShowError("Failed to request bootloader info.", "Error");
                 }
             }
+            catch (CANSendException ex)
+            {
+                _logger.LogError($"Query boot info CAN error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
+            }
             catch (Exception ex)
             {
                 _logger.LogError($"Query boot info error: {ex.Message}", "BootloaderManager");
@@ -628,6 +700,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _dialogService.ShowMessage($"Messages exported to:\n{path}", "Export Complete");
                 }
             }
+            catch (IOException ex)
+            {
+                _logger.LogError($"Export messages IO error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"File Error: {ex.Message}", "Error");
+            }
             catch (Exception ex)
             {
                 _logger.LogError($"Export messages error: {ex.Message}", "BootloaderManager");
@@ -648,6 +725,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     File.WriteAllText(path, content);
                     _dialogService.ShowMessage($"Operation log exported to:\n{path}", "Export Complete");
                 }
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError($"Export operation log IO error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"File Error: {ex.Message}", "Error");
             }
             catch (Exception ex)
             {

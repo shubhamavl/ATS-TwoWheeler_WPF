@@ -17,7 +17,7 @@ namespace ATS_TwoWheeler_WPF.Core
         public double Slope { get; set; }  // Slope for this segment: kg = Slope * raw + Intercept
         public double Intercept { get; set; } // Intercept for this segment
     }
-    
+
     /// <summary>
     /// Linear calibration class for multi-point calibration using least-squares linear regression.
     /// Implements the industry-standard "Calibrate First, Then Tare" approach.
@@ -32,50 +32,56 @@ namespace ATS_TwoWheeler_WPF.Core
         public string Side { get; set; } = "";     // "Left" or "Right"
         public AdcMode ADCMode { get; set; } = AdcMode.InternalWeight;
         public SystemMode SystemMode { get; set; } = SystemMode.Weight;
-        
+
         // Calibration mode: Regression (default) or Piecewise
         public CalibrationMode Mode { get; set; } = CalibrationMode.Regression;
-        
+
         // Piecewise segments (for Piecewise mode)
         public List<CalibrationSegment> Segments { get; set; } = new List<CalibrationSegment>();
-        
+
         // All calibration points used for fitting
         public List<CalibrationPoint> Points { get; set; } = new List<CalibrationPoint>();
-        
+
         // Quality metrics
         public double R2 { get; set; }              // Coefficient of determination (0.0 to 1.0)
         public double MaxErrorPercent { get; set; } // Maximum error percentage across all points
-        
+
         /// <summary>
-        /// Fit linear calibration from multiple points using least-squares linear regression
+        /// Fits a linear calibration model (slope and intercept) from multiple calibration points using the Least Squares method.
+        /// Algorithm: Simple Linear Regression (y = mx + b).
+        /// - Minimizes the sum of squared residuals (SSR).
+        /// - Calculates R² to assess fit quality.
+        /// - Handles single-point calibration (assumes zero intercept) as a special case.
         /// </summary>
-        /// <param name="points">List of calibration points (minimum 1 point required)</param>
-        /// <returns>LinearCalibration object with calculated slope and intercept</returns>
+        /// <param name="points">List of calibration points (Raw ADC vs Known Weight). Minimum 1 point required.</param>
+        /// <returns>LinearCalibration object populated with calculated Slope, Intercept, and quality metrics.</returns>
         public static LinearCalibration FitMultiplePoints(List<CalibrationPoint> points)
         {
             if (points == null || points.Count == 0)
+            {
                 throw new ArgumentException("At least one calibration point is required");
-            
+            }
+
             if (points.Count == 1)
             {
                 // Single point: assume zero intercept (passes through origin)
                 var point = points[0];
-                
+
                 // Allow zero ADC only if weight is also zero (empty platform)
                 // But we can't calculate slope from (0,0) alone
                 if (point.RawADC == 0 && point.KnownWeight == 0)
                 {
                     throw new ArgumentException("Cannot calibrate with a single point at (0,0). Please add at least one more point with non-zero weight.");
                 }
-                
+
                 // Can't divide by zero if ADC is zero but weight is not
                 if (point.RawADC == 0 && point.KnownWeight != 0)
                 {
                     throw new ArgumentException("Cannot calibrate: Raw ADC is zero but weight is non-zero. Please check your measurements.");
                 }
-                
+
                 double singlePointSlope = point.KnownWeight / point.RawADC;
-                
+
                 return new LinearCalibration
                 {
                     Slope = singlePointSlope,
@@ -88,19 +94,19 @@ namespace ATS_TwoWheeler_WPF.Core
                     ADCMode = AdcMode.InternalWeight // Default to Internal, should be set by caller
                 };
             }
-            
+
             // Multiple points: least-squares linear regression
             // Zero ADC is fine for multiple points as long as we have variation
             int n = points.Count;
             double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-            
+
             // Check if all points have zero ADC (would cause division issues)
             bool allZeroADC = points.All(p => p.RawADC == 0);
             if (allZeroADC)
             {
                 throw new ArgumentException("Cannot calibrate: All points have zero Raw ADC value. Please ensure at least one point has a non-zero ADC reading.");
             }
-            
+
             foreach (var point in points)
             {
                 double x = point.RawADC;
@@ -110,22 +116,24 @@ namespace ATS_TwoWheeler_WPF.Core
                 sumXY += x * y;
                 sumX2 += x * x;
             }
-            
+
             // Calculate slope: (n*Σxy - Σx*Σy) / (n*Σx² - (Σx)²)
             double denominator = n * sumX2 - sumX * sumX;
             if (Math.Abs(denominator) < 1e-10)
+            {
                 throw new ArgumentException("Calibration points are collinear or have insufficient spread");
-            
+            }
+
             double slope = (n * sumXY - sumX * sumY) / denominator;
-            
+
             // Calculate intercept: (Σy - slope*Σx) / n
             double intercept = (sumY - slope * sumX) / n;
-            
+
             // Calculate R² (coefficient of determination)
             double yMean = sumY / n;
             double ssRes = 0; // Sum of squares of residuals
             double ssTot = 0; // Total sum of squares
-            
+
             foreach (var point in points)
             {
                 double yActual = point.KnownWeight;
@@ -134,9 +142,9 @@ namespace ATS_TwoWheeler_WPF.Core
                 ssRes += residual * residual;
                 ssTot += (yActual - yMean) * (yActual - yMean);
             }
-            
+
             double r2 = ssTot > 1e-10 ? (1.0 - ssRes / ssTot) : 1.0;
-            
+
             // Calculate max error percentage
             double maxErrorPercent = 0.0;
             foreach (var point in points)
@@ -145,9 +153,11 @@ namespace ATS_TwoWheeler_WPF.Core
                 double error = Math.Abs(yPredicted - point.KnownWeight);
                 double errorPercent = point.KnownWeight > 0 ? (error / point.KnownWeight) * 100.0 : 0.0;
                 if (errorPercent > maxErrorPercent)
+                {
                     maxErrorPercent = errorPercent;
+                }
             }
-            
+
             return new LinearCalibration
             {
                 Slope = slope,
@@ -160,18 +170,22 @@ namespace ATS_TwoWheeler_WPF.Core
                 ADCMode = AdcMode.InternalWeight // Default to Internal, should be set by caller
             };
         }
-        
+
         /// <summary>
-        /// Convert raw ADC value to calibrated weight (before tare)
-        /// Routes to regression or piecewise based on Mode
+        /// Converts a raw ADC value to physical weight (kg) using the active calibration strategy.
+        /// Strategy:
+        /// - If Mode is Piecewise: Uses linear interpolation between the two nearest segments.
+        /// - If Mode is Regression (Linear): Uses the global Slope and Intercept (y = mx + b).
         /// </summary>
-        /// <param name="raw">Raw ADC value</param>
-        /// <returns>Calibrated weight in kg</returns>
+        /// <param name="raw">The raw digital value from the ADC.</param>
+        /// <returns>Calculated weight in kilograms (before tare application).</returns>
         public double RawToKg(int raw)
         {
             if (!IsValid)
+            {
                 throw new InvalidOperationException("Calibration is not valid. Please calibrate first.");
-            
+            }
+
             // Route to appropriate conversion method based on mode
             if (Mode == CalibrationMode.Piecewise && Segments != null && Segments.Count > 0)
             {
@@ -182,7 +196,7 @@ namespace ATS_TwoWheeler_WPF.Core
                 return RawToKgRegression(raw);
             }
         }
-        
+
         /// <summary>
         /// Convert raw ADC value using global linear regression
         /// </summary>
@@ -192,7 +206,7 @@ namespace ATS_TwoWheeler_WPF.Core
         {
             return Slope * raw + Intercept;
         }
-        
+
         /// <summary>
         /// Convert raw ADC value using piecewise linear interpolation
         /// </summary>
@@ -205,21 +219,21 @@ namespace ATS_TwoWheeler_WPF.Core
                 // Fallback to regression if segments not available
                 return RawToKgRegression(raw);
             }
-            
+
             // Handle edge cases: below first segment
             if (raw < Segments[0].XMin)
             {
                 var firstSegment = Segments[0];
                 return firstSegment.Slope * raw + firstSegment.Intercept;
             }
-            
+
             // Handle edge cases: above last segment
             if (raw > Segments[Segments.Count - 1].XMax)
             {
                 var lastSegment = Segments[Segments.Count - 1];
                 return lastSegment.Slope * raw + lastSegment.Intercept;
             }
-            
+
             // Find the segment containing this raw value
             // Segments should be sorted by XMin, so we can do a linear search
             // (Binary search could be used for many segments, but linear is simpler and fast enough for typical use)
@@ -230,11 +244,11 @@ namespace ATS_TwoWheeler_WPF.Core
                     return segment.Slope * raw + segment.Intercept;
                 }
             }
-            
+
             // Should not reach here if segments are properly constructed, but fallback to regression
             return RawToKgRegression(raw);
         }
-        
+
         /// <summary>
         /// Build piecewise segments from calibration points
         /// Points must be sorted by RawADC (ascending)
@@ -247,29 +261,31 @@ namespace ATS_TwoWheeler_WPF.Core
                 Segments = new List<CalibrationSegment>();
                 return;
             }
-            
+
             // Sort points by RawADC (ascending)
             var sortedPoints = Points.OrderBy(p => p.RawADC).ToList();
-            
+
             Segments = new List<CalibrationSegment>();
-            
+
             // Create segments between adjacent points
             for (int i = 0; i < sortedPoints.Count - 1; i++)
             {
                 var p1 = sortedPoints[i];
                 var p2 = sortedPoints[i + 1];
-                
+
                 // Skip if points have same ADC value (would cause division by zero)
                 if (p1.RawADC == p2.RawADC)
+                {
                     continue;
-                
+                }
+
                 // Calculate slope and intercept for this segment
                 // Using two-point form: y = m*x + b
                 // m = (y2 - y1) / (x2 - x1)
                 // b = y1 - m*x1
                 double slope = (p2.KnownWeight - p1.KnownWeight) / (double)(p2.RawADC - p1.RawADC);
                 double intercept = p1.KnownWeight - slope * p1.RawADC;
-                
+
                 var segment = new CalibrationSegment
                 {
                     XMin = p1.RawADC,
@@ -277,11 +293,11 @@ namespace ATS_TwoWheeler_WPF.Core
                     Slope = slope,
                     Intercept = intercept
                 };
-                
+
                 Segments.Add(segment);
             }
         }
-        
+
         /// <summary>
         /// Verify calibration accuracy at a specific point
         /// </summary>
@@ -295,7 +311,7 @@ namespace ATS_TwoWheeler_WPF.Core
             double errorPercent = expectedKg > 0 ? (errorKg / expectedKg) * 100.0 : 0.0;
             return errorPercent;
         }
-        
+
         /// <summary>
         /// Get calibration equation as string
         /// </summary>
@@ -303,17 +319,23 @@ namespace ATS_TwoWheeler_WPF.Core
         public string GetEquationString()
         {
             if (!IsValid)
+            {
                 return "Not calibrated";
-                
+            }
+
             string slopeStr = Slope.ToString("F3");
             string interceptStr = Intercept.ToString("F0");
-            
+
             if (Intercept >= 0)
+            {
                 return $"kg = {slopeStr} × raw + {interceptStr}";
+            }
             else
+            {
                 return $"kg = {slopeStr} × raw - {Math.Abs(Intercept):F0}";
+            }
         }
-        
+
         /// <summary>
         /// Get quality assessment based on R² value
         /// </summary>
@@ -321,15 +343,23 @@ namespace ATS_TwoWheeler_WPF.Core
         public string GetQualityAssessment()
         {
             if (R2 >= 0.999)
+            {
                 return "Excellent";
+            }
             else if (R2 >= 0.99)
+            {
                 return "Good";
+            }
             else if (R2 >= 0.95)
+            {
                 return "Acceptable";
+            }
             else
+            {
                 return "Poor";
+            }
         }
-        
+
         /// <summary>
         /// Save calibration to JSON file
         /// </summary>
@@ -345,7 +375,7 @@ namespace ATS_TwoWheeler_WPF.Core
             string jsonString = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filename, jsonString);
         }
-        
+
         /// <summary>
         /// Load calibration from JSON file
         /// </summary>
@@ -356,13 +386,15 @@ namespace ATS_TwoWheeler_WPF.Core
         {
             string filename = PathHelper.GetCalibrationPath(adcMode, systemMode); // Portable: in Data directory
             if (!File.Exists(filename))
+            {
                 return null;
-                
+            }
+
             try
             {
                 string jsonString = File.ReadAllText(filename);
                 var calibration = JsonSerializer.Deserialize<LinearCalibration>(jsonString);
-                
+
                 // Backward compatibility: if segments are missing but points exist, build segments lazily
                 if (calibration != null && calibration.Points != null && calibration.Points.Count >= 2)
                 {
@@ -376,7 +408,7 @@ namespace ATS_TwoWheeler_WPF.Core
                         }
                     }
                 }
-                
+
                 return calibration;
             }
             catch (Exception ex)
@@ -385,7 +417,7 @@ namespace ATS_TwoWheeler_WPF.Core
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Check if calibration file exists for ADC mode
         /// </summary>
@@ -397,7 +429,7 @@ namespace ATS_TwoWheeler_WPF.Core
             string filename = PathHelper.GetCalibrationPath(adcMode, systemMode); // Portable: in Data directory
             return File.Exists(filename);
         }
-        
+
         /// <summary>
         /// Delete calibration file for ADC mode
         /// </summary>
@@ -419,7 +451,7 @@ namespace ATS_TwoWheeler_WPF.Core
             }
         }
     }
-    
+
     /// <summary>
     /// Represents a single calibration point
     /// </summary>

@@ -9,7 +9,7 @@ namespace ATS_TwoWheeler_WPF.Core
     public static class PathHelper
     {
         private static string? _applicationDirectory;
-        
+
         /// <summary>
         /// Gets the directory where the executable is located
         /// </summary>
@@ -46,7 +46,7 @@ namespace ATS_TwoWheeler_WPF.Core
                 return _applicationDirectory;
             }
         }
-        
+
         /// <summary>
         /// Gets the path to the application data directory (portable, next to executable)
         /// </summary>
@@ -63,7 +63,7 @@ namespace ATS_TwoWheeler_WPF.Core
             }
             return dataDir;
         }
-        
+
         /// <summary>
         /// Gets the path to the logs directory (portable, next to executable)
         /// </summary>
@@ -80,7 +80,7 @@ namespace ATS_TwoWheeler_WPF.Core
             }
             return logsDir;
         }
-        
+
         /// <summary>
         /// Gets the path to the settings file (portable, next to executable)
         /// </summary>
@@ -116,7 +116,7 @@ namespace ATS_TwoWheeler_WPF.Core
         {
             return Path.Combine(ApplicationDirectory, "ATS_TwoWheeler_Updater.exe");
         }
-        
+
         /// <summary>
         /// Gets the path to a calibration file (portable, in Data directory)
         /// </summary>
@@ -128,7 +128,7 @@ namespace ATS_TwoWheeler_WPF.Core
             string typeSuffix = systemMode == Models.SystemMode.Brake ? "_brake" : "";
             return Path.Combine(GetDataDirectory(), $"calibration_total_{modeSuffix}{typeSuffix}.json");
         }
-        
+
         /// <summary>
         /// Gets the path to the tare configuration file (portable, in Data directory)
         /// </summary>
@@ -136,7 +136,7 @@ namespace ATS_TwoWheeler_WPF.Core
         {
             return Path.Combine(GetDataDirectory(), "tare_config.json");
         }
-        
+
         /// <summary>
         /// Gets a path relative to the application directory
         /// </summary>

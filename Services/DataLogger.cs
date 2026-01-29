@@ -16,7 +16,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private string _logFilePath;
         private bool _isLogging = false;
         private readonly object _logLock = new object();
-        
+
         // System status tracking
         // System status tracking
         private SystemStatus _lastSystemStatus = SystemStatus.Ok;
@@ -27,24 +27,24 @@ namespace ATS_TwoWheeler_WPF.Services
         private uint _lastUptimeSeconds = 0;
         private string _lastFirmwareVersion = "--";
         private DateTime _lastStatusTimestamp = DateTime.MinValue;
-        
-        public bool IsLogging 
-        { 
-            get 
-            { 
-                lock (_logLock) 
-                { 
-                    return _isLogging; 
-                } 
-            } 
+
+        public bool IsLogging
+        {
+            get
+            {
+                lock (_logLock)
+                {
+                    return _isLogging;
+                }
+            }
         }
-        
+
         public DataLogger()
         {
             // File path will be created when logging starts
             _logFilePath = "";
         }
-        
+
         /// <summary>
         /// Start logging to CSV file (creates new timestamped file each time)
         /// </summary>
@@ -55,37 +55,52 @@ namespace ATS_TwoWheeler_WPF.Services
                 lock (_logLock)
                 {
                     if (_isLogging)
+                    {
                         return true; // Already logging
-                    
+                    }
+
                     // Create new timestamped log file each time logging starts
                     string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                     string baseDir = SettingsManager.Instance.Settings.SaveDirectory;
                     try
                     {
-                        if (!Directory.Exists(baseDir)) Directory.CreateDirectory(baseDir);
+                        if (!Directory.Exists(baseDir))
+                        {
+                            Directory.CreateDirectory(baseDir);
+                        }
                     }
-                    catch (Exception ex)
+                    catch (IOException ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error creating log directory: {ex.Message}");
                     }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Access denied creating log directory: {ex.Message}");
+                    }
                     _logFilePath = Path.Combine(baseDir, $"two_wheeler_log_{timestamp}.csv");
-                    
+
                     // Create CSV header with system status fields
                     string header = "Timestamp,Side,RawADC,CalibratedKg,TaredKg,TareBaseline,CalSlope,CalIntercept,ADCMode,SystemStatus,ErrorFlags,Relay,CanHz,AdcHz,Uptime,FirmwareVersion,StatusTimestamp";
                     File.WriteAllText(_logFilePath, header + Environment.NewLine);
-                    
+
                     _isLogging = true;
                     System.Diagnostics.Debug.WriteLine($"Data logging started: {_logFilePath}");
                     return true;
                 }
             }
-            catch (Exception ex)
+
+            catch (IOException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error starting data logging: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error starting data logging (IO): {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting data logging (Access): {ex.Message}");
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Stop logging
         /// </summary>
@@ -98,16 +113,16 @@ namespace ATS_TwoWheeler_WPF.Services
                     System.Diagnostics.Debug.WriteLine("Data logging already stopped");
                     return; // Already stopped
                 }
-                
+
                 _isLogging = false;
                 System.Diagnostics.Debug.WriteLine($"Data logging stopped. File: {_logFilePath}");
             }
         }
-        
+
         /// <summary>
         /// Update system status for logging
         /// </summary>
-        public void UpdateSystemStatus(SystemStatus systemStatus, byte errorFlags, SystemMode relayState, 
+        public void UpdateSystemStatus(SystemStatus systemStatus, byte errorFlags, SystemMode relayState,
                                      ushort canTxHz, ushort adcSampleHz, uint uptimeSeconds, string firmwareVersion)
         {
             lock (_logLock)
@@ -118,11 +133,15 @@ namespace ATS_TwoWheeler_WPF.Services
                 _lastCanTxHz = canTxHz;
                 _lastAdcSampleHz = adcSampleHz;
                 _lastUptimeSeconds = uptimeSeconds;
-                if (!string.IsNullOrEmpty(firmwareVersion)) _lastFirmwareVersion = firmwareVersion;
+                if (!string.IsNullOrEmpty(firmwareVersion))
+                {
+                    _lastFirmwareVersion = firmwareVersion;
+                }
+
                 _lastStatusTimestamp = DateTime.Now;
             }
         }
-        
+
         /// <summary>
         /// Log a data point
         /// </summary>
@@ -134,39 +153,43 @@ namespace ATS_TwoWheeler_WPF.Services
         /// <param name="calSlope">Calibration slope</param>
         /// <param name="calIntercept">Calibration intercept</param>
         /// <param name="adcMode">ADC mode (0=Internal, 1=ADS1115)</param>
-        public void LogDataPoint(string side, int rawADC, double calibratedKg, double taredKg, 
+        public void LogDataPoint(string side, int rawADC, double calibratedKg, double taredKg,
                                double tareBaseline, double calSlope, double calIntercept, AdcMode adcMode)
         {
             // Early exit check (outside lock for performance)
             if (!_isLogging)
+            {
                 return;
-                
+            }
+
             try
             {
                 lock (_logLock)
                 {
                     // Double-check inside lock to prevent race condition
                     if (!_isLogging)
+                    {
                         return;
-                    
+                    }
+
                     string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
-                    string statusTimestamp = _lastStatusTimestamp != DateTime.MinValue 
+                    string statusTimestamp = _lastStatusTimestamp != DateTime.MinValue
                         ? _lastStatusTimestamp.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture)
                         : "";
-                    
+
                     string line = $"{timestamp},{side},{rawADC},{calibratedKg:F3},{taredKg:F3}," +
                                  $"{tareBaseline:F3},{calSlope:F6},{calIntercept:F3},{(byte)adcMode}," +
                                  $"{(byte)_lastSystemStatus},{_lastErrorFlags},{(byte)_lastRelayState},{_lastCanTxHz},{_lastAdcSampleHz},{_lastUptimeSeconds},{_lastFirmwareVersion},{statusTimestamp}";
-                    
+
                     File.AppendAllText(_logFilePath, line + Environment.NewLine);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error logging data point: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Get current log file path
         /// </summary>
@@ -174,7 +197,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return _logFilePath;
         }
-        
+
         /// <summary>
         /// Export current session to a new CSV file
         /// </summary>
@@ -185,19 +208,26 @@ namespace ATS_TwoWheeler_WPF.Services
             try
             {
                 if (!File.Exists(_logFilePath))
+                {
                     return false;
-                    
+                }
+
                 File.Copy(_logFilePath, exportPath, true);
                 System.Diagnostics.Debug.WriteLine($"Data exported to: {exportPath}");
                 return true;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error exporting data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error exporting data (IO): {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error exporting data (Access): {ex.Message}");
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Get log file size in bytes
         /// </summary>
@@ -206,16 +236,19 @@ namespace ATS_TwoWheeler_WPF.Services
             try
             {
                 if (File.Exists(_logFilePath))
+                {
                     return new FileInfo(_logFilePath).Length;
+                }
+
                 return 0;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting log file size: {ex.Message}");
                 return 0;
             }
         }
-        
+
         /// <summary>
         /// Get number of lines in log file
         /// </summary>
@@ -224,10 +257,13 @@ namespace ATS_TwoWheeler_WPF.Services
             try
             {
                 if (File.Exists(_logFilePath))
+                {
                     return File.ReadAllLines(_logFilePath).Length;
+                }
+
                 return 0;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting log line count: {ex.Message}");
                 return 0;
