@@ -280,8 +280,15 @@ namespace ATS_TwoWheeler_WPF.Services
         }
 
         /// <summary>
-        /// Core processing - optimized for speed with configurable filtering
+        /// Core processing pipeline for raw ADC data.
+        /// Steps:
+        /// 1. Converts raw ADC to physical unit (kg) using active calibration (Linear Regression or Piecewise).
+        /// 2. Applies configured filter (EMA/SMA) to the calibrated value.
+        /// 3. Applies tare offset (if set) to calculate net weight.
+        /// 4. Re-filters the tared weight for smooth display.
+        /// 5. Updates the thread-safe LatestTotal property.
         /// </summary>
+        /// <param name="raw">Raw weight data packet containing ADC value and timestamp</param>
         private void ProcessRawData(RawWeightData raw)
         {
             var processed = new ProcessedWeightData

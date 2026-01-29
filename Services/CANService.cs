@@ -336,6 +336,14 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
 
+        /// <summary>
+        /// Processes the internal circular buffer to extract valid CAN frames.
+        /// Logic:
+        /// 1. Checks if at least 20 bytes (one full frame) are available.
+        /// 2. Scans for the frame header (0xAA).
+        /// 3. Extracts 20 bytes if header is found.
+        /// 4. Discards invalid bytes if header is invalid.
+        /// </summary>
         private void ProcessFrames()
         {
             while (_frameBuffer.Count >= 20)
@@ -361,7 +369,11 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
 
-        // PERMANENT FIX: Frame decoding with proper CAN ID extraction (matching working steering code)
+        /// <summary>
+        /// Decodes a raw byte array into a CAN message structure.
+        /// Uses the working algorithm from the Steering project to reliably extract CAN ID and Data.
+        /// </summary>
+        /// <param name="frame">20-byte raw frame from serial buffer</param>
         private void DecodeFrame(byte[] frame)
         {
             if (frame.Length < 18 || frame[0] != 0xAA)

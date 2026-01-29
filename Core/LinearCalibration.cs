@@ -47,10 +47,14 @@ namespace ATS_TwoWheeler_WPF.Core
         public double MaxErrorPercent { get; set; } // Maximum error percentage across all points
 
         /// <summary>
-        /// Fit linear calibration from multiple points using least-squares linear regression
+        /// Fits a linear calibration model (slope and intercept) from multiple calibration points using the Least Squares method.
+        /// Algorithm: Simple Linear Regression (y = mx + b).
+        /// - Minimizes the sum of squared residuals (SSR).
+        /// - Calculates R² to assess fit quality.
+        /// - Handles single-point calibration (assumes zero intercept) as a special case.
         /// </summary>
-        /// <param name="points">List of calibration points (minimum 1 point required)</param>
-        /// <returns>LinearCalibration object with calculated slope and intercept</returns>
+        /// <param name="points">List of calibration points (Raw ADC vs Known Weight). Minimum 1 point required.</param>
+        /// <returns>LinearCalibration object populated with calculated Slope, Intercept, and quality metrics.</returns>
         public static LinearCalibration FitMultiplePoints(List<CalibrationPoint> points)
         {
             if (points == null || points.Count == 0)
@@ -168,11 +172,13 @@ namespace ATS_TwoWheeler_WPF.Core
         }
 
         /// <summary>
-        /// Convert raw ADC value to calibrated weight (before tare)
-        /// Routes to regression or piecewise based on Mode
+        /// Converts a raw ADC value to physical weight (kg) using the active calibration strategy.
+        /// Strategy:
+        /// - If Mode is Piecewise: Uses linear interpolation between the two nearest segments.
+        /// - If Mode is Regression (Linear): Uses the global Slope and Intercept (y = mx + b).
         /// </summary>
-        /// <param name="raw">Raw ADC value</param>
-        /// <returns>Calibrated weight in kg</returns>
+        /// <param name="raw">The raw digital value from the ADC.</param>
+        /// <returns>Calculated weight in kilograms (before tare application).</returns>
         public double RawToKg(int raw)
         {
             if (!IsValid)

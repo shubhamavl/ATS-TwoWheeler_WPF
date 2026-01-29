@@ -10,7 +10,7 @@ namespace ATS_TwoWheeler_WPF
 {
     public partial class App : Application
     {
-        public IServiceProvider ServiceProvider { get; private set; }
+        public IServiceProvider ServiceProvider { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
