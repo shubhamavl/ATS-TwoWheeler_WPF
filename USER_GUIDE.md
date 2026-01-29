@@ -1,310 +1,107 @@
-# ATS Two-Wheeler System Monitor - User Guide
+# ATS Two-Wheeler UI User Guide
 
-## 🚀 Quick Start Guide
+## 1. Overview
+The ATS Two-Wheeler UI is a powerful real-time dashboard for measuring weight and brake force. It handles high-speed data from the STM32 via CAN bus and provides advanced tools for calibration and logging.
 
-### ⚠️ IMPORTANT: No .NET Installation Needed!
-
-**The .NET 8.0 runtime is ALREADY INCLUDED in this package!**
-- ❌ You do NOT need to download .NET 8.0 from Microsoft
-- ❌ You do NOT need to install .NET runtime separately
-- ✅ Everything is included - just extract and run!
-
-### First Time Setup
-
-1. **Extract the ZIP file** you received to any folder (Desktop is fine)
-2. **Double-click** `ATS_TwoWheeler_WPF.exe` to start
-3. **Connect** your USB-CAN adapter to your computer
-4. **Select** the COM port from the dropdown (usually COM3, COM4, etc.)
-5. **Click** "Connect" button
-6. **Calibrate** the system for total weight measurement (see Calibration section below)
-7. **Start** data streaming to see live weight measurements
-
-That's it! The application is ready to use.
-
-**Note**: The file is large (~70-100 MB) because it includes the .NET runtime. This is normal!
+- **Developer Note**: Built with C# WPF (MVVM). Handles up to 1kHz CAN data streams with persistent logic for calibration and diagnostic monitoring.
 
 ---
 
-## 📁 Understanding the Application Folder
+## 2. Dashboard Features
 
-When you extract the ZIP file, you'll see:
+### 2.1 Weight Display
+The dashboard displays the total weight from all four load cells combined. 
+- **Display Units**: You can switch between **kg** (Kilograms) and **N** (Newtons) in the settings.
+- **Precision**: You can adjust the number of decimal places (0.0 vs 0.00) in the settings.
 
-```
-ATS_TwoWheeler_WPF/
-├── ATS_TwoWheeler_WPF.exe       ← Run this file
-├── settings.json                 ← Your settings (created automatically)
-├── Data/                         ← Your data files (created automatically)
-│   ├── calibration_total_internal.json  ← Internal ADC calibration
-│   ├── calibration_total_ads1115.json  ← ADS1115 calibration
-│   ├── tare_config.json         ← Zero point settings
-│   └── two_wheeler_log_*.csv    ← Data log files
-└── Logs/                         ← Log files (created automatically)
-    └── two_wheeler_log_*.txt    ← System logs
-```
-
-**Important**: Keep all these files together! Don't delete the `Data/` or `Logs/` folders.
+### 2.2 Brake & Peak Mode
+Brake mode is used to measure the high-force "bite" of a vehicle's brakes.
+- **Peak detection**: In Brake Mode, the system automatically catches the **highest force** achieved during the test and freezes it on the screen so you don't miss it.
+- **Reset**: Click the Peak value to reset it to zero for the next test.
 
 ---
 
-## 🔧 Calibration
+## 3. Technical Data Structures
 
-### Why Calibrate?
+The application processes raw sensor packets into user-friendly weight values using these internal models:
 
-Calibration tells the system how to convert raw sensor readings into actual weight measurements. You need to calibrate each side (Left and Right) separately, and for each ADC mode (Internal and ADS1115).
+| Class | Property | Type | Description |
+| :--- | :--- | :--- | :--- |
+| **RawWeightData** | `RawADC` | `int` | Combined 4-channel sum from STM32. |
+| **ProcessedWeightData**| `CalibratedWeight` | `double` | Weight after linear mapping (`y=mx+c`). |
+| | `TaredWeight` | `double` | Final display weight (Calibrated + Tare). |
+| | `TareValue` | `double` | The stored offset value. |
 
-### Multi-Point Calibration
-
-The application supports **multi-point calibration** using least-squares linear regression. This provides better accuracy than two-point calibration, especially over a wide weight range.
-
-**Recommended**: Use 3-5 calibration points for best accuracy.
-
-### Calibration Steps
-
-1. **Start the application** and connect to your device
-2. **Start data streaming** for the side you want to calibrate:
-   - Click "Request Left Stream" for left side
-   - Click "Request Right Stream" for right side
-3. **Click "Calibrate Left"** or "Calibrate Right" button
-4. **Add Calibration Points**:
-   - Click "Add Point" to create a new calibration point
-   - Enter the known weight (can be in any order - zero point, then weights, or vice versa)
-   - Click "Capture" - system automatically captures both Internal and ADS1115 ADC values
-   - Repeat for additional points (minimum 1 point, 3-5 recommended)
-5. **Calculate Calibration**:
-   - Click "Calculate" to perform least-squares regression
-   - Review R² value (should be >0.95 for good quality)
-   - Review maximum error and quality assessment
-6. **Save Calibration**:
-   - Click "Save Calibration"
-   - Calibration is saved for both ADC modes automatically
-
-### Calibration Quality Metrics
-
-- **R² (Coefficient of Determination)**: Measures fit quality
-  - 1.0 = Perfect fit
-  - >0.95 = Excellent
-  - 0.90-0.95 = Good
-  - <0.90 = May need more points or check for issues
-- **Maximum Error**: Largest deviation from fitted line
-- **Quality Assessment**: Excellent/Good/Acceptable/Poor
-
-### ADC Mode-Specific Calibration
-
-The system stores separate calibrations for:
-- **Internal ADC (12-bit)**: Faster, standard precision
-- **ADS1115 (16-bit)**: Higher precision, 6.4x better resolution
-
-Both modes are calibrated simultaneously when you capture points. The system automatically uses the correct calibration based on the current ADC mode.
-
-### When to Recalibrate
-
-- After hardware changes
-- If measurements seem inaccurate
-- Periodically for best accuracy (monthly recommended)
-- When switching between ADC modes (calibrations are independent)
+| Enum | Value | Description |
+| :--- | :--- | :--- |
+| **AdcMode** | `0` (Internal) | Standard 12-bit mode. |
+| | `1` (ADS1115) | High-precision 16-bit mode. |
+| **SystemMode** | `0` (Weight) | Relay OFF (Axle Weight). |
+| | `1` (Brake) | Relay ON (Brake Sensors). |
 
 ---
 
-## ⚖️ Tare (Zero Point)
+## 4. Signal Filtering (Stop the Jitters)
 
-### What is Tare?
+Filters help stabilize the numbers on the screen so they don't "vibrate" or jump around due to mechanical noise.
 
-Tare sets the current weight as the zero point. This is useful when you want to measure additional weight on top of an existing load. Tare values are stored separately for each ADC mode (Internal and ADS1115).
+- **EMA (Exponential)**: **Fast response**. It reacts quickly to changes, like a car's suspension smoothing out bumps while still letting you turn fast. Use this for live weighing.
+- **SMA (Simple Average)**: **Slow and steady**. It averages the last few readings to give a rock-solid number. Use this for static weighing.
 
-### How to Tare
-
-1. **Start data streaming** for the side you want to tare
-2. **Wait** for stable readings
-3. **Click "Tare Left"** or "Tare Right" button
-4. The display will now show 0.0 kg (or close to it)
-5. Tare is automatically saved and remembered for the current ADC mode
-
-### ADC Mode-Specific Tare
-
-- Tare values are stored separately for Internal and ADS1115 modes
-- When you switch ADC modes, the system uses the appropriate tare value
-- Each side and mode combination has its own tare baseline
-
-### When to Use Tare
-
-- Daily zero-out before measurements
-- When you want to measure weight changes
-- After calibration to set a baseline
-- When switching ADC modes (re-tare if needed)
+| Method | Type | Technical Logic | Best Used For... |
+| :--- | :--- | :--- | :--- |
+| **EMA** | Exponential | `Y = (Alpha * X) + (1 - Alpha) * Y_prev` | Live viewing and dynamic tests. |
+| **SMA** | Simple | `Y = Sum(X_last_N) / N` | Final static weight verification. |
 
 ---
 
-## 📊 Data Logging
+## 5. Calibration & Tare (How it Measures)
 
-### Start Logging
+### 5.1 Calibration Modes
+- **Regression**: Drawings a **straight line** through your points. Best for all standard sensors as it ignores minor measurement errors.
+- **Piecewise**: **Connects the dots**. Only use this if your sensor is "non-linear" (meaning it behaves differently at light vs heavy weights).
 
-1. Click **"Start Logging"** button (manual control only - no auto-start)
-2. Data will be saved to CSV files in the `Data/` folder
-3. Files are named: `two_wheeler_log_YYYYMMDD_HHMMSS.csv` (timestamped)
-4. A new file is created each time you start logging
+| Mode | Logic | Technical Use Case |
+| :--- | :--- | :--- |
+| **Regression** | `y = mx + c` | Linear best-fit for entire range. |
+| **Piecewise** | Linear Interpolation| Direct mapping between specific points. |
 
-### Stop Logging
-
-1. Click **"Stop Logging"** button
-2. The current log file is saved automatically
-
-### View Log Files
-
-- Use the **Log Files Manager** (Tools → Log Files Manager)
-- Filter by file type (Data Logs, Production Logs, CAN Monitor exports)
-- View file details: name, type, size, creation date
-- Delete selected files or clear all (with confirmation)
-- Open log directory in Explorer
-
-### Log File Contents
-
-CSV files contain:
-- Timestamp
-- Side (Left/Right)
-- RawADC
-- CalibratedKg
-- TaredKg
-- TareBaseline
-- CalSlope
-- CalIntercept
-- ADCMode (0=Internal, 1=ADS1115)
-- SystemStatus
-- ErrorFlags
-- StatusTimestamp
+### 5.2 Tare Logic
+Tare is designed to zero the scale, typically used after removing a heavy calibrator.
+- **Persistence**: Tare is **saved to disk**. If you tare the scale and restart the app, it will still be at zero.
+- **Math**: If the scale reads `-20kg`, clicking **Tare** stores `+20kg`. `Display = Reading + StoredOffset`.
 
 ---
 
-## ⚙️ Settings
+## 6. System Health Monitoring (Auto-Check)
 
-### COM Port
+The app watches the connection to make sure the hardware is still talking.
 
-- Select the port where your USB-CAN adapter is connected
-- Usually COM3, COM4, COM5, etc.
-- Saved automatically
+- **Auto-Query**: If the system doesn't hear anything for 2 seconds, it automatically asks "Are you there?" (Status Request).
+- **Unavailable**: If there is no answer for 5 seconds, the status light turns **Red**.
 
-### Transmission Rate
-
-- **100Hz**: Low frequency (for slow monitoring)
-- **500Hz**: Standard operation
-- **1kHz**: High speed (default, recommended)
-- **1Hz**: Very slow (for debugging)
-
-### Save Directory
-
-- By default, data is saved in the `Data/` folder next to the executable
-- You can change this if needed (not recommended for portable use)
+| Condition | Threshold | Action | UI Indication |
+| :--- | :--- | :--- | :--- |
+| **Idle** | > 2 Seconds | Sends `RequestStatus` (ID 0x032) | Status Icon: Orange |
+| **No Response** | > 5 Seconds | Marks system as "Unavailable" | Status Icon: **Red** |
 
 ---
 
-## 🎮 Keyboard Shortcuts
+## 7. App Configuration Reference
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+C` | Connect to CAN bus |
-| `Ctrl+D` | Disconnect from CAN bus |
-| `Ctrl+L` | Start left side streaming |
-| `Ctrl+R` | Start right side streaming |
-| `Ctrl+S` | Stop all streams |
-| `Ctrl+T` | Toggle settings panel |
-| `Ctrl+M` | Open monitor window |
-| `Ctrl+P` | Open production logs |
-| `F1` | Show help |
+| Setting Category | Key Parameter | Default | Technical Note |
+| :--- | :--- | :--- | :--- |
+| **Filtering** | `FilterAlpha` | `0.15` | Sensitivity of the EMA filter. |
+| | `FilterWindowSize`| `10` | Samples used in the SMA average. |
+| **Units** | `BrakeDisplayUnit` | `kg` | Can be switched to `N` (Newtons). |
+| | `Multiplier` | `9.80665` | Gravity constant used for conversion. |
+| **Logging** | `LogFileFormat` | `CSV` | Supports CSV (Excel) and JSON. |
+| **Performance** | `BatchSize` | `50` | Stream throughput optimization. |
 
 ---
 
-## 🔍 Monitor Window
-
-The Monitor Window shows all CAN bus messages in real-time:
-- **Blue messages**: Sent by the application (TX)
-- **Green messages**: Received from device (RX)
-- Useful for troubleshooting communication issues
-
----
-
-## ❓ Troubleshooting
-
-### Can't Connect
-
-- **Check COM port**: Make sure the correct port is selected
-- **Check cable**: Ensure USB-CAN adapter is connected
-- **Check drivers**: Install USB-CAN adapter drivers if needed
-- **Try different port**: The port number may change
-
-### No Data Displayed
-
-- **Start streaming**: Click "Request Left Stream" or "Request Right Stream"
-- **Check connection**: Make sure device is connected and responding
-- **Check calibration**: Calibrate if you haven't already
-
-### Incorrect Weight Readings
-
-- **Recalibrate**: Calibration may be off
-- **Check tare**: Make sure tare is set correctly
-- **Check sensors**: Verify sensors are working properly
-
-### Application Won't Start
-
-- **Windows version**: Requires Windows 10 or 11 (64-bit)
-- **Antivirus**: May be blocking the application (add exception)
-- **Permissions**: Try running as Administrator
-
----
-
-## 💾 Backup Your Data
-
-### What to Backup
-
-- **`Data/` folder**: Contains all calibration and data files
-- **`settings.json`**: Contains your settings
-
-### How to Backup
-
-1. **Copy the entire `Data/` folder** to a safe location
-2. **Copy `settings.json`** to the same location
-3. Store on USB drive, cloud storage, or another computer
-
-### Restore Backup
-
-1. **Stop the application**
-2. **Replace the `Data/` folder** with your backup
-3. **Replace `settings.json`** with your backup
-4. **Start the application**
-
----
-
-## 📞 Getting Help
-
-If you encounter issues:
-
-1. **Check the Logs**: Open the Logs window (Ctrl+P) to see error messages
-2. **Check Monitor**: Open Monitor window (Ctrl+M) to see CAN messages
-3. **Contact Support**: Provide log files and error messages
-
----
-
-## 🔄 Updating the Application
-
-When a new version is available:
-
-1. **Backup your data** (copy `Data/` folder and `settings.json`)
-2. **Download the new ZIP file**
-3. **Extract to a new folder** (or replace old files)
-4. **Copy your backup** (`Data/` folder and `settings.json`) to the new location
-5. **Run the new version**
-
-Your calibration and settings will be preserved!
-
----
-
-## 📝 Notes
-
-- The application stores all data locally - nothing is sent to the internet
-- You can run it from a USB drive - fully portable!
-- No installation required - just extract and run
-- All files stay in the application folder - easy to backup or move
-
----
-
-**Version**: 2.0.0  
-**Last Updated**: November 2025
-
+## 8. Technical Troubleshooting
+- **Settings Store**: Located in `app_settings.json` in the Data folder.
+- **CAN Protocol**: Operation fixed at **250 kbps**.
+- **Log Location**: Stored in `/Data/Logs/` with timestamping.
+- **Calibration**: Profiles saved per-mode as `calibration_internal.json` and `calibration_ads.json`.

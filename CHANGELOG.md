@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-01-29
+## [0.3.0] - 2026-01-29
+
+### Added
+- **Modular Settings Architecture**: Refactored the consolidated settings panel into a hierarchical structure with dedicated ViewModels (`Advanced`, `Calibration`, `Display`, `Filter`) for improved maintainability.
+- **Advanced Display Options**: Introduced new customization settings for UI layout and data visualization.
+- **Bootloader Diagnostics**: Enhanced firmware update process with detailed diagnostic feedback and progress tracking.
+- **Legacy Feature Parity**: Restored missing UI elements, status displays, and keyboard shortcuts from legacy versions to the new MVVM architecture.
+
+### Changed
+- **Weight Processing Engine**: Significant updates to the processing logic for better stability and noise reduction.
+- **Service Registry Refactor**: Streamlined dependency injection and service management for better performance.
+- **Updater Reliability**: Comprehensive updates to the `ATS_TwoWheeler_Updater` for seamless background updates.
+- **UI Performance**: Optimized logging and monitor windows to prevent UI thread contention during high-speed data streaming.
+
+### Fixed
+- **UI Synchronization**: Resolved issues where dashboard elements and status indicators would occasionally desync.
+- **Communication Robustness**: Fixed potential race conditions in `CANService` and improved adapter retry logic.
+- **Error Handling**: Implemented more robust global exception handling for improved application uptime.
+- **Calibration Precision**: Addressed baseline stability issues during tare and multi-point calibration.
+
+## [0.2.0] - 2026-01-27
 
 ### Added
 - **Brake Mode Integration**: Full support for two-wheeler brake testing and weight monitoring.
