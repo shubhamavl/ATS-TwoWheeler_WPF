@@ -47,32 +47,32 @@
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
         <Button Content="Switch Mode" Command="{Binding SwitchSystemModeCommand}"
                 Style="{StaticResource ModernButton}" Background="#FF673AB7" 
-                Height="36" Width="95" FontSize="11" Margin="3,0"/>
+                Height="44" Width="110" FontSize="13" Margin="3,0"/>
         
         <Button Content="Switch ADC" Command="{Binding SwitchAdcModeCommand}"
                 Style="{StaticResource ModernButton}" Background="#FF2196F3" 
-                Height="36" Width="90" FontSize="11" Margin="3,0"/>
+                Height="44" Width="110" FontSize="13" Margin="3,0"/>
 
         <Rectangle Width="1" Fill="#FFDDDDDD" Margin="10,2,10,2" Height="24"/>
 
         <Button Content="Tare" Command="{Binding TareCommand}"
                 Style="{StaticResource ModernButton}" Background="#FF3498DB" 
-                Width="70" Height="36" Margin="3,0"/>
+                Width="85" Height="44" FontSize="13" Margin="3,0"/>
                 
         <Button Content="Calibrate" Command="{Binding CalibrateCommand}"
                 Style="{StaticResource ModernButton}" Background="#FF27AE60" 
-                Width="75" Height="36" Margin="3,0"/>
+                Width="90" Height="44" FontSize="13" Margin="3,0"/>
                 
         <Button Content="Reset Calibration" Command="{Binding ResetCalibrationCommand}"
                 Style="{StaticResource ModernButton}" Background="#FFE74C3C" 
-                Width="140" Height="36" Margin="3,0"/>
+                Width="160" Height="44" FontSize="13" Margin="3,0"/>
                 
         <Button Content="Reset Tare" Command="{Binding ResetTareCommand}"
                 Style="{StaticResource DangerButton}" 
-                Height="36" Width="90" Margin="3,0"/>
+                Height="44" Width="110" FontSize="13" Margin="3,0"/>
                 
         <Button Content="🚗 Two Wheeler" Command="{Binding OpenTwoWheelerCommand}"
                 Style="{StaticResource ModernButton}" Background="#FF27AE60" 
-                Height="36" Width="145" Margin="4,0"/>
+                Height="44" Width="165" FontSize="13" Margin="4,0"/>
     </StackPanel>
 </UserControl>

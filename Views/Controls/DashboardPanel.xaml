@@ -64,52 +64,52 @@
                         <!-- Streaming -->
                         
                          <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="STREAM" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="STREAM" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Ellipse Width="7" Height="7" Fill="{Binding StreamIndicatorColor}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding StreamStatusText}" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding StreamStatusText}" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
                         </StackPanel>
 
-                        <Separator Grid.Column="1" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
+                        <Separator Grid.Column="1" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="35"/>
 
                         <!-- Sampling -->
                         <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="SAMPLING" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                            <TextBlock Text="{Binding AdcModeText}" FontSize="12" FontWeight="SemiBold" Foreground="#FF2980B9"/>
+                            <TextBlock Text="SAMPLING" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding AdcModeText}" FontSize="15" FontWeight="SemiBold" Foreground="#FF2980B9"/>
                         </StackPanel>
 
                         <Separator Grid.Column="3" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
 
                         <!-- Integrity -->
                         <StackPanel Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="INTEGRITY" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                            <TextBlock Text="{Binding CalStatusText}" FontSize="12" FontWeight="SemiBold" Foreground="#FF27AE60"/>
+                            <TextBlock Text="INTEGRITY" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding CalStatusText}" FontSize="15" FontWeight="SemiBold" Foreground="#FF27AE60"/>
                         </StackPanel>
 
                         <Separator Grid.Column="5" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
 
                         <!-- Tare -->
                         <StackPanel Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="TARE STATUS" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                            <TextBlock Text="{Binding TareStatusText}" FontSize="12" FontWeight="Bold" Foreground="#FF2C3E50"/>
+                            <TextBlock Text="TARE STATUS" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding TareStatusText}" FontSize="15" FontWeight="Bold" Foreground="#FF2C3E50"/>
                         </StackPanel>
 
                         <Separator Grid.Column="7" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
 
                         <!-- Raw ADC -->
                         <StackPanel Grid.Column="8" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="RAW ADC" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                            <TextBlock Text="{Binding RawAdcText}" FontSize="12" FontWeight="Bold" Foreground="#FF2980B9"/>
+                            <TextBlock Text="RAW ADC" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding RawAdcText}" FontSize="15" FontWeight="Bold" Foreground="#FF2980B9"/>
                         </StackPanel>
 
                         <Separator Grid.Column="9" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0" Height="25"/>
 
                         <!-- Peak (Brake Mode Only) -->
                         <StackPanel Grid.Column="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="PEAK" FontSize="9" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                            <TextBlock Text="PEAK" FontSize="11" FontWeight="Bold" Foreground="#FF95A5A6" HorizontalAlignment="Center" Margin="0,0,0,2"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding PeakWeightText}" FontSize="12" FontWeight="Bold" Foreground="#FFDC3545" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding PeakWeightText}" FontSize="15" FontWeight="Bold" Foreground="#FFDC3545" Margin="0,0,5,0"/>
                                 <Button Content="↻" Command="{Binding ResetPeakCommand}" 
                                         ToolTip="Reset Peak"
                                         Background="Transparent" BorderThickness="0" 

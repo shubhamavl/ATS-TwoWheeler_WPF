@@ -92,7 +92,7 @@
                         Command="{Binding RequestFirmwareCommand}"
                         Style="{StaticResource ModernButton}" 
                         Background="#FF17A2B8" 
-                        Width="70" Height="30" Margin="2,0"
+                        Width="85" Height="38" FontSize="13" Margin="2,0"
                         ToolTip="Request Firmware Version"/>
                 
                 <Button Grid.Column="2" 
@@ -100,7 +100,7 @@
                         Command="{Binding ShowHistoryCommand}"
                         Style="{StaticResource ModernButton}" 
                         Background="#FF6F42C1" 
-                        Width="70" Height="30" Margin="5,0,0,0"/>
+                        Width="85" Height="38" FontSize="13" Margin="5,0,0,0"/>
             </StackPanel>
         </StackPanel>
     </Border>
