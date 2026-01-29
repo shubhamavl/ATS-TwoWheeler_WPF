@@ -245,9 +245,13 @@ namespace ATS_TwoWheeler_WPF.Services
                     return true;
                 }
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading tare config: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error parsing tare config: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error reading tare config: {ex.Message}");
             }
             
             return false;
@@ -265,9 +269,13 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     File.Delete(path);
                 }
-                catch (Exception ex)
+                catch (IOException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error deleting tare config: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error deleting tare config (IO): {ex.Message}");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Access denied deleting tare config: {ex.Message}");
                 }
             }
         }

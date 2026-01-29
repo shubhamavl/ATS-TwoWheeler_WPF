@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -288,9 +289,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
                 _dialogService.ShowMessage("Data exported successfully!", "Export Complete");
             }
+            catch (IOException ex)
+            {
+                _dialogService.ShowError($"File error: {ex.Message}", "Export Error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _dialogService.ShowError($"Access denied: {ex.Message}", "Export Error");
+            }
             catch (Exception ex)
             {
-                _dialogService.ShowError($"Export failed: {ex.Message}", "Export Error");
+                _dialogService.ShowError($"Unexpected export error: {ex.Message}", "Export Error");
             }
         }
 

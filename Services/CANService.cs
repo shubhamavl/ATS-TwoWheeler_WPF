@@ -246,6 +246,16 @@ namespace ATS_TwoWheeler_WPF.Services
                 string message;
                 return Connect(selectedPort, out message);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                ProductionLogger.Instance.LogError($"Auto-connect access denied: {ex.Message}", "CANService");
+                throw new CANConnectionException("Auto", "Access denied", ex);
+            }
+            catch (IOException ex)
+            {
+                ProductionLogger.Instance.LogError($"Auto-connect IO error: {ex.Message}", "CANService");
+                throw new CANConnectionException("Auto", "IO Error", ex);
+            }
             catch (Exception ex)
             {
                 ProductionLogger.Instance.LogError($"USB-CAN-A connection error: {ex.Message}", "CANService");
@@ -290,9 +300,19 @@ namespace ATS_TwoWheeler_WPF.Services
                         _timeoutNotified = false;
                     }
                 }
-                catch
+                catch (TimeoutException) 
                 {
-                    // ignore read errors for now
+                    // Ignore timeouts (normal for some serial operations)
+                }
+                catch (IOException ex)
+                {
+                    // Log IO errors (device disconnected, etc)
+                    ProductionLogger.Instance.LogWarning($"Serial read error: {ex.Message}", "CANService");
+                    await Task.Delay(100, token); // Throttle loop on error
+                }
+                catch (Exception ex)
+                {
+                    ProductionLogger.Instance.LogError($"Unexpected serial error: {ex.Message}", "CANService");
                 }
 
                 // Check for timeout

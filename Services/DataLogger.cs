@@ -64,9 +64,13 @@ namespace ATS_TwoWheeler_WPF.Services
                     {
                         if (!Directory.Exists(baseDir)) Directory.CreateDirectory(baseDir);
                     }
-                    catch (Exception ex)
+                    catch (IOException ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error creating log directory: {ex.Message}");
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Access denied creating log directory: {ex.Message}");
                     }
                     _logFilePath = Path.Combine(baseDir, $"two_wheeler_log_{timestamp}.csv");
                     
@@ -79,9 +83,15 @@ namespace ATS_TwoWheeler_WPF.Services
                     return true;
                 }
             }
-            catch (Exception ex)
+
+            catch (IOException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error starting data logging: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error starting data logging (IO): {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting data logging (Access): {ex.Message}");
                 return false;
             }
         }
@@ -161,7 +171,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     File.AppendAllText(_logFilePath, line + Environment.NewLine);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error logging data point: {ex.Message}");
             }
@@ -191,9 +201,14 @@ namespace ATS_TwoWheeler_WPF.Services
                 System.Diagnostics.Debug.WriteLine($"Data exported to: {exportPath}");
                 return true;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error exporting data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error exporting data (IO): {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error exporting data (Access): {ex.Message}");
                 return false;
             }
         }
@@ -209,7 +224,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     return new FileInfo(_logFilePath).Length;
                 return 0;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting log file size: {ex.Message}");
                 return 0;
@@ -227,7 +242,7 @@ namespace ATS_TwoWheeler_WPF.Services
                     return File.ReadAllLines(_logFilePath).Length;
                 return 0;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting log line count: {ex.Message}");
                 return 0;

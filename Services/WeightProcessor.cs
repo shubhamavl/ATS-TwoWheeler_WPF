@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -151,9 +153,17 @@ namespace ATS_TwoWheeler_WPF.Services
                 if (_ads1115Calibration != null)
                     ProductionLogger.Instance.LogInfo($"ADS1115 calibration loaded ({modeStr}): {_ads1115Calibration.GetEquationString()}", "WeightProcessor");
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
             {
-                ProductionLogger.Instance.LogError($"Error loading calibration: {ex.Message}", "WeightProcessor");
+                ProductionLogger.Instance.LogError($"Calibration file not found: {ex.Message}", "WeightProcessor");
+            }
+            catch (JsonException ex)
+            {
+                ProductionLogger.Instance.LogError($"Invalid calibration data: {ex.Message}", "WeightProcessor");
+            }
+            catch (IOException ex)
+            {
+                ProductionLogger.Instance.LogError($"Error reading calibration file: {ex.Message}", "WeightProcessor");
             }
         }
         

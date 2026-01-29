@@ -57,7 +57,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <TextBlock Text="Filter Type:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox ItemsSource="{Binding FilterTypes}" 
-                                              SelectedItem="{Binding FilterType}"
+                                              SelectedItem="{Binding Filter.Type}"
                                               Width="120"/>
                                 </StackPanel>
 
@@ -66,14 +66,14 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding FilterType}" Value="EMA">
+                                                    <DataTrigger Binding="{Binding Filter.Type}" Value="EMA">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
                                     <TextBlock Text="Alpha (Smoothing):" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Text="{Binding FilterAlpha}" Width="60" Margin="0,0,5,0"/>
+                                    <TextBox Text="{Binding Filter.Alpha}" Width="60" Margin="0,0,5,0"/>
                                     <TextBlock Text="(0.0 - 1.0)" VerticalAlignment="Center" Foreground="Gray" FontSize="10"/>
                                 </StackPanel>
 
@@ -82,14 +82,14 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding FilterType}" Value="SMA">
+                                                <DataTrigger Binding="{Binding Filter.Type}" Value="SMA">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
                                     <TextBlock Text="Window Size:" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Text="{Binding FilterWindowSize}" Width="60"/>
+                                    <TextBox Text="{Binding Filter.WindowSize}" Width="60"/>
                                 </StackPanel>
                             </StackPanel>
                         </GroupBox>
@@ -112,7 +112,7 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <TextBlock Text="Decimal Places:" Style="{StaticResource LabelStyle}"/>
-                                    <ComboBox SelectedItem="{Binding WeightDisplayDecimals}" Width="60">
+                                    <ComboBox SelectedItem="{Binding Display.WeightDecimals}" Width="60">
                                         <sys:Int32>0</sys:Int32>
                                         <sys:Int32>1</sys:Int32>
                                         <sys:Int32>2</sys:Int32>
@@ -121,22 +121,22 @@
                                 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <TextBlock Text="UI Update Rate (ms):" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Text="{Binding UIUpdateRateMs}" Width="60"/>
+                                    <TextBox Text="{Binding Display.UIUpdateRateMs}" Width="60"/>
                                 </StackPanel>
                                 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <TextBlock Text="Data Timeout (s):" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Text="{Binding DataTimeoutSeconds}" Width="60"/>
+                                    <TextBox Text="{Binding Display.DataTimeoutSeconds}" Width="60"/>
                                 </StackPanel>
                             </StackPanel>
                         </GroupBox>
 
                         <GroupBox Header="Visibility Options">
                             <StackPanel>
-                                <CheckBox Content="Show Raw ADC Values" IsChecked="{Binding ShowRawADC}" Margin="0,0,0,5"/>
-                                <CheckBox Content="Show Streaming Indicators" IsChecked="{Binding ShowStreamingIndicators}" Margin="0,0,0,5"/>
-                                <CheckBox Content="Show Calibration Icons" IsChecked="{Binding ShowCalibrationIcons}" Margin="0,0,0,5"/>
-                                <CheckBox Content="Show Quality Metrics (R²)" IsChecked="{Binding ShowCalibrationQualityMetrics}"/>
+                                <CheckBox Content="Show Raw ADC Values" IsChecked="{Binding Display.ShowRawADC}" Margin="0,0,0,5"/>
+                                <CheckBox Content="Show Streaming Indicators" IsChecked="{Binding Display.ShowStreamingIndicators}" Margin="0,0,0,5"/>
+                                <CheckBox Content="Show Calibration Icons" IsChecked="{Binding Display.ShowCalibrationIcons}" Margin="0,0,0,5"/>
+                                <CheckBox Content="Show Quality Metrics (R²)" IsChecked="{Binding Calibration.ShowQualityMetrics}"/>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
@@ -152,7 +152,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
                                     <TextBlock Text="Processing Mode:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox ItemsSource="{Binding CalibrationModes}" 
-                                              SelectedItem="{Binding CalibrationMode}"
+                                              SelectedItem="{Binding Calibration.Mode}"
                                               Width="120"/>
                                 </StackPanel>
                                 
@@ -165,8 +165,8 @@
                                     <Border Grid.Column="0" BorderBrush="#FFCCCCCC" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,5,0">
                                         <StackPanel>
                                             <TextBlock Text="Internal ADC" FontWeight="Bold" Margin="0,0,0,5" Foreground="#FF2980B9"/>
-                                            <TextBlock Text="{Binding InternalCalStatus}" Margin="0,0,0,2"/>
-                                            <TextBlock Text="{Binding InternalCalDate}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
+                                            <TextBlock Text="{Binding Calibration.InternalStatus}" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Calibration.InternalDate}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
                                             <Button Content="Reset" Command="{Binding ResetCalibrationInternalCommand}" 
                                                     Background="#FFE74C3C" Foreground="White" Padding="5,2" Style="{x:Null}"/>
                                         </StackPanel>
@@ -175,8 +175,8 @@
                                     <Border Grid.Column="1" BorderBrush="#FFCCCCCC" BorderThickness="1" CornerRadius="4" Padding="10" Margin="5,0,0,0">
                                         <StackPanel>
                                             <TextBlock Text="ADS1115" FontWeight="Bold" Margin="0,0,0,5" Foreground="#FF2980B9"/>
-                                            <TextBlock Text="{Binding AdsCalStatus}" Margin="0,0,0,2"/>
-                                            <TextBlock Text="{Binding AdsCalDate}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
+                                            <TextBlock Text="{Binding Calibration.AdsStatus}" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Calibration.AdsDate}" FontSize="10" Foreground="Gray" Margin="0,5,0,5"/>
                                             <Button Content="Reset" Command="{Binding ResetCalibrationADS1115Command}" 
                                                     Background="#FFE74C3C" Foreground="White" Padding="5,2" Style="{x:Null}"/>
                                         </StackPanel>
@@ -187,21 +187,21 @@
 
                         <GroupBox Header="Advanced Calibration Logic">
                             <StackPanel>
-                                <CheckBox Content="Multi-Sample Averaging" IsChecked="{Binding CalibrationAveragingEnabled}" Margin="0,0,0,5"/>
-                                <StackPanel Margin="20,5,0,0" IsEnabled="{Binding CalibrationAveragingEnabled}">
+                                <CheckBox Content="Multi-Sample Averaging" IsChecked="{Binding Calibration.AveragingEnabled}" Margin="0,0,0,5"/>
+                                <StackPanel Margin="20,5,0,0" IsEnabled="{Binding Calibration.AveragingEnabled}">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="Samples:" Style="{StaticResource LabelStyle}" Width="80"/>
-                                        <TextBox Text="{Binding CalibrationSampleCount}" Width="60"/>
+                                        <TextBox Text="{Binding Calibration.SampleCount}" Width="60"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="Duration (ms):" Style="{StaticResource LabelStyle}" Width="80"/>
-                                        <TextBox Text="{Binding CalibrationCaptureDurationMs}" Width="60"/>
+                                        <TextBox Text="{Binding Calibration.CaptureDurationMs}" Width="60"/>
                                     </StackPanel>
-                                    <CheckBox Content="Use Median Filter" IsChecked="{Binding CalibrationUseMedian}" Margin="0,5"/>
-                                    <CheckBox Content="Remove Outliers" IsChecked="{Binding CalibrationRemoveOutliers}" Margin="0,5"/>
-                                    <StackPanel Orientation="Horizontal" Margin="20,0,0,5" IsEnabled="{Binding CalibrationRemoveOutliers}">
+                                    <CheckBox Content="Use Median Filter" IsChecked="{Binding Calibration.UseMedian}" Margin="0,5"/>
+                                    <CheckBox Content="Remove Outliers" IsChecked="{Binding Calibration.RemoveOutliers}" Margin="0,5"/>
+                                    <StackPanel Orientation="Horizontal" Margin="20,0,0,5" IsEnabled="{Binding Calibration.RemoveOutliers}">
                                         <TextBlock Text="Threshold (σ):" Width="100"/>
-                                        <TextBox Text="{Binding CalibrationOutlierThreshold}" Width="50"/>
+                                        <TextBox Text="{Binding Calibration.OutlierThreshold}" Width="50"/>
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
@@ -219,7 +219,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <TextBlock Text="Display Unit:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox ItemsSource="{Binding BrakeUnits}" 
-                                              SelectedItem="{Binding BrakeDisplayUnit}"
+                                              SelectedItem="{Binding Advanced.BrakeDisplayUnit}"
                                               Width="80"/>
                                 </StackPanel>
 
@@ -228,14 +228,14 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding BrakeDisplayUnit}" Value="N">
+                                                <DataTrigger Binding="{Binding Advanced.BrakeDisplayUnit}" Value="N">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
                                     <TextBlock Text="N Multiplier:" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Text="{Binding BrakeKgToNewtonMultiplier}" Width="80"/>
+                                    <TextBox Text="{Binding Advanced.BrakeKgToNewtonMultiplier}" Width="80"/>
                                     <TextBlock Text="(Value = kg × Multiplier)" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Gray" FontSize="10"/>
                                 </StackPanel>
                                 
@@ -256,7 +256,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <TextBlock Text="Log Format:" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox ItemsSource="{Binding LogFormats}" 
-                                              SelectedItem="{Binding LogFileFormat}"
+                                              SelectedItem="{Binding Advanced.LogFileFormat}"
                                               Width="80"/>
                                 </StackPanel>
                                 <Grid Margin="0,5">
