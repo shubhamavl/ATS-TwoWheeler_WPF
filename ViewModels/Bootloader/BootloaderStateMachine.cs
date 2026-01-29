@@ -75,23 +75,27 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
         {
             // Allow transition to Failed or Idle from any state
             if (to == BootloaderProcessStep.Failed || to == BootloaderProcessStep.Idle)
+            {
                 return true;
+            }
 
             // Allow transition to Complete from End or Transfer
             if (to == BootloaderProcessStep.Complete)
+            {
                 return from == BootloaderProcessStep.End || from == BootloaderProcessStep.Transfer;
+            }
 
             // Sequential transitions
             return to switch
             {
                 BootloaderProcessStep.EnterBootloader => from == BootloaderProcessStep.Idle,
-                BootloaderProcessStep.Ping => from == BootloaderProcessStep.Idle || 
+                BootloaderProcessStep.Ping => from == BootloaderProcessStep.Idle ||
                                                from == BootloaderProcessStep.EnterBootloader,
                 BootloaderProcessStep.Begin => from == BootloaderProcessStep.Ping,
-                BootloaderProcessStep.Transfer => from == BootloaderProcessStep.Begin || 
+                BootloaderProcessStep.Transfer => from == BootloaderProcessStep.Begin ||
                                                    from == BootloaderProcessStep.Transfer,
                 BootloaderProcessStep.End => from == BootloaderProcessStep.Transfer,
-                BootloaderProcessStep.Reset => from == BootloaderProcessStep.End || 
+                BootloaderProcessStep.Reset => from == BootloaderProcessStep.End ||
                                                 from == BootloaderProcessStep.Complete,
                 _ => false
             };

@@ -58,7 +58,10 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             try
             {
-                if (!File.Exists(filePath)) return false;
+                if (!File.Exists(filePath))
+                {
+                    return false;
+                }
 
                 using var sha256 = SHA256.Create();
                 await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);

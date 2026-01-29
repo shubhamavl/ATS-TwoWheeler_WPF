@@ -30,11 +30,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
-        public string StatusText => _dataLogger.IsLogging 
-            ? $"Logging to: {_dataLogger.GetLogFilePath()}" 
+        public string StatusText => _dataLogger.IsLogging
+            ? $"Logging to: {_dataLogger.GetLogFilePath()}"
             : "Not logging";
 
-        public Brush StatusColor => _dataLogger.IsLogging 
+        public Brush StatusColor => _dataLogger.IsLogging
             ? new SolidColorBrush(Color.FromRgb(40, 167, 69)) // Green
             : new SolidColorBrush(Color.FromRgb(220, 53, 69)); // Red
 
@@ -57,11 +57,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             StartLoggingCommand = new RelayCommand(OnStartLogging, _ => !IsLogging);
             StopLoggingCommand = new RelayCommand(OnStopLogging, _ => IsLogging);
             ExportLogCommand = new RelayCommand(OnExportLog);
-            
+
             // Sync initial state
             IsLogging = _dataLogger.IsLogging;
             UpdateSampleCount();
-            
+
             // Subscribe to timer or service events to update sample count?
             // DataLogger doesn't seem to have a "SampleCountChanged" event in interface I defined.
             // I might need to poll or adding an event to IDataLoggerService would be better.
@@ -86,7 +86,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             if (_dataLogger.StartLogging())
             {
                 IsLogging = true;
-                // TODO: Update Views/MainWindow logic to update LogsWindow if needed
+                // Logic syncs via shared IDataLoggerService singleton
             }
             else
             {
@@ -110,38 +110,38 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     DefaultExt = "csv",
                     FileName = $"two_wheeler_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
                 };
-                
+
                 if (saveDialog.ShowDialog() == true)
                 {
                     if (_dataLogger.ExportToCSV(saveDialog.FileName))
                     {
-                        MessageBox.Show($"Data exported successfully to:\n{saveDialog.FileName}", 
+                        MessageBox.Show($"Data exported successfully to:\n{saveDialog.FileName}",
                                       "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("Failed to export data.", "Export Error", 
+                        MessageBox.Show("Failed to export data.", "Export Error",
                                       MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Export error: {ex.Message}", "Export Error", 
+                MessageBox.Show($"Export error: {ex.Message}", "Export Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
-    
+
     // Extensions helper just for this simple command implementation update
     public static class CommandExtensions
     {
         public static void RaiseCanExecuteChanged(this ICommand command)
         {
             (command as RelayCommand)?.GetType().GetMethod("RaiseCanExecuteChanged")?.Invoke(command, null);
-             // Note: My RelayCommand implementation uses CommandManager.RequerySuggested so manual raise isn't always needed 
-             // but if I wanted strict manual control I'd implement a Raise method. 
-             // With CommandManager.RequerySuggested, UI updates automatically on idle.
+            // Note: My RelayCommand implementation uses CommandManager.RequerySuggested so manual raise isn't always needed 
+            // but if I wanted strict manual control I'd implement a Raise method. 
+            // With CommandManager.RequerySuggested, UI updates automatically on idle.
         }
     }
 }

@@ -5,7 +5,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     public interface IDataLoggerService
     {
         bool IsLogging { get; }
-        
+
         bool StartLogging();
         void StopLogging();
         string GetLogFilePath();

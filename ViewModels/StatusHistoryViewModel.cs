@@ -20,7 +20,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _historyManager = historyManager;
             StatusEntries = new ObservableCollection<StatusHistoryEntry>(_historyManager.GetAllEntries());
             ClearHistoryCommand = new RelayCommand(OnClearHistory);
-            
+
             // Note: If we want real-time updates while window is open, we'd need an event from manager.
             // For now, it loads on open.
         }

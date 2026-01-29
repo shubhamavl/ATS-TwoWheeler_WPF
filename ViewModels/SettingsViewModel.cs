@@ -35,7 +35,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             LogFormats = new ObservableCollection<string> { "CSV", "JSON" };
             CalibrationModes = new ObservableCollection<string> { "Regression", "Piecewise" };
             BrakeUnits = new ObservableCollection<string> { "N", "kg" };
-            
+
             // Commands
             SaveSettingsCommand = new RelayCommand(_ => SaveSettings());
             OpenDataDirectoryCommand = new RelayCommand(_ => OpenDataDirectory());
@@ -81,7 +81,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         #region Save Directory Info
 
         public string SaveDirectory => _settingsManager.Settings.SaveDirectory;
-        
+
         public string DataStatsText
         {
             get
@@ -215,7 +215,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnShowHelp(string? key)
         {
-            if (string.IsNullOrEmpty(key)) return;
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
 
             string title = key switch
             {

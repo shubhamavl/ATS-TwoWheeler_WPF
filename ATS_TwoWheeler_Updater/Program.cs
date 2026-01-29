@@ -32,7 +32,7 @@ namespace ATS_TwoWheeler_Updater
             try
             {
                 Console.WriteLine($"Updater started: TargetDir={targetDir}, Package={packagePath}, MainExe={mainExeName}");
-                
+
                 if (!Directory.Exists(targetDir))
                 {
                     Console.Error.WriteLine($"Target directory not found: {targetDir}");
@@ -44,7 +44,7 @@ namespace ATS_TwoWheeler_Updater
                     Console.Error.WriteLine($"Package not found: {packagePath}");
                     return 3;
                 }
-                
+
                 Console.WriteLine($"Package found: {packagePath} ({new FileInfo(packagePath).Length} bytes)");
 
                 // Give the main application some time to exit and release file locks
@@ -155,7 +155,9 @@ namespace ATS_TwoWheeler_Updater
 
                 // Avoid copying the updater onto itself if we are backing up
                 if (excludeUpdater && fileName.Equals("ATS_TwoWheeler_Updater.exe", StringComparison.OrdinalIgnoreCase))
+                {
                     continue;
+                }
 
                 string destFile = Path.Combine(targetDir, fileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
@@ -166,7 +168,9 @@ namespace ATS_TwoWheeler_Updater
             {
                 var dirName = Path.GetFileName(dir);
                 if (dirName.StartsWith("Backup_", StringComparison.OrdinalIgnoreCase))
+                {
                     continue;
+                }
 
                 string destSubDir = Path.Combine(targetDir, dirName);
                 Directory.CreateDirectory(destSubDir);

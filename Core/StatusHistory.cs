@@ -31,7 +31,7 @@ namespace ATS_TwoWheeler_WPF.Core
         /// <param name="adcSampleHz">ADC Sample Rate in Hz</param>
         /// <param name="uptimeSeconds">System Uptime in seconds</param>
         /// <param name="firmwareVersion">Firmware version string</param>
-        public void AddStatusEntry(byte systemStatus, byte errorFlags, byte adcMode, 
+        public void AddStatusEntry(byte systemStatus, byte errorFlags, byte adcMode,
                                  byte relayState, ushort canTxHz, ushort adcSampleHz, uint uptimeSeconds, string firmwareVersion)
         {
             lock (_lock)
@@ -130,13 +130,15 @@ namespace ATS_TwoWheeler_WPF.Core
             lock (_lock)
             {
                 if (_statusHistory.Count == 0)
+                {
                     return (0, 0, 0, 0, null, null);
+                }
 
                 int okCount = _statusHistory.Count(e => e.SystemStatus == 0);
                 int warningCount = _statusHistory.Count(e => e.SystemStatus == 1);
                 int errorCount = _statusHistory.Count(e => e.SystemStatus >= 2);
 
-                return (_statusHistory.Count, okCount, warningCount, errorCount, 
+                return (_statusHistory.Count, okCount, warningCount, errorCount,
                        _statusHistory.Last().Timestamp, _statusHistory.First().Timestamp);
             }
         }

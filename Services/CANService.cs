@@ -23,7 +23,7 @@ namespace ATS_TwoWheeler_WPF.Services
     public class CANService : ICANService
     {
         private const uint MAX_CAN_ID = 0x7FF; // 11-bit standard CAN ID maximum
-        
+
         private SerialPort? _serialPort;
         private readonly ConcurrentQueue<byte> _frameBuffer = new();
         private volatile bool _connected;
@@ -35,7 +35,7 @@ namespace ATS_TwoWheeler_WPF.Services
         private DateTime _lastMessageTime = DateTime.MinValue;
         private TimeSpan _timeout = TimeSpan.FromSeconds(5); // Configurable timeout
         private bool _timeoutNotified = false;
-        
+
         public DateTime LastRxTime => _lastMessageTime;
         public DateTime LastSystemStatusTime { get; private set; } = DateTime.MinValue;
 
@@ -80,23 +80,23 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public event Action<CANMessage>? MessageReceived;
         public event EventHandler<string>? DataTimeout;
-        
+
         // v0.1 Events
         public event EventHandler<RawDataEventArgs>? RawDataReceived;
         public event EventHandler<SystemStatusEventArgs>? SystemStatusReceived;
         public event EventHandler<FirmwareVersionEventArgs>? FirmwareVersionReceived;
         public event EventHandler<PerformanceMetricsEventArgs>? PerformanceMetricsReceived;
-        
+
 
 
         public bool IsConnected => _connected;
-        public bool IsStreaming 
-        { 
+        public bool IsStreaming
+        {
             get => _isStreaming;
             private set => _isStreaming = value;
         }
         public AdcMode CurrentADCMode => _eventDispatcher.CurrentADCMode;
-        
+
         private ICanAdapter? _adapter;
         private readonly CANEventDispatcher _eventDispatcher;
 
@@ -104,10 +104,10 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             _connected = false;
             _eventDispatcher = new CANEventDispatcher();
-            
+
             // Wire up event dispatcher to service events
             _eventDispatcher.RawDataReceived += (s, e) => RawDataReceived?.Invoke(this, e);
-            _eventDispatcher.SystemStatusReceived += (s, e) => 
+            _eventDispatcher.SystemStatusReceived += (s, e) =>
             {
                 LastSystemStatusTime = DateTime.Now;
                 SystemStatusReceived?.Invoke(this, e);
@@ -165,9 +165,15 @@ namespace ATS_TwoWheeler_WPF.Services
 
         private void OnAdapterMessageReceived(CANMessage message)
         {
-            if (message.Direction == "TX") TxMessageCount++;
-            else RxMessageCount++;
-            
+            if (message.Direction == "TX")
+            {
+                TxMessageCount++;
+            }
+            else
+            {
+                RxMessageCount++;
+            }
+
             MessageReceived?.Invoke(message);
             // Fire specific events for protocol messages
             // Note: Some messages (like status/version requests) may have empty data, but responses should have data
@@ -269,7 +275,9 @@ namespace ATS_TwoWheeler_WPF.Services
             _isStreaming = false;
             _cancellationTokenSource?.Cancel();
             if (_serialPort?.IsOpen == true)
+            {
                 _serialPort.Close();
+            }
 
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
@@ -291,7 +299,9 @@ namespace ATS_TwoWheeler_WPF.Services
                         int count = _serialPort.Read(buffer, 0, buffer.Length);
 
                         for (int i = 0; i < count; i++)
+                        {
                             _frameBuffer.Enqueue(buffer[i]);
+                        }
 
                         ProcessFrames();
 
@@ -300,7 +310,7 @@ namespace ATS_TwoWheeler_WPF.Services
                         _timeoutNotified = false;
                     }
                 }
-                catch (TimeoutException) 
+                catch (TimeoutException)
                 {
                     // Ignore timeouts (normal for some serial operations)
                 }
@@ -336,11 +346,16 @@ namespace ATS_TwoWheeler_WPF.Services
                     continue;
                 }
 
-                if (_frameBuffer.Count < 20) break;
+                if (_frameBuffer.Count < 20)
+                {
+                    break;
+                }
 
                 var frame = new byte[20];
                 for (int i = 0; i < 20; i++)
+                {
                     _frameBuffer.TryDequeue(out frame[i]);
+                }
 
                 DecodeFrame(frame);
             }
@@ -350,7 +365,9 @@ namespace ATS_TwoWheeler_WPF.Services
         private void DecodeFrame(byte[] frame)
         {
             if (frame.Length < 18 || frame[0] != 0xAA)
+            {
                 return;
+            }
 
             try
             {
@@ -379,7 +396,10 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public bool SendMessage(uint id, byte[] data, bool log = true)
         {
-            if (!_connected || _adapter == null) return false;
+            if (!_connected || _adapter == null)
+            {
+                return false;
+            }
 
             try
             {
@@ -404,7 +424,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 }
 
                 bool result = _adapter.SendMessage(id, data);
-                
+
                 // Fire event for TX messages - REMOVED to avoid duplication as adapter fires it
                 // var txMessage = new CANMessage(id, data ?? new byte[0], DateTime.Now, "TX");
                 // TxMessageCount++; 
@@ -437,7 +457,9 @@ namespace ATS_TwoWheeler_WPF.Services
 
             frame.AddRange((data ?? new byte[0]).Take(8));
             while (frame.Count < 12)
+            {
                 frame.Add(0x00);
+            }
 
             frame.Add(0x55);
             return frame.ToArray();
@@ -448,9 +470,9 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             byte[] data = new byte[1];
             data[0] = (byte)rate;  // Rate selection
-            
+
             bool success = SendMessage(CAN_MSG_ID_START_STREAM, data);
-            if (success) 
+            if (success)
             {
                 _isStreaming = true;
                 RequestSystemStatus(); // Update UI with latest status immediately
@@ -462,7 +484,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             // Empty message (0 bytes) for stop all streams
             bool success = SendMessage(CAN_MSG_ID_STOP_ALL_STREAMS, new byte[0]);
-            if (success) 
+            if (success)
             {
                 _isStreaming = false;
                 RequestSystemStatus(); // Update UI with latest status immediately
@@ -541,7 +563,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 ProductionLogger.Instance.LogWarning($"Invalid timeout value: {timeout.TotalSeconds}s (must be 1-300 seconds)", "CANService");
                 return;
             }
-            
+
             _timeout = timeout;
             ProductionLogger.Instance.LogInfo($"CAN data timeout set to {timeout.TotalSeconds} seconds", "CANService");
         }
@@ -589,7 +611,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public byte Patch { get; set; }              // Patch version number
         public byte Build { get; set; }              // Build number
         public DateTime Timestamp { get; set; }      // PC3 reception timestamp
-        
+
         public string VersionString => $"{Major}.{Minor}.{Patch}";
         public string VersionStringFull => $"{Major}.{Minor}.{Patch}.{Build}";
     }
@@ -598,26 +620,26 @@ namespace ATS_TwoWheeler_WPF.Services
     {
         public DateTime Timestamp { get; set; }
     }
-    
+
     public class BootBeginResponseEventArgs : EventArgs
     {
         public BootloaderStatus Status { get; set; }
         public DateTime Timestamp { get; set; }
     }
-    
+
     public class BootProgressEventArgs : EventArgs
     {
         public byte Percent { get; set; }
         public uint BytesReceived { get; set; }
         public DateTime Timestamp { get; set; }
     }
-    
+
     public class BootEndResponseEventArgs : EventArgs
     {
         public BootloaderStatus Status { get; set; }
         public DateTime Timestamp { get; set; }
     }
-    
+
     public class BootErrorEventArgs : EventArgs
     {
         public uint CanId { get; set; }
@@ -625,7 +647,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public DateTime Timestamp { get; set; }
         public string Message => RawData != null ? BootloaderProtocol.ParseErrorMessage(CanId, RawData) : "Unknown Error";
     }
-    
+
     public class BootQueryResponseEventArgs : EventArgs
     {
         public bool Present { get; set; }

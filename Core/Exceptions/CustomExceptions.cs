@@ -17,14 +17,14 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     public class CANConnectionException : CANException
     {
         public string? PortName { get; }
-        
-        public CANConnectionException(string portName, string message) 
+
+        public CANConnectionException(string portName, string message)
             : base($"Failed to connect to CAN port '{portName}': {message}")
         {
             PortName = portName;
         }
-        
-        public CANConnectionException(string portName, string message, Exception inner) 
+
+        public CANConnectionException(string portName, string message, Exception inner)
             : base($"Failed to connect to CAN port '{portName}': {message}", inner)
         {
             PortName = portName;
@@ -37,14 +37,14 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     public class CANTimeoutException : CANException
     {
         public TimeSpan Timeout { get; }
-        
-        public CANTimeoutException(TimeSpan timeout) 
+
+        public CANTimeoutException(TimeSpan timeout)
             : base($"CAN operation timed out after {timeout.TotalSeconds:F1} seconds")
         {
             Timeout = timeout;
         }
-        
-        public CANTimeoutException(string operation, TimeSpan timeout) 
+
+        public CANTimeoutException(string operation, TimeSpan timeout)
             : base($"CAN {operation} timed out after {timeout.TotalSeconds:F1} seconds")
         {
             Timeout = timeout;
@@ -57,8 +57,8 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     public class CANSendException : CANException
     {
         public uint MessageId { get; }
-        
-        public CANSendException(uint messageId, string message) 
+
+        public CANSendException(uint messageId, string message)
             : base($"Failed to send CAN message 0x{messageId:X3}: {message}")
         {
             MessageId = messageId;
@@ -80,8 +80,8 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     public class FirmwareValidationException : FirmwareException
     {
         public string FilePath { get; }
-        
-        public FirmwareValidationException(string filePath, string reason) 
+
+        public FirmwareValidationException(string filePath, string reason)
             : base($"Invalid firmware file '{filePath}': {reason}")
         {
             FilePath = filePath;
@@ -95,8 +95,8 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     {
         public long FileSize { get; }
         public long MaxSize { get; }
-        
-        public FirmwareSizeException(long fileSize, long maxSize) 
+
+        public FirmwareSizeException(long fileSize, long maxSize)
             : base($"Firmware size {fileSize} bytes exceeds maximum {maxSize} bytes")
         {
             FileSize = fileSize;
@@ -127,10 +127,10 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     /// </summary>
     public class BootloaderNotRespondingException : BootloaderException
     {
-        public BootloaderNotRespondingException() 
+        public BootloaderNotRespondingException()
             : base("Bootloader is not responding. Ensure device is in bootloader mode.") { }
-        
-        public BootloaderNotRespondingException(string details) 
+
+        public BootloaderNotRespondingException(string details)
             : base($"Bootloader is not responding: {details}") { }
     }
 
@@ -140,8 +140,8 @@ namespace ATS_TwoWheeler_WPF.Core.Exceptions
     public class BootloaderOperationException : BootloaderException
     {
         public string Operation { get; }
-        
-        public BootloaderOperationException(string operation, string message) 
+
+        public BootloaderOperationException(string operation, string message)
             : base($"Bootloader {operation} failed: {message}")
         {
             Operation = operation;

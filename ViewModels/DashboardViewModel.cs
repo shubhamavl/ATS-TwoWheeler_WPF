@@ -107,7 +107,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _weightProcessor = weightProcessor;
             _canService = canService;
             _settings = settings;
-            
+
             ResetPeakCommand = new RelayCommand(_ => ResetPeak());
         }
 
@@ -124,7 +124,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             {
                 RawAdcText = data.RawADC.ToString();
                 double weight = data.TaredWeight;
-                
+
                 // Calibration Check
                 var internalCal = _weightProcessor.InternalCalibration;
                 var adsCal = _weightProcessor.Ads1115Calibration;
@@ -133,10 +133,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 if (!isCalibrated)
                 {
                     WeightText = "Calibrate first";
-                    // TODO: Change text color to Amber/Red for warning state (currently uses default green)
+                    WeightColor = new SolidColorBrush(Color.FromRgb(231, 76, 60)); // Red for warning
                 }
                 else
                 {
+                    WeightColor = new SolidColorBrush(Color.FromRgb(39, 174, 96)); // Restore Green
                     if (IsBrakeMode)
                     {
                         // Track peak
@@ -160,7 +161,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                         WeightText = $"{weight:F1} kg";
                     }
                 }
-                
+
                 UpdatePeakText();
                 TareStatusText = $"Tare: {data.TareValue:F1} kg";
             }
@@ -179,11 +180,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 // Let's stick to Red for Stopped for now for clarity.
                 StreamIndicatorColor = new SolidColorBrush(Color.FromRgb(220, 53, 69));
             }
-            
+
             CalStatusText = (_weightProcessor.InternalCalibration?.IsValid == true) ? "Calibrated (Internal)" : "Uncalibrated";
-            if (_weightProcessor.Ads1115Calibration?.IsValid == true) CalStatusText = "Calibrated (ADS)";
+            if (_weightProcessor.Ads1115Calibration?.IsValid == true)
+            {
+                CalStatusText = "Calibrated (ADS)";
+            }
         }
-        
+
         private void UpdatePeakText()
         {
             if (IsBrakeMode && _settings.Settings.BrakeDisplayUnit == "N")
@@ -199,13 +203,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public void UpdateSystemStatus(AdcMode adcMode, SystemMode relayState)
         {
-             AdcModeText = adcMode == AdcMode.Ads1115 ? "ADS1115 16-bit" : "Internal 12-bit";
-             IsBrakeMode = relayState == SystemMode.Brake;
-             SystemModeText = IsBrakeMode ? "Brake" : "Weight";
-             
-             // Auto-reset peak when switching to Brake mode if that's desired, 
-             // but user usually wants to clear it manually.
-             UpdatePeakText();
+            AdcModeText = adcMode == AdcMode.Ads1115 ? "ADS1115 16-bit" : "Internal 12-bit";
+            IsBrakeMode = relayState == SystemMode.Brake;
+            SystemModeText = IsBrakeMode ? "Brake" : "Weight";
+
+            // Auto-reset peak when switching to Brake mode if that's desired, 
+            // but user usually wants to clear it manually.
+            UpdatePeakText();
         }
     }
 }

@@ -65,7 +65,7 @@ namespace ATS_TwoWheeler_WPF.Services
                         RecordError(status, message);
                     }
                 }
-                else if (canId == BootloaderProtocol.CanIdBootError || 
+                else if (canId == BootloaderProtocol.CanIdBootError ||
                          canId == BootloaderProtocol.CanIdErrSize ||
                          canId == BootloaderProtocol.CanIdErrWrite ||
                          canId == BootloaderProtocol.CanIdErrValidation ||
@@ -82,7 +82,9 @@ namespace ATS_TwoWheeler_WPF.Services
         private string ParseMessage(uint canId, byte[] data, bool isTx)
         {
             if (data == null || data.Length == 0)
+            {
                 return "Empty message";
+            }
 
             switch (canId)
             {
@@ -245,11 +247,11 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return status switch
             {
-                BootloaderStatus.FailedChecksum => 
+                BootloaderStatus.FailedChecksum =>
                     "Checksum mismatch detected. Possible causes: CAN bus interference, corrupted firmware file, or missing data frames. Try updating again with stable power and CAN connection.",
-                BootloaderStatus.FailedTimeout => 
+                BootloaderStatus.FailedTimeout =>
                     "Update timed out. Possible causes: CAN bus disconnected, slow transmission, or STM32 reset. Check CAN connection and try again.",
-                BootloaderStatus.FailedFlash => 
+                BootloaderStatus.FailedFlash =>
                     "Flash write error. Possible causes: Flash memory wear, power loss during write, or invalid address. Try updating again or check flash integrity.",
                 _ => "Unknown error. Check CAN connection and try again."
             };
@@ -275,7 +277,7 @@ namespace ATS_TwoWheeler_WPF.Services
         /// Export messages - interface method
         /// </summary>
         public string ExportMessages() => ExportMessagesToText();
-        
+
         /// <summary>
         /// Export messages to text file
         /// </summary>
@@ -311,12 +313,12 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool IsTx { get; set; }
         public string Direction { get; set; } = "";
         public string Description { get; set; } = "";
-        
+
         /// <summary>
         /// Hex representation of the data bytes for display in the UI grid
         /// </summary>
-        public string DataHex => Data.Length > 0 
-            ? BitConverter.ToString(Data).Replace("-", " ") 
+        public string DataHex => Data.Length > 0
+            ? BitConverter.ToString(Data).Replace("-", " ")
             : "";
     }
 

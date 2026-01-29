@@ -50,7 +50,9 @@ namespace ATS_TwoWheeler_WPF.Services
         public static (uint id, byte[] data) DecodeFrame(byte[] frame)
         {
             if (frame.Length < 18 || frame[0] != 0xAA)
+            {
                 throw new ArgumentException("Invalid frame format");
+            }
 
             uint canId = (uint)(frame[5] | (frame[6] << 8));
             byte[] canData = new byte[8];

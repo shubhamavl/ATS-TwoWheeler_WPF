@@ -58,7 +58,10 @@ namespace ATS_TwoWheeler_WPF.Services
                 {
                     var url = $"https://api.github.com/repos/{RepositoryOwner}/{RepositoryName}/releases?page={page}&per_page={perPage}";
                     using var response = await HttpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
-                    if (!response.IsSuccessStatusCode) break;
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        break;
+                    }
 
                     await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                     var releases = await JsonSerializer.DeserializeAsync<List<UpdateCheckResultDto>>(stream, new JsonSerializerOptions
@@ -66,14 +69,24 @@ namespace ATS_TwoWheeler_WPF.Services
                         PropertyNameCaseInsensitive = true
                     }, cancellationToken).ConfigureAwait(false);
 
-                    if (releases == null || releases.Count == 0) break;
+                    if (releases == null || releases.Count == 0)
+                    {
+                        break;
+                    }
 
                     foreach (var release in releases)
                     {
-                        if (HasValidAsset(release)) allReleases.Add(release);
+                        if (HasValidAsset(release))
+                        {
+                            allReleases.Add(release);
+                        }
                     }
 
-                    if (releases.Count < perPage) break;
+                    if (releases.Count < perPage)
+                    {
+                        break;
+                    }
+
                     page++;
                 }
                 return allReleases;
@@ -106,7 +119,11 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public string? ExtractSha256(string? releaseNotes)
         {
-            if (string.IsNullOrWhiteSpace(releaseNotes)) return null;
+            if (string.IsNullOrWhiteSpace(releaseNotes))
+            {
+                return null;
+            }
+
             var pattern = new Regex(@"SHA-256[:\s]+`?([a-fA-F0-9]{64})`?", RegexOptions.IgnoreCase);
             var match = pattern.Match(releaseNotes);
             return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
@@ -114,14 +131,21 @@ namespace ATS_TwoWheeler_WPF.Services
 
         private static bool IsValidDownloadUrl(string? url)
         {
-            if (string.IsNullOrWhiteSpace(url)) return false;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return false;
+            }
+
             try
             {
                 var uri = new Uri(url);
                 var host = uri.Host.ToLowerInvariant();
                 foreach (var domain in AllowedDomains)
                 {
-                    if (host == domain || host.EndsWith($".{domain}")) return true;
+                    if (host == domain || host.EndsWith($".{domain}"))
+                    {
+                        return true;
+                    }
                 }
                 return false;
             }

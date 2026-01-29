@@ -9,7 +9,7 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             InitializeComponent();
             DataContext = viewModel;
-            
+
             // Link to ViewModel disposal on window close
             Closed += (s, e) => viewModel.Dispose();
         }

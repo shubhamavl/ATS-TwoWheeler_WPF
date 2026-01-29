@@ -28,7 +28,7 @@ namespace ATS_TwoWheeler_WPF.Services
             // Only process if we have data or if it's a known empty-data response type
             // (Some responses like Ping might be empty, but usually have data in this protocol?)
             // The Original DecodeFrame handled empty data for some cases.
-            
+
             uint canId = message.ID;
             byte[] canData = message.Data;
 
@@ -40,30 +40,39 @@ namespace ATS_TwoWheeler_WPF.Services
 
                 case BootloaderProtocol.CanIdBootBeginResponse:
                     if (canData != null && canData.Length >= 1)
-                        BootBeginResponseReceived?.Invoke(this, new BootBeginResponseEventArgs 
-                        { 
+                    {
+                        BootBeginResponseReceived?.Invoke(this, new BootBeginResponseEventArgs
+                        {
                             Status = (BootloaderStatus)canData[0],
-                            Timestamp = DateTime.Now 
+                            Timestamp = DateTime.Now
                         });
+                    }
+
                     break;
 
                 case BootloaderProtocol.CanIdBootProgress:
                     if (canData != null && canData.Length >= 5)
+                    {
                         BootProgressReceived?.Invoke(this, new BootProgressEventArgs
                         {
                             Percent = canData[0],
                             BytesReceived = BitConverter.ToUInt32(canData, 1),
                             Timestamp = DateTime.Now
                         });
+                    }
+
                     break;
 
                 case BootloaderProtocol.CanIdBootEndResponse:
                     if (canData != null && canData.Length >= 1)
+                    {
                         BootEndResponseReceived?.Invoke(this, new BootEndResponseEventArgs
                         {
                             Status = (BootloaderStatus)canData[0],
                             Timestamp = DateTime.Now
                         });
+                    }
+
                     break;
 
                 case BootloaderProtocol.CanIdBootError:
@@ -72,12 +81,15 @@ namespace ATS_TwoWheeler_WPF.Services
                 case BootloaderProtocol.CanIdErrValidation:
                 case BootloaderProtocol.CanIdErrBuffer:
                     if (canData != null)
+                    {
                         BootErrorReceived?.Invoke(this, new BootErrorEventArgs
                         {
                             CanId = canId,
                             RawData = canData,
                             Timestamp = DateTime.Now
                         });
+                    }
+
                     break;
 
                 case BootloaderProtocol.CanIdBootQueryResponse:
@@ -91,7 +103,7 @@ namespace ATS_TwoWheeler_WPF.Services
                             Patch = canData[3],
                             Timestamp = DateTime.Now
                         };
-                        
+
                         // Extended format (8 bytes) handling
                         if (canData.Length >= 8)
                         {
@@ -105,7 +117,7 @@ namespace ATS_TwoWheeler_WPF.Services
                             args.BankAValid = 0x00;
                             args.BankBValid = 0x00;
                         }
-                        
+
                         BootQueryResponseReceived?.Invoke(this, args);
                     }
                     break;
@@ -117,7 +129,7 @@ namespace ATS_TwoWheeler_WPF.Services
         public bool RequestEnterBootloader() => _canService.SendMessage(BootloaderProtocol.CanIdBootEnter, Array.Empty<byte>());
         public bool RequestReset() => _canService.SendMessage(BootloaderProtocol.CanIdBootReset, Array.Empty<byte>());
         public bool SendPing() => _canService.SendMessage(BootloaderProtocol.CanIdBootPing, Array.Empty<byte>());
-        
+
         public void ProcessBootloaderMessage(uint canId, byte[] data)
         {
             OnMessageReceived(new CANMessage { ID = canId, Data = data });

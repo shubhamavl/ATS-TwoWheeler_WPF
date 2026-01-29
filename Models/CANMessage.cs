@@ -42,7 +42,9 @@ namespace ATS_TwoWheeler_WPF.Models
         public string GetDataHexString()
         {
             if (Data == null || Data.Length == 0)
+            {
                 return "No Data";
+            }
 
             return BitConverter.ToString(Data).Replace("-", " ");
         }
@@ -108,7 +110,9 @@ namespace ATS_TwoWheeler_WPF.Models
             get
             {
                 if (_message.Data == null || _message.Data.Length == 0)
+                {
                     return "No Data";
+                }
 
                 // Format data as space-separated hex bytes
                 return string.Join(" ", _message.Data.Select(b => $"{b:X2}"));
@@ -207,12 +211,15 @@ namespace ATS_TwoWheeler_WPF.Models
 
         private string DecodeStreamControl(string action, byte[] data)
         {
-            if (data.Length < 1) return $"{action} (Invalid Data)";
+            if (data.Length < 1)
+            {
+                return $"{action} (Invalid Data)";
+            }
 
             string rate = data[0] switch
             {
                 0x01 => "100Hz",
-                0x02 => "500Hz", 
+                0x02 => "500Hz",
                 0x03 => "1kHz",
                 0x05 => "1Hz",
                 _ => $"Unknown Rate (0x{data[0]:X2})"
@@ -223,19 +230,25 @@ namespace ATS_TwoWheeler_WPF.Models
 
         private string DecodeFirmwareVersion(byte[] data)
         {
-            if (data.Length < 4) return "Firmware Version (Invalid)";
+            if (data.Length < 4)
+            {
+                return "Firmware Version (Invalid)";
+            }
 
             byte major = data[0];
             byte minor = data[1];
             byte patch = data[2];
             byte build = data[3];
-            
+
             return $"Firmware Version: {major}.{minor}.{patch}.{build}";
         }
 
         private string DecodeSystemStatus(byte[] data)
         {
-            if (data.Length < 3) return "System Status (Invalid)";
+            if (data.Length < 3)
+            {
+                return "System Status (Invalid)";
+            }
 
             byte status = data[0];
             byte errorFlags = data[1];
@@ -244,7 +257,7 @@ namespace ATS_TwoWheeler_WPF.Models
             string statusText = status switch
             {
                 0 => "OK",
-                1 => "Warning", 
+                1 => "Warning",
                 2 => "Error",
                 3 => "Critical",
                 _ => "Unknown"

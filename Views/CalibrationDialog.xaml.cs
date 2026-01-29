@@ -9,7 +9,7 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             InitializeComponent();
             DataContext = viewModel;
-            
+
             // Wire up ViewModel events
             viewModel.RequestClose += (s, e) => Close();
             viewModel.CalculationCompleted += OnCalculationCompleted;

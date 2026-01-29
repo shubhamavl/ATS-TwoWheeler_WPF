@@ -20,7 +20,7 @@ namespace ATS_TwoWheeler_WPF.Views
         public MonitorWindow(CANService? canService = null)
         {
             InitializeComponent();
-            
+
             _messages = new ObservableCollection<CANMessageEntry>();
             MessageListBox.ItemsSource = _messages;
             _canService = canService;
@@ -62,12 +62,12 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (InvalidOperationException ex)
             {
-                MessageBox.Show($"Monitor state error: {ex.Message}", "Error", 
+                MessageBox.Show($"Monitor state error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Start monitor error: {ex.Message}", "Error", 
+                MessageBox.Show($"Start monitor error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -94,12 +94,12 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (InvalidOperationException ex)
             {
-                 MessageBox.Show($"Monitor state error: {ex.Message}", "Error", 
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Monitor state error: {ex.Message}", "Error",
+                             MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Stop monitor error: {ex.Message}", "Error", 
+                MessageBox.Show($"Stop monitor error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -113,7 +113,7 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Clear monitor error: {ex.Message}", "Error", 
+                MessageBox.Show($"Clear monitor error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -122,14 +122,17 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             try
             {
-                if (!_isMonitoring) return;
+                if (!_isMonitoring)
+                {
+                    return;
+                }
 
                 // Timer is now only for UI updates (message count, etc.)
                 // Actual messages come from CANService.MessageReceived event
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Update timer error: {ex.Message}", "Error", 
+                MessageBox.Show($"Update timer error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -138,20 +141,23 @@ namespace ATS_TwoWheeler_WPF.Views
         {
             try
             {
-                if (!_isMonitoring || message == null) return;
+                if (!_isMonitoring || message == null)
+                {
+                    return;
+                }
 
                 Dispatcher.Invoke(() =>
                 {
                     string direction = message.Direction;
                     string canId = $"0x{message.ID:X3}";
                     string data = message.GetDataHexString();
-                    
+
                     // Create ViewModel to get decoded description
                     var rxIds = new HashSet<uint> { 0x200, 0x201, 0x300 };
                     var txIds = new HashSet<uint> { 0x040, 0x041, 0x044, 0x030, 0x031, 0x032 };
                     var vm = new CANMessageViewModel(message, rxIds, txIds);
                     string description = vm.Decoded;
-                    
+
                     AddMessage(direction, canId, data, description);
                 });
             }
@@ -159,7 +165,7 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show($"CAN message receive error: {ex.Message}", "Error", 
+                    MessageBox.Show($"CAN message receive error: {ex.Message}", "Error",
                                   MessageBoxButton.OK, MessageBoxImage.Error);
                 });
             }
@@ -196,7 +202,7 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Add message error: {ex.Message}", "Error", 
+                MessageBox.Show($"Add message error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -212,7 +218,7 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 if (_messages.Count == 0)
                 {
-                    MessageBox.Show("No messages to export.", "Export", 
+                    MessageBox.Show("No messages to export.", "Export",
                                   MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -244,23 +250,23 @@ namespace ATS_TwoWheeler_WPF.Views
                 if (saveDialog.ShowDialog() == true)
                 {
                     ExportMessagesToFile(saveDialog.FileName);
-                    MessageBox.Show($"Successfully exported {_messages.Count} messages to:\n{saveDialog.FileName}", 
+                    MessageBox.Show($"Successfully exported {_messages.Count} messages to:\n{saveDialog.FileName}",
                                   "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (IOException ex)
             {
-                MessageBox.Show($"Export IO error: {ex.Message}", "Export Failed", 
+                MessageBox.Show($"Export IO error: {ex.Message}", "Export Failed",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (UnauthorizedAccessException ex)
             {
-                 MessageBox.Show($"Access denied: {ex.Message}", "Export Failed", 
-                              MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Access denied: {ex.Message}", "Export Failed",
+                             MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Export error: {ex.Message}", "Error", 
+                MessageBox.Show($"Export error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -270,14 +276,14 @@ namespace ATS_TwoWheeler_WPF.Views
             try
             {
                 bool isCsv = filePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase);
-                
+
                 using (var writer = new StreamWriter(filePath))
                 {
                     if (isCsv)
                     {
                         // Write CSV header
                         writer.WriteLine("Timestamp,Direction,CAN_ID,Data,Description");
-                        
+
                         // Write CSV data
                         foreach (var message in _messages)
                         {
@@ -294,16 +300,16 @@ namespace ATS_TwoWheeler_WPF.Views
                         writer.WriteLine($"Total Messages: {_messages.Count}");
                         writer.WriteLine(new string('-', 100));
                         writer.WriteLine();
-                        
+
                         // Write column headers
-                        writer.WriteLine(string.Format("{0,-12} {1,-10} {2,-10} {3,-20} {4}", 
+                        writer.WriteLine(string.Format("{0,-12} {1,-10} {2,-10} {3,-20} {4}",
                             "Timestamp", "Direction", "CAN ID", "Data", "Description"));
                         writer.WriteLine(new string('-', 100));
-                        
+
                         // Write message data
                         foreach (var message in _messages)
                         {
-                            writer.WriteLine(string.Format("{0,-12} {1,-10} {2,-10} {3,-20} {4}", 
+                            writer.WriteLine(string.Format("{0,-12} {1,-10} {2,-10} {3,-20} {4}",
                                 message.Timestamp, message.Direction, message.CanId, message.Data, message.Description));
                         }
                     }
@@ -311,11 +317,11 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (IOException ex)
             {
-                 throw new IOException($"Failed to write file: {ex.Message}", ex);
+                throw new IOException($"Failed to write file: {ex.Message}", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                 throw new UnauthorizedAccessException($"Access denied: {ex.Message}", ex);
+                throw new UnauthorizedAccessException($"Access denied: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
@@ -333,7 +339,7 @@ namespace ATS_TwoWheeler_WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Close error: {ex.Message}", "Error", 
+                MessageBox.Show($"Close error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -344,18 +350,18 @@ namespace ATS_TwoWheeler_WPF.Views
             {
                 _isMonitoring = false;
                 _updateTimer?.Stop();
-                
+
                 // Unsubscribe from CANService
                 if (_canService != null)
                 {
                     _canService.MessageReceived -= OnCANMessageReceived;
                 }
-                
+
                 base.OnClosed(e);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Window close error: {ex.Message}", "Error", 
+                MessageBox.Show($"Window close error: {ex.Message}", "Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

@@ -173,7 +173,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Settings
         {
             _internalCal = LinearCalibration.LoadFromFile(AdcMode.InternalWeight, SystemMode.Weight);
             _adsCal = LinearCalibration.LoadFromFile(AdcMode.Ads1115, SystemMode.Weight);
-            
+
             OnPropertyChanged(nameof(InternalStatus));
             OnPropertyChanged(nameof(InternalSlope));
             OnPropertyChanged(nameof(InternalIntercept));

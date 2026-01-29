@@ -1,23 +1,20 @@
 using System;
-using System.Collections.Concurrent;
 using ATS_TwoWheeler_WPF.Services.Interfaces;
-using ATS_TwoWheeler_WPF.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ATS_TwoWheeler_WPF.Core
 {
     /// <summary>
-    /// Lightweight service registry for dependency management
+    /// Lightweight service registry bridge for gradual DI migration.
+    /// This now wraps the Microsoft.Extensions.DependencyInjection provider.
     /// </summary>
     public static class ServiceRegistry
     {
-        private static readonly ConcurrentDictionary<Type, object> _services = new();
+        private static IServiceProvider? _provider;
 
-        /// <summary>
-        /// Register a service instance
-        /// </summary>
-        public static void Register<T>(T service) where T : class
+        public static void SetProvider(IServiceProvider provider)
         {
-            _services[typeof(T)] = service;
+            _provider = provider;
         }
 
         /// <summary>
@@ -25,82 +22,25 @@ namespace ATS_TwoWheeler_WPF.Core
         /// </summary>
         public static T GetService<T>() where T : class
         {
-            if (_services.TryGetValue(typeof(T), out var service))
+            if (_provider == null)
             {
-                return (T)service;
+                throw new InvalidOperationException("ServiceRegistry provider has not been initialized. Call SetProvider first.");
             }
-            throw new Exception($"Service {typeof(T).Name} not registered.");
-        }
-
-        /// <summary>
-        /// Initialize default services
-        /// </summary>
-        public static void InitializeDefaultServices()
-        {
-            // Settings
-            Register<ISettingsService>(SettingsManager.Instance);
             
-            // CAN Service
-            var canService = new CANService();
-            Register<ICANService>(canService);
-            
-            // Weight Processor
-            var weightProcessor = new WeightProcessor();
-            var tareManager = new TareManager();
-            tareManager.LoadFromFile();
-            weightProcessor.SetTareManager(tareManager);
-            
-            Register<IWeightProcessorService>(weightProcessor);
-            
-            // Data Logger
-            Register<IDataLoggerService>(new DataLogger());
-
-            // Production Logger
-            Register<IProductionLoggerService>(ProductionLogger.Instance);
-
-            // History Manager
-            var historyManager = new StatusHistoryManager();
-            Register<StatusHistoryManager>(historyManager);
-
-            // Navigation
-            Register<INavigationService>(new NavigationService());
-
-            // Dialog Service
-            Register<IDialogService>(new DialogService());
-
-            // Update Service
-            Register<IUpdateService>(new UpdateService());
-
-            // Bootloader Services
-            var diagService = new BootloaderDiagnosticsService();
-            Register<BootloaderDiagnosticsService>(diagService);
-            Register<IBootloaderDiagnosticsService>(diagService);
-
-            var firmwareService = new FirmwareUpdateService(canService);
-            Register<FirmwareUpdateService>(firmwareService);
-            Register<IFirmwareUpdateService>(firmwareService);
-
-            // Status Monitor
-            var statusMonitor = new StatusMonitorService(canService, GetService<IDialogService>());
-            Register<IStatusMonitorService>(statusMonitor);
-            
-            // Start monitoring
-            statusMonitor.StartMonitoring();
+            return _provider.GetRequiredService<T>();
         }
         
         /// <summary>
-        /// Cleanup all services
+        /// DEPRECATED: Does nothing now as initialization is handled by App.xaml.cs
         /// </summary>
+        public static void InitializeDefaultServices()
+        {
+            // No-op
+        }
+
         public static void Cleanup()
         {
-            foreach (var service in _services.Values)
-            {
-                if (service is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-            }
-            _services.Clear();
+            // Handled by DI container disposal if needed
         }
     }
 }

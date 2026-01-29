@@ -60,14 +60,14 @@ namespace ATS_TwoWheeler_WPF.Services
         }
 
         public ObservableCollection<LogEntry> LogEntries => _logEntries;
-        public bool IsEnabled 
-        { 
-            get => _isEnabled; 
-            set 
-            { 
-                _isEnabled = value; 
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                _isEnabled = value;
                 OnPropertyChanged(nameof(IsEnabled));
-            } 
+            }
         }
 
         public LogLevel MinimumLevel
@@ -85,7 +85,7 @@ namespace ATS_TwoWheeler_WPF.Services
             // Create timestamped log file in portable logs directory (next to executable)
             string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string logsDir = PathHelper.GetLogsDirectory(); // Portable: relative to executable
-            
+
             _logFilePath = Path.Combine(logsDir, $"two_wheeler_log_{timestamp}.txt");
         }
 
@@ -95,7 +95,9 @@ namespace ATS_TwoWheeler_WPF.Services
         public void Log(LogLevel level, string message, string source = "")
         {
             if (!_isEnabled || level < _minimumLevel)
+            {
                 return;
+            }
 
             var entry = new LogEntry
             {
@@ -227,7 +229,9 @@ namespace ATS_TwoWheeler_WPF.Services
                     };
 
                     if (shouldShow)
+                    {
                         yield return entry;
+                    }
                 }
             }
         }

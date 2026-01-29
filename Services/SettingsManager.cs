@@ -21,7 +21,7 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             _settingsPath = PathHelper.GetSettingsPath(); // Portable: next to executable
             ProductionLogger.Instance.LogInfo($"Settings file path: {_settingsPath}", "Settings");
-            
+
             LoadSettings();
         }
 
@@ -81,13 +81,13 @@ namespace ATS_TwoWheeler_WPF.Services
             {
                 _settings.LastSaved = DateTime.Now;
                 string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
-                
+
                 string? directory = Path.GetDirectoryName(_settingsPath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
-                
+
                 File.WriteAllText(_settingsPath, json);
                 ProductionLogger.Instance.LogInfo($"Settings saved to: {_settingsPath}", "Settings");
             }
@@ -103,7 +103,11 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void SetComPort(string comPort)
         {
-            if (string.IsNullOrWhiteSpace(comPort)) return;
+            if (string.IsNullOrWhiteSpace(comPort))
+            {
+                return;
+            }
+
             _settings.ComPort = comPort;
             ProductionLogger.Instance.LogInfo($"COM port set to: {comPort}", "Settings");
         }
@@ -112,15 +116,15 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             CanBaudRate rate = CanBaudRate.Bps250k; // Default 250k
             int index = 1;
-            
+
             switch (baudRate)
             {
                 case "125 kbps": rate = CanBaudRate.Bps125k; index = 0; break;
                 case "250 kbps": rate = CanBaudRate.Bps250k; index = 1; break;
                 case "500 kbps": rate = CanBaudRate.Bps500k; index = 2; break;
-                case "1 Mbps":   rate = CanBaudRate.Bps1M; index = 3; break;
+                case "1 Mbps": rate = CanBaudRate.Bps1M; index = 3; break;
             }
-            
+
             _settings.CanBaudRate = rate;
             _settings.CanBaudRateIndex = index;
             ProductionLogger.Instance.LogInfo($"CAN baud rate set to: {baudRate} (0x{(int)rate:X2})", "Settings");
@@ -130,13 +134,13 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             TransmissionRate rate = TransmissionRate.Hz1000; // Default 1kHz
             int index = 3;
-            
+
             switch (samplingRate)
             {
-                case "1 Hz":   rate = TransmissionRate.Hz1; index = 0; break;
+                case "1 Hz": rate = TransmissionRate.Hz1; index = 0; break;
                 case "100 Hz": rate = TransmissionRate.Hz100; index = 1; break;
                 case "500 Hz": rate = TransmissionRate.Hz500; index = 2; break;
-                case "1 kHz":  rate = TransmissionRate.Hz1000; index = 3; break;
+                case "1 kHz": rate = TransmissionRate.Hz1000; index = 3; break;
             }
             SetTransmissionRate(rate, index);
         }
@@ -150,11 +154,18 @@ namespace ATS_TwoWheeler_WPF.Services
 
         public void SetSaveDirectory(string directory)
         {
-            if (string.IsNullOrWhiteSpace(directory)) return;
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return;
+            }
+
             try
             {
                 if (!Directory.Exists(directory))
+                {
                     Directory.CreateDirectory(directory);
+                }
+
                 _settings.SaveDirectory = directory;
                 ProductionLogger.Instance.LogInfo($"Save directory set to: {directory}", "Settings");
             }
@@ -171,7 +182,7 @@ namespace ATS_TwoWheeler_WPF.Services
                 ProductionLogger.Instance.LogError($"Invalid save directory path: {ex.Message}", "Settings");
             }
         }
-        
+
         /// <summary>
         /// Update system status in settings
         /// </summary>
@@ -186,7 +197,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.LastStatusUpdate = DateTime.Now;
             ProductionLogger.Instance.LogInfo($"System status updated: ADC={adcMode}, Status={systemStatus}, Errors=0x{errorFlags:X2}", "Settings");
         }
-        
+
         /// <summary>
         /// Get last known ADC mode
         /// </summary>
@@ -195,17 +206,17 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             return _settings.LastKnownADCMode;
         }
-        
+
         /// <summary>
         /// Get last known system status
         /// </summary>
         /// <returns>System status info</returns>
         public (AdcMode adcMode, SystemStatus systemStatus, byte errorFlags, DateTime lastUpdate) GetLastKnownSystemStatus()
         {
-            return (_settings.LastKnownADCMode, _settings.LastKnownSystemStatus, 
+            return (_settings.LastKnownADCMode, _settings.LastKnownSystemStatus,
                    _settings.LastKnownErrorFlags, _settings.LastStatusUpdate);
         }
-        
+
         /// <summary>
         /// Set filter settings
         /// </summary>
@@ -224,7 +235,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.FilterEnabled = filterEnabled;
             ProductionLogger.Instance.LogInfo($"Filter settings saved: {filterType}, Alpha={filterAlpha}, Window={filterWindowSize}, Enabled={filterEnabled}", "Settings");
         }
-        
+
         /// <summary>
         /// Set display and performance settings
         /// </summary>
@@ -235,7 +246,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.DataTimeoutSeconds = dataTimeout;
             ProductionLogger.Instance.LogInfo($"Display settings saved: WeightDecimals={weightDecimals}, UIUpdateRate={uiUpdateRate}ms, DataTimeout={dataTimeout}s", "Settings");
         }
-        
+
         /// <summary>
         /// Set UI visibility settings
         /// </summary>
@@ -249,7 +260,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.ShowCalibrationIcons = showCalibrationIcons;
             ProductionLogger.Instance.LogInfo($"UI visibility settings saved: StatusBanner={statusBannerDuration}ms, MessageLimit={messageHistoryLimit}, ShowRawADC={showRawADC}, ShowCalibrated={showCalibratedWeight}, ShowIndicators={showStreamingIndicators}, ShowIcons={showCalibrationIcons}", "Settings");
         }
-        
+
         /// <summary>
         /// Set advanced settings
         /// </summary>
@@ -270,7 +281,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.ShowCalibrationQualityMetrics = showQualityMetrics;
             ProductionLogger.Instance.LogInfo($"Advanced settings saved: TXFlash={txFlashMs}ms, LogFormat={logFormat}, BatchSize={batchSize}, ClockInterval={clockInterval}ms, CalDelay={calibrationDelay}ms, ShowQuality={showQualityMetrics}", "Settings");
         }
-        
+
         /// <summary>
         /// Set bootloader feature enable/disable
         /// </summary>
@@ -279,7 +290,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.EnableBootloaderFeatures = enabled;
             ProductionLogger.Instance.LogInfo($"Bootloader features {(enabled ? "enabled" : "disabled")}", "Settings");
         }
-        
+
         /// <summary>
         /// Set calibration mode (Regression or Piecewise)
         /// </summary>
@@ -295,7 +306,7 @@ namespace ATS_TwoWheeler_WPF.Services
             }
             ProductionLogger.Instance.LogInfo($"Calibration mode set to: {mode}", "Settings");
         }
-        
+
         /// <summary>
         /// Set calibration averaging settings
         /// </summary>
@@ -317,7 +328,7 @@ namespace ATS_TwoWheeler_WPF.Services
             _settings.BrakeKgToNewtonMultiplier = multiplier;
             ProductionLogger.Instance.LogInfo($"Brake settings saved: Unit={unit}, Multiplier={multiplier}", "Settings");
         }
-        
+
         /// <summary>
         /// Set efficiency limits for Pass/Fail validation (removed for ATS Two-Wheeler system)
         /// </summary>

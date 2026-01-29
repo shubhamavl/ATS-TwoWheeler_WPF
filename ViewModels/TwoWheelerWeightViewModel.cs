@@ -57,7 +57,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public TestState CurrentState
         {
             get => _currentState;
-            set 
+            set
             {
                 if (SetProperty(ref _currentState, value))
                 {
@@ -88,11 +88,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public string MinWeightText => IsCalibrated ? $"{MinWeight:F1} {UnitLabel}" : "---";
         public string MaxWeightText => IsCalibrated ? $"{MaxWeight:F1} {UnitLabel}" : "---";
         public string DataRateText => $"Rate: {_dataPointsPerSec} pts/sec";
-        
+
         // Status & Connection
         public string ConnectionStatus => _canService.IsConnected ? "Connected" : "Disconnected";
         public string ConnectionColor => _canService.IsConnected ? "#FF28A745" : "#FFDC3545"; // Green / Red
-        
+
         private string _validationColor = "#FFDC3545"; // Default Red
         public string ValidationColor
         {
@@ -165,12 +165,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public bool IsBrakeMode
         {
             get => _isBrakeMode;
-            set 
+            set
             {
                 if (SetProperty(ref _isBrakeMode, value))
                 {
                     _canService.SwitchSystemMode(_isBrakeMode ? SystemMode.Brake : SystemMode.Weight);
-                    
+
                     if (_isBrakeMode)
                     {
                         UnitLabel = _settings.Settings.BrakeDisplayUnit;
@@ -192,7 +192,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private readonly ConcurrentQueue<double> _stabilityBuffer = new();
         private const int StabilityBufferSize = 10;
-        
+
         // Commands
         public ICommand StartTestCommand { get; }
         public ICommand StopTestCommand { get; }
@@ -270,17 +270,20 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             try
             {
                 string? filePath = _dialogService.ShowSaveFileDialog("CSV files (*.csv)|*.csv|All files (*.*)|*.*", $"TwoWheelerGraph_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-                
-                if (string.IsNullOrEmpty(filePath)) return;
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return;
+                }
 
                 await Task.Run(() =>
                 {
                     using var writer = new System.IO.StreamWriter(filePath);
                     writer.WriteLine("Sample,Total Weight (kg)");
-                    
+
                     // Snapshot data for thread safety
                     var data = new List<double>(_totalWeightValues);
-                    
+
                     for (int i = 0; i < data.Count; i++)
                     {
                         writer.WriteLine($"{i},{data[i]:F2}");
@@ -305,19 +308,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         public void Refresh()
         {
-            if (_weightProcessor == null) return;
+            if (_weightProcessor == null)
+            {
+                return;
+            }
 
             var latest = _weightProcessor.LatestTotal;
             double rawWeight = latest.TaredWeight;
 
             // Check calibration status
-            // Determine active ADC mode from canService or common state
-            // For now, checking both internal and ADS1115 (whichever is active in WeightProcessor)
-            var internalCal = _weightProcessor.InternalCalibration;
-            var adsCal = _weightProcessor.Ads1115Calibration;
-            
-            // TODO: Expose a single IsActiveCalibrated property in WeightProcessor to simplify this check
-            IsCalibrated = (internalCal?.IsValid == true) || (adsCal?.IsValid == true);
+            // Calibration check simplified via WeightProcessor property
+            IsCalibrated = _weightProcessor.IsActiveCalibrated;
 
             // Sync UnitLabel with settings
             if (IsBrakeMode)
@@ -383,15 +384,26 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 // Peak Hold
                 if (Math.Abs(CurrentWeight) > 0.1) // 100g or 0.1N noise threshold
                 {
-                    if (MaxWeight == 0 || CurrentWeight > MaxWeight) MaxWeight = CurrentWeight;
-                    if (MinWeight == 0 || CurrentWeight < MinWeight) MinWeight = CurrentWeight;
+                    if (MaxWeight == 0 || CurrentWeight > MaxWeight)
+                    {
+                        MaxWeight = CurrentWeight;
+                    }
+
+                    if (MinWeight == 0 || CurrentWeight < MinWeight)
+                    {
+                        MinWeight = CurrentWeight;
+                    }
+
                     SampleCount++;
                 }
             }
 
             // Stability check for Validation Indicator
             _stabilityBuffer.Enqueue(CurrentWeight);
-            if (_stabilityBuffer.Count > StabilityBufferSize) _stabilityBuffer.TryDequeue(out _);
+            if (_stabilityBuffer.Count > StabilityBufferSize)
+            {
+                _stabilityBuffer.TryDequeue(out _);
+            }
 
             bool isStable = false;
             if (_stabilityBuffer.Count == StabilityBufferSize)
@@ -402,12 +414,19 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 foreach (var val in _stabilityBuffer)
                 {
                     sum += val;
-                    if (val < min) min = val;
-                    if (val > max) max = val;
+                    if (val < min)
+                    {
+                        min = val;
+                    }
+
+                    if (val > max)
+                    {
+                        max = val;
+                    }
                 }
-                
+
                 double range = max - min;
-                
+
                 double threshold;
                 if (IsBrakeMode)
                 {
@@ -417,7 +436,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 {
                     threshold = 0.5; // 0.5kg
                 }
-                
+
                 isStable = range < threshold;
             }
 
@@ -434,11 +453,17 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
 
             if (CurrentWeight > activeThreshold && isStable)
+            {
                 ValidationColor = "#FF28A745"; // Green
+            }
             else if (CurrentWeight > activeThreshold)
+            {
                 ValidationColor = "#FFFFC107"; // Amber (Active but unstable)
+            }
             else
+            {
                 ValidationColor = "#FFDC3545"; // Red (Idle or noise)
+            }
 
             // Notify UI of formatted strings
             OnPropertyChanged(nameof(MainWeightText));
@@ -457,14 +482,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             SampleCount = 0;
             _totalWeightValues.Clear();
             _dataLogger.StartLogging();
-            
+
             _accumulatedTime = TimeSpan.Zero;
             _lastTimerTick = DateTime.Now;
-            
+
             if (_testTimer == null)
             {
                 _testTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-                _testTimer.Tick += (s, e) => 
+                _testTimer.Tick += (s, e) =>
                 {
                     if (CurrentState == TestState.Running)
                     {
@@ -495,7 +520,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private void SaveTest()
         {
             // Implementation leveraging the new structure later
-             _dialogService.ShowMessage("Save logic will be implemented here.", "Save");
+            _dialogService.ShowMessage("Save logic will be implemented here.", "Save");
         }
 
         private void ClearData()

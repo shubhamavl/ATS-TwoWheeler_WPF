@@ -10,7 +10,7 @@ namespace ATS_TwoWheeler_WPF.Views
         public ConfigurationViewer()
         {
             InitializeComponent();
-            
+
             // Resolve ViewModel
             var settings = ServiceRegistry.GetService<ISettingsService>();
             var dialog = ServiceRegistry.GetService<IDialogService>();

@@ -12,7 +12,7 @@ namespace ATS_TwoWheeler_WPF.Models
         public int RawADC { get; set; }  // Combined Ch0+Ch1+Ch2+Ch3 (signed for ADS1115, unsigned for Internal)
         public DateTime Timestamp { get; set; }
     }
-    
+
     /// <summary>
     /// Processed weight data with calibration and tare applied
     /// </summary>

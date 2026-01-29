@@ -319,10 +319,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private async Task OnStartUpdate()
         {
             if (!ValidateFirmwareSelection())
+            {
                 return;
+            }
 
             if (!ConfirmFirmwareUpdate())
+            {
                 return;
+            }
 
             InitializeUpdateState();
 
@@ -334,9 +338,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     _selectedFirmwarePath!, progress, _updateCts!.Token);
 
                 if (success)
+                {
                     HandleUpdateSuccess();
+                }
                 else
+                {
                     HandleUpdateFailure("Firmware update failed - check diagnostics");
+                }
             }
             catch (OperationCanceledException)
             {
@@ -344,13 +352,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
             catch (FileNotFoundException ex)
             {
-                 _logger.LogError($"Firmware file not found: {ex.Message}", "BootloaderManager");
-                 _dialogService.ShowError($"File not found: {ex.Message}", "Error");
+                _logger.LogError($"Firmware file not found: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"File not found: {ex.Message}", "Error");
             }
             catch (IOException ex)
             {
-                 _logger.LogError($"Firmware IO error: {ex.Message}", "BootloaderManager");
-                 _dialogService.ShowError($"Disk error: {ex.Message}", "Error");
+                _logger.LogError($"Firmware IO error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Disk error: {ex.Message}", "Error");
             }
             catch (Exception ex)
             {
@@ -548,7 +556,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 "The system will be ready for firmware updates.",
                 "Confirm Enter Bootloader");
 
-            if (!result) return;
+            if (!result)
+            {
+                return;
+            }
 
             try
             {
@@ -574,13 +585,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
             catch (CANSendException ex)
             {
-                 _logger.LogError($"Enter bootloader CAN error: {ex.Message}", "BootloaderManager");
-                 _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
+                _logger.LogError($"Enter bootloader CAN error: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError($"Communication Error: {ex.Message}", "Error");
             }
             catch (TimeoutException ex)
             {
-                 _logger.LogError($"Enter bootloader timeout: {ex.Message}", "BootloaderManager");
-                 _dialogService.ShowError("Communication timed out.", "Error");
+                _logger.LogError($"Enter bootloader timeout: {ex.Message}", "BootloaderManager");
+                _dialogService.ShowError("Communication timed out.", "Error");
             }
             catch (Exception ex)
             {
@@ -597,7 +608,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 "The system will boot from the active bank.",
                 "Confirm Reset");
 
-            if (!result) return;
+            if (!result)
+            {
+                return;
+            }
 
             try
             {

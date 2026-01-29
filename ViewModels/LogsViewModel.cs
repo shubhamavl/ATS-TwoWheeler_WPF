@@ -17,7 +17,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly IProductionLoggerService _logger;
         private readonly IDataLoggerService _dataLogger;
         private readonly IDialogService _dialogService;
-        
+
         // Batching for performance
         private readonly System.Collections.Concurrent.ConcurrentQueue<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry> _logPendingQueue = new();
         private readonly DispatcherTimer _batchTimer;
@@ -32,28 +32,44 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public bool ShowInfo
         {
             get => _showInfo;
-            set { if (SetProperty(ref _showInfo, value)) ApplyFilters(); }
+            set { if (SetProperty(ref _showInfo, value))
+                {
+                    ApplyFilters();
+                }
+            }
         }
 
         private bool _showWarning = true;
         public bool ShowWarning
         {
             get => _showWarning;
-            set { if (SetProperty(ref _showWarning, value)) ApplyFilters(); }
+            set { if (SetProperty(ref _showWarning, value))
+                {
+                    ApplyFilters();
+                }
+            }
         }
 
         private bool _showError = true;
         public bool ShowError
         {
             get => _showError;
-            set { if (SetProperty(ref _showError, value)) ApplyFilters(); }
+            set { if (SetProperty(ref _showError, value))
+                {
+                    ApplyFilters();
+                }
+            }
         }
 
         private bool _showCritical = true;
         public bool ShowCritical
         {
             get => _showCritical;
-            set { if (SetProperty(ref _showCritical, value)) ApplyFilters(); }
+            set { if (SetProperty(ref _showCritical, value))
+                {
+                    ApplyFilters();
+                }
+            }
         }
 
         public bool IsLogging => _dataLogger.IsLogging;
@@ -107,29 +123,35 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             else if (e.Action == NotifyCollectionChangedAction.Reset)
             {
                 // For reset, do it immediately on UI thread
-                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                 {
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
                     _allLogEntries.Clear();
                     _filteredLogEntries.Clear();
-                 });
+                });
             }
         }
 
         private void OnBatchTimerTick(object? sender, EventArgs e)
         {
-            if (_logPendingQueue.IsEmpty) return;
+            if (_logPendingQueue.IsEmpty)
+            {
+                return;
+            }
 
             var batch = new List<ATS_TwoWheeler_WPF.Services.ProductionLogger.LogEntry>();
             while (_logPendingQueue.TryDequeue(out var entry))
             {
                 batch.Add(entry);
                 // Limit batch size to prevent freezing if queue is huge
-                if (batch.Count > 500) break; 
+                if (batch.Count > 500)
+                {
+                    break;
+                }
             }
 
             if (batch.Count > 0)
             {
-                 // AddLogEntry logic inline or reused (AddLogEntry adds to collections)
+                // AddLogEntry logic inline or reused (AddLogEntry adds to collections)
                 foreach (var entry in batch)
                 {
                     AddLogEntry(entry);
@@ -169,10 +191,26 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private bool MatchesFilter(LogEntry entry)
         {
             string level = entry.Level.ToUpper();
-            if (level.Contains("INFO") && !ShowInfo) return false;
-            if (level.Contains("WARNING") && !ShowWarning) return false;
-            if (level.Contains("ERROR") && !ShowError) return false;
-            if (level.Contains("CRITICAL") && !ShowCritical) return false;
+            if (level.Contains("INFO") && !ShowInfo)
+            {
+                return false;
+            }
+
+            if (level.Contains("WARNING") && !ShowWarning)
+            {
+                return false;
+            }
+
+            if (level.Contains("ERROR") && !ShowError)
+            {
+                return false;
+            }
+
+            if (level.Contains("CRITICAL") && !ShowCritical)
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -189,15 +227,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             try
             {
                 string? filePath = _dialogService.ShowSaveFileDialog("CSV Files (*.csv)|*.csv|All Files (*.*)|*.*", $"logs_{DateTime.Now:yyyyMMdd_HHmmss}.csv", "Export Logs");
-                
-                if (filePath == null) return;
+
+                if (filePath == null)
+                {
+                    return;
+                }
 
                 await Task.Run(() =>
                 {
                     using (var writer = new System.IO.StreamWriter(filePath))
                     {
                         writer.WriteLine("Timestamp,Level,Message,Source");
-                        
+
                         // Snapshot for thread safety
                         var logs = new List<LogEntry>(_filteredLogEntries);
 
@@ -207,7 +248,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                         }
                     }
                 });
-                
+
                 _dialogService.ShowMessage($"Logs exported to: {filePath}", "Export Complete");
             }
             catch (IOException ex)

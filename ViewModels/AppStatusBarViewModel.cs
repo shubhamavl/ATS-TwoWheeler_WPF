@@ -51,7 +51,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public string DownloadStatus
         {
             get => _downloadStatus;
-            set 
+            set
             {
                 if (SetProperty(ref _downloadStatus, value))
                 {
@@ -87,7 +87,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                         bool confirm = _dialogService.ShowConfirmation(
                             $"New version {result.Info.LatestVersion} is available. (Current: {result.Info.CurrentVersion})\n\n" +
                             $"Release Notes:\n{result.Info.ReleaseNotes}\n\n" +
-                            "Do you want to download it now?", 
+                            "Do you want to download it now?",
                             "Update Available");
 
                         if (confirm)
@@ -122,7 +122,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         {
             try
             {
-                var progress = new Progress<double>(p => 
+                var progress = new Progress<double>(p =>
                 {
                     DownloadStatus = $"Downloading: {p:P0}";
                 });
@@ -156,7 +156,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
             TimestampText = DateTime.Now.ToString("HH:mm:ss");
         }
-        
+
         public void UpdateStreamStatus(bool isStreaming)
         {
             StreamStatusText = isStreaming ? "Streaming..." : "Idle";

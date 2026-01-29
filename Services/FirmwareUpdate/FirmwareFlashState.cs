@@ -14,8 +14,8 @@ namespace ATS_TwoWheeler_WPF.Services.FirmwareUpdate
         public DateTime StartTime { get; set; }
         public uint CurrentCrc { get; set; }
 
-        public double ProgressPercentage => TotalChunks > 0 
-            ? (ChunksSent * 100.0 / TotalChunks) 
+        public double ProgressPercentage => TotalChunks > 0
+            ? (ChunksSent * 100.0 / TotalChunks)
             : 0;
 
         public double BytesPerSecond
@@ -23,8 +23,8 @@ namespace ATS_TwoWheeler_WPF.Services.FirmwareUpdate
             get
             {
                 var elapsed = DateTime.Now - StartTime;
-                return elapsed.TotalSeconds > 0 
-                    ? BytesSent / elapsed.TotalSeconds 
+                return elapsed.TotalSeconds > 0
+                    ? BytesSent / elapsed.TotalSeconds
                     : 0;
             }
         }
@@ -36,7 +36,9 @@ namespace ATS_TwoWheeler_WPF.Services.FirmwareUpdate
             get
             {
                 if (ChunksSent == 0 || BytesPerSecond == 0)
+                {
                     return TimeSpan.Zero;
+                }
 
                 var remainingBytes = TotalBytes - BytesSent;
                 var remainingSeconds = remainingBytes / BytesPerSecond;
