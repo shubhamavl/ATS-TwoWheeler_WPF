@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-03
+
+### Added
+- **Enhanced Bootloader Diagnostics**: Major overhaul of the firmware update UI with real-time diagnostic logging and detailed error reporting.
+- **Improved Update Orchestration**: Refined `BootloaderDiagnosticsService` to better manage state transitions and CAN timeouts.
+- **Vector Table Alignment Support**: UI now correctly handles firmware built with custom flash offsets (APP_BANK_A_START).
+
+### Changed
+- **Communication Protocol**: Updated `BootloaderProtocol` to support extended error codes and sequence validation.
+- **Diagnostic UI**: Redesigned `BootloaderManagerWindow` with improved feedback during the flashing process.
+
+### Fixed
+- **Watchdog Conflict Mitigation**: Implemented specific handling for hardware watchdogs to ensure stable handoff between bootloader and application.
+- **UI Responsiveness**: Addressed potential UI hangs during high-traffic CAN diagnostic phases.
+
 ## [0.3.0] - 2026-01-29
 
 ### Added
