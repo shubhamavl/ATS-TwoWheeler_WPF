@@ -27,15 +27,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
         public string SuggestedResolution { get; set; } = "";
     }
 
-    public class BootloaderOperation
-    {
-        public DateTime Timestamp { get; set; }
-        public string Operation { get; set; } = "";
-        public string Direction { get; set; } = "";
-        public uint CanId { get; set; }
-        public string Status { get; set; } = "";
-        public string Details { get; set; } = "";
-    }
+
 
     /// <summary>
     /// Manages bootloader diagnostics including messages, errors, and operation logs
@@ -43,7 +35,6 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
     public class BootloaderDiagnosticsViewModel : BaseViewModel
     {
         private readonly BootloaderDiagnosticsService _diagnosticsService;
-        private readonly System.Windows.Threading.DispatcherTimer _syncTimer;
 
         public ObservableCollection<BootloaderMessageViewModel> Messages { get; } = new();
         public ObservableCollection<BootloaderErrorViewModel> Errors { get; } = new();
@@ -53,81 +44,99 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
         {
             _diagnosticsService = diagnosticsService;
 
-            // Subscribe to diagnostics service changes
-            _diagnosticsService.Messages.CollectionChanged += (s, e) => SyncMessages();
+            // Subscribe to new message event (thread-safe)
+            _diagnosticsService.MessageCaptured += OnMessageCaptured;
+            _diagnosticsService.OperationLogged += OnOperationLogged;
+            _diagnosticsService.ErrorRecorded += OnErrorRecorded;
 
-            // Start timer for periodic error synchronization
-            _syncTimer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(500)
-            };
-            _syncTimer.Tick += (s, e) => SyncErrors();
-            _syncTimer.Start();
+            // Load initial data
+            LoadInitialMessages();
+            LoadInitialOperations();
+            LoadInitialErrors();
         }
 
-        /// <summary>
-        /// Synchronize messages from diagnostics service
-        /// </summary>
-        private void SyncMessages()
+        private void OnOperationLogged(object? sender, BootloaderOperation op)
+        {
+            Application.Current.Dispatcher.Invoke(() => OperationLog.Add(op));
+        }
+
+        private void OnErrorRecorded(object? sender, BootloaderError error)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                Messages.Clear();
-                foreach (var msg in _diagnosticsService.Messages)
+                Errors.Add(new BootloaderErrorViewModel
+                {
+                    Timestamp = error.Timestamp,
+                    ErrorCode = error.ErrorCode.ToString(),
+                    Description = error.Description,
+                    SuggestedResolution = error.SuggestedResolution
+                });
+            });
+        }
+
+        private void LoadInitialOperations()
+        {
+            var initialOps = _diagnosticsService.OperationLog;
+            foreach (var op in initialOps)
+            {
+                OperationLog.Add(op);
+            }
+        }
+
+        private void LoadInitialErrors()
+        {
+            var initialErrors = _diagnosticsService.Errors;
+            foreach (var error in initialErrors)
+            {
+                Errors.Add(new BootloaderErrorViewModel
+                {
+                    Timestamp = error.Timestamp,
+                    ErrorCode = error.ErrorCode.ToString(),
+                    Description = error.Description,
+                    SuggestedResolution = error.SuggestedResolution
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Handles new messages captured by the diagnostics service.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OnMessageCaptured(object? sender, BootloaderMessage message)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Add(new BootloaderMessageViewModel
+                {
+                    Timestamp = message.Timestamp,
+                    Direction = message.IsTx ? "TX" : "RX",
+                    CanId = message.CanId,
+                    Description = message.Description,
+                    DataHex = BitConverter.ToString(message.Data).Replace("-", " ")
+                });
+            });
+        }
+
+        /// <summary>
+        /// Loads initial messages from the diagnostics service.
+        /// </summary>
+        private void LoadInitialMessages()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                foreach (var msg in _diagnosticsService.GetMessages())
                 {
                     Messages.Add(new BootloaderMessageViewModel
                     {
                         Timestamp = msg.Timestamp,
-                        Direction = msg.Direction,
+                        Direction = msg.IsTx ? "TX" : "RX",
                         CanId = msg.CanId,
                         Description = msg.Description,
                         DataHex = BitConverter.ToString(msg.Data).Replace("-", " ")
                     });
                 }
-            });
-        }
-
-        /// <summary>
-        /// Synchronize errors from diagnostics service
-        /// </summary>
-        private void SyncErrors()
-        {
-            var currentErrors = _diagnosticsService.Errors.ToList();
-            if (currentErrors.Count != Errors.Count)
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Errors.Clear();
-                    foreach (var err in currentErrors)
-                    {
-                        Errors.Add(new BootloaderErrorViewModel
-                        {
-                            Timestamp = err.Timestamp,
-                            ErrorCode = err.ErrorCode.ToString(),
-                            Description = err.Description,
-                            SuggestedResolution = err.SuggestedResolution
-                        });
-                    }
-                });
-            }
-        }
-
-        /// <summary>
-        /// Log an operation to the operation log
-        /// </summary>
-        public void LogOperation(string operation, string direction, uint canId, string status, string details)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                OperationLog.Add(new BootloaderOperation
-                {
-                    Timestamp = DateTime.Now,
-                    Operation = operation,
-                    Direction = direction,
-                    CanId = canId,
-                    Status = status,
-                    Details = details
-                });
             });
         }
 
@@ -154,7 +163,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
         /// </summary>
         public void ClearOperationLog()
         {
+            _diagnosticsService.ClearOperationLog();
             OperationLog.Clear();
+        }
+
+        /// <summary>
+        /// Log an operation to the operation log
+        /// </summary>
+        public void LogOperation(string operation, string direction, uint canId, string status, string details)
+        {
+            _diagnosticsService.LogOperation(operation, direction, canId, status, details);
         }
 
         /// <summary>
@@ -188,7 +206,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels.Bootloader
 
         public override void Dispose()
         {
-            _syncTimer?.Stop();
+            _diagnosticsService.MessageCaptured -= OnMessageCaptured;
+            _diagnosticsService.OperationLogged -= OnOperationLogged;
+            _diagnosticsService.ErrorRecorded -= OnErrorRecorded;
             base.Dispose();
         }
     }

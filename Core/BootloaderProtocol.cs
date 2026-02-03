@@ -48,6 +48,31 @@ namespace ATS_TwoWheeler_WPF.Core
             };
         }
 
+        public static string GetMessageDescription(uint canId)
+        {
+            switch (canId)
+            {
+                case CanIdBootEnter: return "Enter Bootloader";
+                case CanIdBootQueryInfo: return "Query Boot Info";
+                case CanIdBootPing: return "Ping";
+                case CanIdBootBegin: return "Begin Update";
+                case CanIdBootEnd: return "End Update";
+                case CanIdBootReset: return "Reset Device";
+                case CanIdBootData: return "Data Frame";
+                case CanIdBootPingResponse: return "Ping Response";
+                case CanIdBootBeginResponse: return "Begin Response";
+                case CanIdBootProgress: return "Progress Update";
+                case CanIdBootEndResponse: return "End Response";
+                case CanIdBootError: return "Sequence Mismatch";
+                case CanIdErrSize: return "Size Mismatch";
+                case CanIdErrWrite: return "Flash Write Error";
+                case CanIdErrValidation: return "Validation Error";
+                case CanIdErrBuffer: return "Buffer Overflow";
+                case CanIdBootQueryResponse: return "Query Response";
+                default: return $"Unknown (0x{canId:X3})";
+            }
+        }
+
         public static string ParseErrorMessage(uint canId, byte[] data)
         {
             if (data == null)

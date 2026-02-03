@@ -244,6 +244,7 @@
                     </StackPanel>
                     
                     <DataGrid x:Name="MessagesDataGrid" Grid.Row="1" 
+                              ItemsSource="{Binding Messages}"
                               AutoGenerateColumns="False" IsReadOnly="True" 
                               HeadersVisibility="Column" GridLinesVisibility="All">
                         <DataGrid.Columns>
@@ -269,6 +270,7 @@
                             HorizontalAlignment="Left" Margin="0,0,0,8" Grid.Row="0"/>
                     
                     <DataGrid x:Name="ErrorsDataGrid" Grid.Row="1" 
+                              ItemsSource="{Binding Errors}"
                               AutoGenerateColumns="False" IsReadOnly="True" 
                               HeadersVisibility="Column" GridLinesVisibility="All">
                         <DataGrid.Columns>
@@ -296,6 +298,7 @@
                     </StackPanel>
                     
                     <DataGrid x:Name="OperationLogDataGrid" Grid.Row="1" 
+                              ItemsSource="{Binding OperationLog}"
                               AutoGenerateColumns="False" IsReadOnly="True" 
                               HeadersVisibility="Column" GridLinesVisibility="All">
                         <DataGrid.Columns>

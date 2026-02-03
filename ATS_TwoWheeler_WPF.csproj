@@ -16,9 +16,9 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishTrimmed>false</PublishTrimmed>
     <!-- Application version used by auto-update (also reflected in GitHub release tags) -->
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
+    <Version>0.3.0</Version>
+    <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <FileVersion>0.3.0.0</FileVersion>
     <RootNamespace>ATS_TwoWheeler_WPF</RootNamespace>
     <AssemblyName>ATS_TwoWheeler_WPF</AssemblyName>
     <!-- Suppress NU1701 warnings for packages that target .NET Framework but work fine on .NET 8 -->

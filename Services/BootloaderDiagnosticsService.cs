@@ -14,35 +14,74 @@ namespace ATS_TwoWheeler_WPF.Services
     public class BootloaderDiagnosticsService : IBootloaderDiagnosticsService
     {
         private readonly ProductionLogger _logger = ProductionLogger.Instance;
-        private readonly ObservableCollection<BootloaderMessage> _messages = new ObservableCollection<BootloaderMessage>();
-        private readonly List<BootloaderError> _errors = new List<BootloaderError>();
+        private readonly object _lock = new object();
 
-        public ObservableCollection<BootloaderMessage> Messages => _messages;
-        public IReadOnlyList<BootloaderError> Errors => _errors.AsReadOnly();
+        // Message capture (thread-safe)
+        private readonly List<BootloaderMessage> _messages = new List<BootloaderMessage>();
+        
+        // Event for new messages (safer than exposing collection)
+        public event EventHandler<BootloaderMessage>? MessageCaptured;
+        public event EventHandler<BootloaderOperation>? OperationLogged;
+        public event EventHandler<BootloaderError>? ErrorRecorded;
+
+        private readonly List<BootloaderError> _errors = new List<BootloaderError>();
+        private readonly List<BootloaderOperation> _operationLog = new List<BootloaderOperation>();
+
+        public ObservableCollection<BootloaderMessage> Messages
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return new ObservableCollection<BootloaderMessage>(_messages);
+                }
+            }
+        }
+        public IReadOnlyList<BootloaderError> Errors
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _errors.AsReadOnly();
+                }
+            }
+        }
+
+        public IReadOnlyList<BootloaderOperation> OperationLog
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _operationLog.AsReadOnly();
+                }
+            }
+        }
 
         /// <summary>
         /// Capture a bootloader CAN message
         /// </summary>
         public void CaptureMessage(uint canId, byte[] data, bool isTx)
         {
-            // Only capture bootloader control/error messages (excluding high-volume 0x520 Data frames)
-            if (canId >= 0x510 && canId < 0x520)
+            // Filter for bootloader-related CAN IDs (0x510-0x51F)
+            if (canId < 0x510 || canId >= 0x520)
             {
-                var message = new BootloaderMessage
-                {
-                    Timestamp = DateTime.Now,
-                    CanId = canId,
-                    Data = (byte[])data.Clone(),
-                    IsTx = isTx,
-                    Direction = isTx ? "TX" : "RX"
-                };
+                return;
+            }
 
-                // Parse message content for display
-                message.Description = ParseMessage(canId, data, isTx);
+            var message = new BootloaderMessage
+            {
+                Timestamp = DateTime.Now,
+                CanId = canId,
+                Data = data,
+                IsTx = isTx,
+                Description = BootloaderProtocol.GetMessageDescription(canId)
+            };
 
+            lock (_lock)
+            {
                 _messages.Add(message);
-
-                // Keep only last 1000 messages
                 if (_messages.Count > 1000)
                 {
                     _messages.RemoveAt(0);
@@ -74,6 +113,9 @@ namespace ATS_TwoWheeler_WPF.Services
                     RecordSpecificError(canId, data, message);
                 }
             }
+
+            // Fire event on background thread (VM will marshal to UI thread)
+            MessageCaptured?.Invoke(this, message);
         }
 
         /// <summary>
@@ -186,14 +228,43 @@ namespace ATS_TwoWheeler_WPF.Services
                 SuggestedResolution = GetSuggestedResolutionFromCanId(canId)
             };
 
-            _errors.Add(error);
-
-            if (_errors.Count > 100)
+            lock (_lock)
             {
-                _errors.RemoveAt(0);
+                _errors.Add(error);
+
+                if (_errors.Count > 100)
+                {
+                    _errors.RemoveAt(0);
+                }
             }
 
+            ErrorRecorded?.Invoke(this, error);
             _logger.LogError($"Bootloader specific error: {error.Description}", "BootloaderDiagnostics");
+        }
+
+        public void LogOperation(string operation, string direction, uint canId, string status, string details)
+        {
+            var op = new BootloaderOperation
+            {
+                Timestamp = DateTime.Now,
+                Operation = operation,
+                Direction = direction,
+                CanId = canId,
+                Status = status,
+                Details = details
+            };
+
+            lock (_lock)
+            {
+                _operationLog.Add(op);
+                if (_operationLog.Count > 500)
+                {
+                    _operationLog.RemoveAt(0);
+                }
+            }
+
+            OperationLogged?.Invoke(this, op);
+            _logger.LogInfo($"Bootloader Op: {operation} [{status}]", "BootloaderDiagnostics");
         }
 
         private void RecordError(BootloaderStatus status, BootloaderMessage message)
@@ -207,14 +278,18 @@ namespace ATS_TwoWheeler_WPF.Services
                 SuggestedResolution = GetSuggestedResolution(status)
             };
 
-            _errors.Add(error);
-
-            // Keep only last 100 errors
-            if (_errors.Count > 100)
+            lock (_lock)
             {
-                _errors.RemoveAt(0);
+                _errors.Add(error);
+
+                // Keep only last 100 errors
+                if (_errors.Count > 100)
+                {
+                    _errors.RemoveAt(0);
+                }
             }
 
+            ErrorRecorded?.Invoke(this, error);
             _logger.LogError($"Bootloader error: {error.Description}", "BootloaderDiagnostics");
         }
 
@@ -262,15 +337,41 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public void ClearMessages()
         {
-            _messages.Clear();
+            lock (_lock)
+            {
+                _messages.Clear();
+            }
         }
 
-        /// <summary>
-        /// Clear all errors
-        /// </summary>
+        public int GetMessageCount()
+        {
+            lock (_lock)
+            {
+                return _messages.Count;
+            }
+        }
+        
+        public List<BootloaderMessage> GetMessages()
+        {
+            lock (_lock)
+            {
+                return new List<BootloaderMessage>(_messages);
+            }
+        }/// </summary>
         public void ClearErrors()
         {
-            _errors.Clear();
+            lock (_lock)
+            {
+                _errors.Clear();
+            }
+        }
+
+        public void ClearOperationLog()
+        {
+            lock (_lock)
+            {
+                _operationLog.Clear();
+            }
         }
 
         /// <summary>
@@ -283,22 +384,28 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public string ExportMessagesToText()
         {
-            var lines = new List<string>
+            List<BootloaderMessage> snapshot;
+            lock (_lock)
             {
-                "Bootloader CAN Messages",
-                "======================",
-                $"Exported: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
-                ""
-            };
-
-            foreach (var msg in _messages)
-            {
-                string hexData = BitConverter.ToString(msg.Data).Replace("-", " ");
-                lines.Add($"[{msg.Timestamp:HH:mm:ss.fff}] {msg.Direction} 0x{msg.CanId:X3}: {msg.Description}");
-                lines.Add($"  Data: {hexData}");
+                snapshot = new List<BootloaderMessage>(_messages);
             }
 
-            return string.Join(Environment.NewLine, lines);
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("=== Bootloader CAN Messages ===");
+            sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"Total Messages: {snapshot.Count}");
+            sb.AppendLine();
+            sb.AppendLine("Timestamp\t\tDirection\tCAN ID\tDescription\t\tData");
+            sb.AppendLine(new string('-', 100));
+
+            foreach (var msg in snapshot)
+            {
+                string direction = msg.IsTx ? "TX" : "RX";
+                string data = BitConverter.ToString(msg.Data).Replace("-", " ");
+                sb.AppendLine($"{msg.Timestamp:HH:mm:ss.fff}\t{direction}\t0x{msg.CanId:X3}\t{msg.Description}\t{data}");
+            }
+
+            return sb.ToString();
         }
     }
 
@@ -332,6 +439,19 @@ namespace ATS_TwoWheeler_WPF.Services
         public string Description { get; set; } = "";
         public BootloaderMessage? Message { get; set; }
         public string SuggestedResolution { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Represents a high-level bootloader operation log entry
+    /// </summary>
+    public class BootloaderOperation
+    {
+        public DateTime Timestamp { get; set; }
+        public string Operation { get; set; } = "";
+        public string Direction { get; set; } = "";
+        public uint CanId { get; set; }
+        public string Status { get; set; } = "";
+        public string Details { get; set; } = "";
     }
 }
 

@@ -54,9 +54,38 @@ namespace ATS_TwoWheeler_WPF.Services
                 throw new ArgumentException("Invalid frame format");
             }
 
-            uint canId = (uint)(frame[5] | (frame[6] << 8));
+            // Fixed parsing to match UsbSerialCanAdapter logic (Standard frame: ID at indices 2/3)
+            // Note: This assumes standard frame (Type 0xC8 or similar). 
+            // If the buffer was aligned by UsbSerialCanAdapter.ProcessFrames, it starts with AA.
+            // Index 0: AA
+            // Index 1: Type
+            // Index 2: ID_L
+            // Index 3: ID_H
+            uint canId = (uint)(frame[2] | (frame[3] << 8));
             byte[] canData = new byte[8];
-            Array.Copy(frame, 10, canData, 0, 8);
+            // Data starts at Index 4? No, UsbSerialCanAdapter.CreateFrame puts data at index 4.
+            // Let's check UsbSerialCanAdapter.ProcessFrames again.
+            // It extracts 'expectedLength' bytes.
+            // Standard frame overhead is 5 bytes (AA + Type + ID + ID + Footer).
+            // Data is at Index 4.
+            
+            // Wait, UsbSerialCanAdapter.DecodeFrame (RX) uses:
+            // canId = frame[2] | frame[3] << 8
+            // canData = copy from frame[4]
+            
+            // BUT CANService.DecodeFrame takes 20 bytes from buffer blindly?
+            // "var frame = new byte[20]; ... DecodeFrame(frame);"
+            // And CreateFrame produces 12 bytes total (padded to 12).
+            // If CANService.ProcessFrames aligns to 0xAA, then:
+            // 0: AA
+            // 1: Type
+            // 2: ID
+            // 3: ID
+            // 4..11: Data (8 bytes)
+            // 12..: Padding/Footer
+            
+            // So Data is at 4.
+            Array.Copy(frame, 4, canData, 0, 8);
 
             return (canId, canData);
         }

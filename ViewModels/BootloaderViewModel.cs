@@ -25,6 +25,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly CANService _canService;
         private readonly CANBootloaderService _bootloaderService;
         private readonly FirmwareUpdateService _firmwareUpdateService;
+        private readonly BootloaderDiagnosticsService _diagnosticsService;
         private readonly IDialogService _dialogService;
         private readonly ProductionLogger _logger = ProductionLogger.Instance;
 
@@ -221,6 +222,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _firmwareUpdateService = firmwareUpdateService;
             _dialogService = dialogService;
 
+            _diagnosticsService = diagnosticsService;
+
             // Initialize state machine and diagnostics
             _stateMachine = new BootloaderStateMachine();
             _stateMachine.StepChanged += OnStepChanged;
@@ -235,7 +238,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             StartUpdateCommand = new AsyncRelayCommand(OnStartUpdate, () => CanStartUpdate);
             CancelUpdateCommand = new RelayCommand(_ => OnCancel(), _ => CanCancel);
             TestBootloaderCommand = new AsyncRelayCommand(OnTestBootloader);
-            EnterBootloaderCommand = new RelayCommand(_ => OnEnterBootloader());
+            EnterBootloaderCommand = new AsyncRelayCommand(OnEnterBootloader);
             ResetCommand = new RelayCommand(_ => OnReset());
             QueryInfoCommand = new AsyncRelayCommand(OnQueryInfo);
             ClearMessagesCommand = new RelayCommand(_ => _diagnostics.ClearMessages());
@@ -261,8 +264,10 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
         private void OnCANMessageReceived(CANMessage msg)
         {
-            // Messages are automatically captured by diagnostics service
-            // No additional processing needed here
+            // Capture all messages in diagnostics service
+            // The service filters for bootloader-relevant IDs (0x510-0x51F)
+            bool isTx = msg.Direction == "TX";
+            _diagnosticsService.CaptureMessage(msg.ID, msg.Data, isTx);
         }
 
         internal void UpdateUI()
@@ -545,7 +550,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             }
         }
 
-        private void OnEnterBootloader()
+        private async Task OnEnterBootloader()
         {
             var result = _dialogService.ShowConfirmation(
                 "Enter Bootloader Mode?\n\n" +
@@ -570,13 +575,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                     CurrentStep = BootloaderProcessStep.EnterBootloader;
                     _diagnostics.LogOperation("Enter Bootloader", "TX", BootloaderProtocol.CanIdBootEnter, "Sent",
                         "Requesting bootloader entry");
-                    StatusText = "Status: Entering bootloader mode...";
+                    StatusText = "Status: Entering bootloader mode... Waiting for reset...";
 
-                    _dialogService.ShowMessage(
-                        "Enter Bootloader command sent.\n\n" +
-                        "STM32 will reset and enter bootloader mode.\n" +
-                        "Wait a few seconds, then use 'Test Bootloader' to verify.",
-                        "Command Sent");
+                    // Auto-ping logic (matching the philosophy of immediately requesting status after state change)
+                    await Task.Delay(3500); // Wait for STM32 reset cycle
+                    await OnTestBootloader();
                 }
                 else
                 {
