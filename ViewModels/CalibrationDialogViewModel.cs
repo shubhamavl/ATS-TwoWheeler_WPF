@@ -214,13 +214,33 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             double currentWeight = point.KnownWeight;
             // Always kg during calibration target as per user clarification
 
-            // Statistics collection parameters
-            int samples = 20;
-            int timeout = 500;
+            // Statistics collection parameters from settings
+            var s = _settings.Settings;
+            int samples = s.CalibrationSampleCount;
+            int duration = s.CalibrationCaptureDurationMs;
+            bool useMedian = s.CalibrationUseMedian;
+            bool removeOutliers = s.CalibrationRemoveOutliers;
+            double threshold = s.CalibrationOutlierThreshold;
+            double maxStdDev = s.CalibrationMaxStdDev;
+
+            // Apply start delay if configured
+            if (_calibrationDelayMs > 0)
+            {
+                point.StatusText = $"Waiting {_calibrationDelayMs}ms...";
+                await Task.Delay(_calibrationDelayMs);
+            }
 
             // Step 1: Capture current mode
             point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
-            var result1 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
+            var result1 = await CalibrationStatistics.CaptureAveragedADC(
+                samples, 
+                duration, 
+                () => _currentRawADC,
+                null, 
+                useMedian, 
+                removeOutliers, 
+                threshold, 
+                maxStdDev);
 
             if (_adcMode == 0)
             {
@@ -240,7 +260,15 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             // Step 3: Capture second mode
             point.StatusText = $"Capturing Mode {(_adcMode == 0 ? "Internal" : "ADS1115")}...";
-            var result2 = await CalibrationStatistics.CaptureAveragedADC(samples, timeout, () => _currentRawADC);
+            var result2 = await CalibrationStatistics.CaptureAveragedADC(
+                samples, 
+                duration, 
+                () => _currentRawADC,
+                null, 
+                useMedian, 
+                removeOutliers, 
+                threshold, 
+                maxStdDev);
 
             if (_adcMode == 0)
             {

@@ -61,8 +61,9 @@ namespace ATS_TwoWheeler_WPF.Services
         private double _totalFilteredCalibrated = 0;
         private double _totalFilteredTared = 0;
 
-        // Track if EMA filter is initialized (first sample)
-        private bool _totalFilterInitialized = false;
+        // Track if EMA filters are initialized (first sample)
+        private bool _calibratedFilterInitialized = false;
+        private bool _taredFilterInitialized = false;
 
         // SMA buffers
         private readonly Queue<double> _totalSmaCalibrated = new Queue<double>();
@@ -90,6 +91,16 @@ namespace ATS_TwoWheeler_WPF.Services
         public WeightProcessor()
         {
             LoadCalibration();
+            LoadFilterSettings();
+            
+            // Subscribe to settings changes
+            _settingsManager.SettingsChanged += (s, e) => LoadFilterSettings();
+        }
+
+        private void LoadFilterSettings()
+        {
+            var settings = _settingsManager.Settings;
+            ConfigureFilter(settings.FilterType, settings.FilterAlpha, settings.FilterWindowSize, settings.FilterEnabled);
         }
 
         /// <summary>
@@ -218,11 +229,9 @@ namespace ATS_TwoWheeler_WPF.Services
             _totalSmaCalibrated.Clear();
             _totalSmaTared.Clear();
 
-            // Reset EMA filter when changing filter type
-            if (type != FilterType.EMA)
-            {
-                _totalFilterInitialized = false;
-            }
+            // Reset EMA filters
+            _calibratedFilterInitialized = false;
+            _taredFilterInitialized = false;
 
             ProductionLogger.Instance.LogInfo($"Filter configured: Type={type}, Alpha={alpha}, Window={windowSize}, Enabled={enabled}", "WeightProcessor");
         }
@@ -358,10 +367,10 @@ namespace ATS_TwoWheeler_WPF.Services
         {
             if (isCalibrated)
             {
-                if (!_totalFilterInitialized)
+                if (!_calibratedFilterInitialized)
                 {
                     _totalFilteredCalibrated = value;
-                    _totalFilterInitialized = true;
+                    _calibratedFilterInitialized = true;
                     return value;
                 }
                 _totalFilteredCalibrated = _filterAlpha * value + (1 - _filterAlpha) * _totalFilteredCalibrated;
@@ -369,9 +378,10 @@ namespace ATS_TwoWheeler_WPF.Services
             }
             else
             {
-                if (!_totalFilterInitialized)
+                if (!_taredFilterInitialized)
                 {
                     _totalFilteredTared = value;
+                    _taredFilterInitialized = true;
                     return value;
                 }
                 _totalFilteredTared = _filterAlpha * value + (1 - _filterAlpha) * _totalFilteredTared;
@@ -401,7 +411,8 @@ namespace ATS_TwoWheeler_WPF.Services
         /// </summary>
         public void ResetFilters()
         {
-            _totalFilterInitialized = false;
+            _calibratedFilterInitialized = false;
+            _taredFilterInitialized = false;
             _totalFilteredCalibrated = 0;
             _totalFilteredTared = 0;
 
