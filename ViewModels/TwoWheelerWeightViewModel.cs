@@ -82,11 +82,13 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         public bool CanStart => CurrentState == TestState.Idle || CurrentState == TestState.Paused;
         public bool CanStop => CurrentState == TestState.Running || CurrentState == TestState.Paused;
 
+        private string WeightFormat => $"F{_settings.Settings.WeightDisplayDecimals}";
+
         // Formatted strings for UI
-        public string MainWeightText => IsCalibrated ? $"{CurrentWeight:F1} {UnitLabel}" : "Calibrate first";
-        public string TotalWeightText => IsCalibrated ? $"{CurrentWeight:F1} {UnitLabel}" : "Calibrate first";
-        public string MinWeightText => IsCalibrated ? $"{MinWeight:F1} {UnitLabel}" : "---";
-        public string MaxWeightText => IsCalibrated ? $"{MaxWeight:F1} {UnitLabel}" : "---";
+        public string MainWeightText => IsCalibrated ? $"{CurrentWeight.ToString(WeightFormat)} {UnitLabel}" : "Calibrate first";
+        public string TotalWeightText => IsCalibrated ? $"{CurrentWeight.ToString(WeightFormat)} {UnitLabel}" : "Calibrate first";
+        public string MinWeightText => IsCalibrated ? $"{MinWeight.ToString(WeightFormat)} {UnitLabel}" : "---";
+        public string MaxWeightText => IsCalibrated ? $"{MaxWeight.ToString(WeightFormat)} {UnitLabel}" : "---";
         public string DataRateText => $"Rate: {_dataPointsPerSec} pts/sec";
 
         // Status & Connection
@@ -286,7 +288,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
                     for (int i = 0; i < data.Count; i++)
                     {
-                        writer.WriteLine($"{i},{data[i]:F2}");
+                        writer.WriteLine($"{i},{data[i].ToString(WeightFormat)}");
                     }
                 });
 

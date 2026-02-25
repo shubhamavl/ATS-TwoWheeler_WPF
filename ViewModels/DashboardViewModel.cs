@@ -111,6 +111,8 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             ResetPeakCommand = new RelayCommand(_ => ResetPeak());
         }
 
+        private string WeightFormat => $"F{_settings.Settings.WeightDisplayDecimals}";
+
         private void ResetPeak()
         {
             PeakWeight = 0;
@@ -149,21 +151,21 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                         if (_settings.Settings.BrakeDisplayUnit == "N")
                         {
                             weight *= _settings.Settings.BrakeKgToNewtonMultiplier;
-                            WeightText = $"{weight:F1} N";
+                            WeightText = $"{weight.ToString(WeightFormat)} N";
                         }
                         else
                         {
-                            WeightText = $"{weight:F1} kg";
+                            WeightText = $"{weight.ToString(WeightFormat)} kg";
                         }
                     }
                     else
                     {
-                        WeightText = $"{weight:F1} kg";
+                        WeightText = $"{weight.ToString(WeightFormat)} kg";
                     }
                 }
 
                 UpdatePeakText();
-                TareStatusText = $"Tare: {data.TareValue:F1} kg";
+                TareStatusText = $"Tare: {data.TareValue.ToString(WeightFormat)} kg";
             }
 
             // Sync with CAN state
@@ -193,11 +195,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             if (IsBrakeMode && _settings.Settings.BrakeDisplayUnit == "N")
             {
                 double peakN = PeakWeight * _settings.Settings.BrakeKgToNewtonMultiplier;
-                PeakWeightText = $"Peak: {peakN:F1} N";
+                PeakWeightText = $"Peak: {peakN.ToString(WeightFormat)} N";
             }
             else
             {
-                PeakWeightText = $"Peak: {PeakWeight:F1} kg";
+                PeakWeightText = $"Peak: {PeakWeight.ToString(WeightFormat)} kg";
             }
         }
 

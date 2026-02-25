@@ -115,6 +115,17 @@ namespace ATS_TwoWheeler_WPF.Services
             _eventDispatcher.FirmwareVersionReceived += (s, e) => FirmwareVersionReceived?.Invoke(this, e);
             _eventDispatcher.PerformanceMetricsReceived += (s, e) => PerformanceMetricsReceived?.Invoke(this, e);
             _eventDispatcher.DataTimeout += (s, e) => DataTimeout?.Invoke(this, e);
+
+            // Initialize timeout from settings
+            var settings = SettingsManager.Instance;
+            UpdateTimeoutFromSettings(settings.Settings.DataTimeoutSeconds);
+            settings.SettingsChanged += (s, e) => UpdateTimeoutFromSettings(settings.Settings.DataTimeoutSeconds);
+        }
+
+        private void UpdateTimeoutFromSettings(int seconds)
+        {
+            _timeout = TimeSpan.FromSeconds(seconds);
+            ProductionLogger.Instance.LogInfo($"CAN timeout updated: {seconds}s", "CANService");
         }
 
         /// <summary>

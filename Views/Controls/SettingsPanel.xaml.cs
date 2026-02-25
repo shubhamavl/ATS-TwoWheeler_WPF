@@ -14,9 +14,17 @@ namespace ATS_TwoWheeler_WPF.Views.Controls
 
             // Subscribe to DataContextChanged to manage HelpRequested event subscription
             this.DataContextChanged += SettingsPanel_DataContextChanged;
+            
+            // Unsubscribe on Unloaded to prevent leaks and crashes
+            this.Unloaded += SettingsPanel_Unloaded;
+        }
 
-            // Set DataContext to SettingsViewModel using SettingsManager singleton
-            DataContext = new SettingsViewModel(SettingsManager.Instance);
+        private void SettingsPanel_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is SettingsViewModel vm)
+            {
+                vm.HelpRequested -= OnHelpRequested;
+            }
         }
 
         private void SettingsPanel_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

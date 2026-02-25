@@ -7,6 +7,7 @@ namespace ATS_TwoWheeler_WPF.Services.Interfaces
     public interface ISettingsService
     {
         AppSettings Settings { get; }
+        event EventHandler? SettingsChanged;
 
         void LoadSettings();
         void SaveSettings();

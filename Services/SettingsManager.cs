@@ -17,6 +17,8 @@ namespace ATS_TwoWheeler_WPF.Services
         private AppSettings _settings = new AppSettings();
         private readonly string _settingsPath;
 
+        public event EventHandler? SettingsChanged;
+
         private SettingsManager()
         {
             _settingsPath = PathHelper.GetSettingsPath(); // Portable: next to executable
@@ -90,6 +92,7 @@ namespace ATS_TwoWheeler_WPF.Services
 
                 File.WriteAllText(_settingsPath, json);
                 ProductionLogger.Instance.LogInfo($"Settings saved to: {_settingsPath}", "Settings");
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             }
             catch (IOException ex)
             {

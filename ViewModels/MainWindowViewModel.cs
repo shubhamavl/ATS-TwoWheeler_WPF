@@ -81,10 +81,18 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             // Setup UI Timer
             _uiTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(50) // 20 Hz default
+                Interval = TimeSpan.FromMilliseconds(_settings.Settings.UIUpdateRateMs)
             };
             _uiTimer.Tick += OnUiTimerTick;
             _uiTimer.Start();
+
+            // Subscribe to settings changes
+            _settings.SettingsChanged += OnSettingsChanged;
+        }
+
+        private void OnSettingsChanged(object? sender, EventArgs e)
+        {
+            _uiTimer.Interval = TimeSpan.FromMilliseconds(_settings.Settings.UIUpdateRateMs);
         }
 
         private void OnUiTimerTick(object? sender, EventArgs e)
@@ -128,6 +136,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             // Sync WeightProcessor mode
             _weightProcessor.SetADCMode(e.ADCMode);
             _weightProcessor.SetBrakeMode(e.RelayState != 0);
+
+            // Reset filters on mode change to prevent carry-over from different hardware states
+            _weightProcessor.ResetFilters();
         }
 
         public void Cleanup()
