@@ -17,33 +17,7 @@ namespace ATS_TwoWheeler_WPF.Core
         {
             get
             {
-                if (_applicationDirectory == null)
-                {
-                    // Prefer the real executable directory (works for single-file publish)
-                    string? exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                    if (!string.IsNullOrEmpty(exePath))
-                    {
-                        string? exeDir = Path.GetDirectoryName(exePath);
-                        if (!string.IsNullOrEmpty(exeDir) && Directory.Exists(exeDir))
-                        {
-                            _applicationDirectory = exeDir;
-                        }
-                    }
-
-                    // Fallback: AppContext.BaseDirectory (may be temp extraction in single-file)
-                    if (_applicationDirectory == null)
-                    {
-                        string? baseDir = AppContext.BaseDirectory;
-                        if (!string.IsNullOrEmpty(baseDir) && Directory.Exists(baseDir))
-                        {
-                            _applicationDirectory = baseDir;
-                        }
-                    }
-
-                    // Last resort
-                    _applicationDirectory ??= AppDomain.CurrentDomain.BaseDirectory;
-                }
-                return _applicationDirectory;
+                return @"C:\ProgramData\ATS_TwoWheeler";
             }
         }
 
