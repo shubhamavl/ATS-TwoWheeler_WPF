@@ -8,7 +8,6 @@ namespace ATS_TwoWheeler_WPF.Core
     /// </summary>
     public static class PathHelper
     {
-        private static string? _applicationDirectory;
 
         /// <summary>
         /// Gets the directory where the executable is located

@@ -75,11 +75,7 @@ namespace ATS_TwoWheeler_WPF
                 tm.LoadFromFile();
                 return tm;
             });
-            services.AddSingleton<IWeightProcessorService, WeightProcessor>(provider => {
-                var wp = new WeightProcessor();
-                wp.SetTareManager(provider.GetRequiredService<TareManager>());
-                return wp;
-            });
+            services.AddSingleton<IWeightProcessorService, WeightProcessor>();
 
             // Bootloader Services
             var canService = services.BuildServiceProvider().GetRequiredService<ICANService>(); // Circular dep workaround for simple DI plan, better to resolve in factory

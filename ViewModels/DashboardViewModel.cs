@@ -108,6 +108,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _canService = canService;
             _settings = settings;
 
+            // Self-wire to CAN system status
+            _canService.SystemStatusReceived += (s, e) => {
+                UpdateSystemStatus(e.ADCMode, e.RelayState);
+            };
+
             ResetPeakCommand = new RelayCommand(_ => ResetPeak());
         }
 

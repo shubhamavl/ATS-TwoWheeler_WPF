@@ -88,8 +88,22 @@ namespace ATS_TwoWheeler_WPF.Services
             }
         }
 
-        public WeightProcessor()
+        public WeightProcessor(ICANService canService, TareManager tareManager)
         {
+            _tareManager = tareManager;
+
+            // Subscribe to raw data from CAN service
+            canService.RawDataReceived += (s, e) => {
+                EnqueueRawData(e.RawADCSum);
+            };
+
+            // Subscribe to system status to sync modes automatically
+            canService.SystemStatusReceived += (s, e) => {
+                SetADCMode(e.ADCMode);
+                SetBrakeMode(e.RelayState != 0);
+                ResetFilters();
+            };
+
             LoadCalibration();
             LoadFilterSettings();
             

@@ -68,6 +68,11 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             _settings = settings;
             _navigationService = navigationService;
 
+            // Self-wire to CAN system status
+            _canService.SystemStatusReceived += (s, e) => {
+                UpdateSystemStatus(e.ADCMode, e.RelayState);
+            };
+
             TareCommand = new RelayCommand(OnTare);
             CalibrateCommand = new RelayCommand(OnCalibrate);
             ResetCalibrationCommand = new RelayCommand(OnResetCalibration);

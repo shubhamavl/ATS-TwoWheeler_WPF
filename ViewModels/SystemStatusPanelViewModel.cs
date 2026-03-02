@@ -12,6 +12,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
     public class SystemStatusPanelViewModel : BaseViewModel
     {
         private readonly ICANService? _canService;
+        private readonly IDialogService? _dialogService;
 
         // Properties
         private string _statusText = "Unknown";
@@ -86,11 +87,12 @@ namespace ATS_TwoWheeler_WPF.ViewModels
         private readonly IStatusMonitorService? _statusMonitor;
         private readonly StatusHistoryManager? _historyManager;
 
-        public SystemStatusPanelViewModel(ICANService? canService, INavigationService? navigationService, IStatusMonitorService? statusMonitor, StatusHistoryManager? historyManager = null)
+        public SystemStatusPanelViewModel(ICANService? canService, INavigationService? navigationService, IStatusMonitorService? statusMonitor, IDialogService? dialogService = null, StatusHistoryManager? historyManager = null)
         {
             _canService = canService;
             _navigationService = navigationService;
             _statusMonitor = statusMonitor;
+            _dialogService = dialogService;
             _historyManager = historyManager ?? ServiceRegistry.GetService<StatusHistoryManager>(); // Fallback or inject
 
             RequestFirmwareCommand = new RelayCommand(OnRequestFirmware);
@@ -102,6 +104,7 @@ namespace ATS_TwoWheeler_WPF.ViewModels
                 _canService.SystemStatusReceived += OnSystemStatusReceived;
                 _canService.PerformanceMetricsReceived += OnPerformanceMetricsReceived;
                 _canService.FirmwareVersionReceived += OnFirmwareVersionReceived;
+                _canService.DataTimeout += OnDataTimeout;
             }
 
             if (_statusMonitor != null)
@@ -205,6 +208,16 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 FirmwareVersionText = e.VersionString;
+            });
+        }
+
+        private void OnDataTimeout(object? sender, string message)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                StatusText = "TIMEOUT";
+                StatusColor = Brushes.Red;
+                _dialogService?.ShowError($"CAN Data Timeout: {message}. Please check connection.", "Hardware Error");
             });
         }
 

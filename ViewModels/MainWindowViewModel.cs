@@ -60,18 +60,14 @@ namespace ATS_TwoWheeler_WPF.ViewModels
 
             _weightProcessor.Start(); // Start processing thread
 
-            // Initialize Child ViewModels
+            // Child ViewModels
             Connection = new ConnectionViewModel(_canService, _settings);
             Dashboard = new DashboardViewModel(_weightProcessor, _canService, _settings);
             Calibration = new CalibrationViewModel(_weightProcessor, _canService, _settings, navigationService);
-            SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService, statusMonitor, historyManager);
+            SystemStatus = new SystemStatusPanelViewModel(_canService, navigationService, statusMonitor, dialogService, historyManager);
             Logging = new LoggingPanelViewModel(_dataLogger, _canService);
             StatusBar = new AppStatusBarViewModel(_canService, updateService, dialogService);
             Settings = new SettingsViewModel(_settings);
-
-            // Wire up CAN Service to Weight Processor and UI
-            _canService.RawDataReceived += OnRawDataReceived;
-            _canService.SystemStatusReceived += OnSystemStatusReceived;
 
             // Commands
             OpenSettingsCommand = new RelayCommand(_ => OnOpenSettings());
@@ -120,31 +116,9 @@ namespace ATS_TwoWheeler_WPF.ViewModels
             OpenSettingsRequested?.Invoke();
         }
 
-        private void OnRawDataReceived(object? sender, RawDataEventArgs e)
-        {
-            _weightProcessor.EnqueueRawData(e.RawADCSum);
-        }
-
-        private void OnSystemStatusReceived(object? sender, SystemStatusEventArgs e)
-        {
-            // Sync Dashboard state
-            Dashboard.UpdateSystemStatus(e.ADCMode, e.RelayState);
-
-            // Sync Calibration state
-            Calibration.UpdateSystemStatus(e.ADCMode, e.RelayState);
-
-            // Sync WeightProcessor mode
-            _weightProcessor.SetADCMode(e.ADCMode);
-            _weightProcessor.SetBrakeMode(e.RelayState != 0);
-
-            // Reset filters on mode change to prevent carry-over from different hardware states
-            _weightProcessor.ResetFilters();
-        }
 
         public void Cleanup()
         {
-            _canService.RawDataReceived -= OnRawDataReceived;
-            _canService.SystemStatusReceived -= OnSystemStatusReceived;
             _uiTimer.Stop();
             _weightProcessor.Stop();
             _canService.Disconnect();
